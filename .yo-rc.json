@@ -1,0 +1,35 @@
+{
+  "generator-jhipster": {
+    "promptValues": {
+      "packageName": "com.icthh.xm.tmf.ms.activation"
+    },
+    "jhipsterVersion": "5.3.4",
+    "applicationType": "microservice",
+    "baseName": "activation",
+    "packageName": "com.icthh.xm.tmf.ms.activation",
+    "packageFolder": "com/icthh/xm/tmf/ms/activation",
+    "serverPort": "8712",
+    "authenticationType": "uaa",
+    "uaaBaseName": "uaa",
+    "cacheProvider": "no",
+    "websocket": false,
+    "databaseType": "sql",
+    "devDatabaseType": "h2Memory",
+    "prodDatabaseType": "postgresql",
+    "searchEngine": false,
+    "messageBroker": false,
+    "serviceDiscoveryType": "consul",
+    "buildTool": "gradle",
+    "enableSwaggerCodegen": false,
+    "jwtSecretKey": "NDc1OTMzMjMzMzA1MmViMGQ0YTk5MzU0NzU5ODFjOThhNDFlNTE2ZDRmZTBlMDVjYWY4ODc3YTkwMTZiZDgyZjFmZmNjMjI3YWVjNjY5MDgwZTc2NTEwNThmZDdlNmRjZDgwZWNmYzk3ZmFjY2FmOWUzMzgyZDYxZGQ2NGY2MDI=",
+    "enableTranslation": false,
+    "testFrameworks": [
+      "gatling",
+      "cucumber"
+    ],
+    "jhiPrefix": "jhi",
+    "clientPackageManager": "npm",
+    "skipClient": true,
+    "skipUserManagement": true
+  }
+}
