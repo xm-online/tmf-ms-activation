@@ -1,7 +1,6 @@
 package com.icthh.xm.tmf.ms.activation.web.rest.errors;
 
 import com.icthh.xm.tmf.ms.activation.web.rest.util.HeaderUtil;
-
 import org.springframework.dao.ConcurrencyFailureException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.BindingResult;

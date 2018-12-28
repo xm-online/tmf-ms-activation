@@ -1,12 +1,11 @@
 package com.icthh.xm.tmf.ms.activation.client;
 
+import feign.RequestInterceptor;
+import feign.RequestTemplate;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.provider.authentication.OAuth2AuthenticationDetails;
-
-import feign.RequestInterceptor;
-import feign.RequestTemplate;
 
 public class UserFeignClientInterceptor implements RequestInterceptor{
 
