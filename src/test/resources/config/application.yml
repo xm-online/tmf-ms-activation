@@ -98,7 +98,8 @@ jhipster:
         logs: # Reports Dropwizard metrics in the logs
             enabled: true
             report-frequency: 60 # in seconds
-
+xm-config:
+    enabled: false
 # ===================================================================
 # Application specific properties
 # Add your own application properties here, see the ApplicationProperties class
@@ -109,3 +110,8 @@ jhipster:
 # ===================================================================
 
 # application:
+application:
+    kafka-system-topic: system_topic
+    kafka-system-queue: system_queue
+    lep:
+        tenant-script-storage: XM_MS_CONFIG

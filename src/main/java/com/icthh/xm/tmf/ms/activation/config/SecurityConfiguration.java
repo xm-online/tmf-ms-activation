@@ -1,8 +1,9 @@
 package com.icthh.xm.tmf.ms.activation.config;
 
-import com.icthh.xm.tmf.ms.activation.config.oauth2.OAuth2JwtAccessTokenConverter;
-import com.icthh.xm.tmf.ms.activation.config.oauth2.OAuth2Properties;
-import com.icthh.xm.tmf.ms.activation.security.oauth2.OAuth2SignatureVerifierClient;
+import com.icthh.xm.commons.security.oauth2.ConfigSignatureVerifierClient;
+import com.icthh.xm.commons.security.oauth2.OAuth2JwtAccessTokenConverter;
+import com.icthh.xm.commons.security.oauth2.OAuth2Properties;
+import com.icthh.xm.commons.security.oauth2.OAuth2SignatureVerifierClient;
 import com.icthh.xm.tmf.ms.activation.security.AuthoritiesConstants;
 
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -65,6 +66,11 @@ public class SecurityConfiguration extends ResourceServerConfigurerAdapter {
         RestTemplate restTemplate = new RestTemplate();
         customizer.customize(restTemplate);
         return restTemplate;
+    }
+
+    @Bean
+    public ConfigSignatureVerifierClient configSignatureVerifierClient(@Qualifier("loadBalancedRestTemplate") RestTemplate restTemplate) {
+        return new ConfigSignatureVerifierClient(oAuth2Properties, restTemplate);
     }
 
     @Bean

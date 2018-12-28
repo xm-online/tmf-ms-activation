@@ -76,7 +76,8 @@ spring:
         locator:
             discovery:
                 enabled: true
-
+    kafka:
+        bootstrap-servers: localhost:9093
 server:
     port: 8712
 
@@ -121,7 +122,7 @@ jhipster:
             queue-size: 512
 oauth2:
     signature-verification:
-        public-key-endpoint-uri: http://uaa/oauth/token_key
+        public-key-endpoint-uri: http://config/api/token_key
         #ttl for public keys to verify JWT tokens (in ms)
         ttl: 3600000
         #max. rate at which public keys will be fetched (in ms)
