@@ -23,6 +23,7 @@ public class SagaSpec {
             .orElseThrow(() -> this.notFound(typeKey));
     }
 
+
     private BusinessException notFound(String type) {
         return new BusinessException("error.spec.not.found", "Spec for type " + type + " not found");
     }
