@@ -1,5 +1,6 @@
 package com.icthh.xm.tmf.ms.activation.config;
 
+import com.icthh.xm.commons.permission.constants.RoleConstant;
 import com.icthh.xm.commons.security.oauth2.ConfigSignatureVerifierClient;
 import com.icthh.xm.commons.security.oauth2.OAuth2JwtAccessTokenConverter;
 import com.icthh.xm.commons.security.oauth2.OAuth2Properties;
@@ -45,7 +46,8 @@ public class SecurityConfiguration extends ResourceServerConfigurerAdapter {
             .antMatchers("/api/**").authenticated()
             .antMatchers("/management/health").permitAll()
             .antMatchers("/management/info").permitAll()
-            .antMatchers("/management/**").hasAuthority(AuthoritiesConstants.ADMIN);
+            .antMatchers("/management/**").hasAuthority(RoleConstant.SUPER_ADMIN)
+            .antMatchers("/swagger-resources/configuration/ui").permitAll();
     }
 
     @Bean
