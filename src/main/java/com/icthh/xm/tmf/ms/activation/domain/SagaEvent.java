@@ -11,7 +11,8 @@ import java.util.UUID;
 public class SagaEvent implements Serializable {
 
     private String id = UUID.randomUUID().toString();
-
     private String typeKey;
+    private String tenantKey;
+    private String transactionId;
 
 }

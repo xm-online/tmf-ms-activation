@@ -3,12 +3,10 @@ package com.icthh.xm.tmf.ms.activation.domain;
 import lombok.Data;
 import lombok.experimental.Accessors;
 
-import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
-import javax.persistence.Id;
-import javax.persistence.SequenceGenerator;
+import javax.persistence.*;
 import java.io.Serializable;
+
+import static javax.persistence.EnumType.STRING;
 
 @Data
 @Entity
@@ -19,5 +17,10 @@ public class SagaLog implements Serializable {
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "sequenceGenerator")
     @SequenceGenerator(name = "sequenceGenerator")
     private Long id;
+    @ManyToOne
+    private SagaTransaction sagaTransaction;
+    private String eventTypeKey;
+    @Enumerated(STRING)
+    private SagaLogType logType;
 
 }

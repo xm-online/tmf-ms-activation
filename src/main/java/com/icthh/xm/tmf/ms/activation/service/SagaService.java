@@ -5,7 +5,7 @@ import com.icthh.xm.tmf.ms.activation.domain.SagaTransaction;
 
 public interface SagaService {
 
-    void createNewSaga(SagaTransaction sagaTransaction);
+    SagaTransaction createNewSaga(SagaTransaction sagaTransaction);
     void onSagaEvent(SagaEvent sagaEvent);
     void cancelSagaEvent(String sagaKey);
 
