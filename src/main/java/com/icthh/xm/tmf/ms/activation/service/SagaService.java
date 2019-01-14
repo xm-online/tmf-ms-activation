@@ -7,6 +7,6 @@ public interface SagaService {
 
     SagaTransaction createNewSaga(SagaTransaction sagaTransaction);
     void onSagaEvent(SagaEvent sagaEvent);
-    void cancelSagaEvent(String sagaKey);
+    void cancelSagaEvent(String sagaTxKey);
 
 }

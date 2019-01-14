@@ -59,11 +59,20 @@ public class SagaSpecService implements RefreshableConfiguration {
             } else {
                 SagaSpec spec = mapper.readValue(config, SagaSpec.class);
                 sagaSpecs.put(tenant, spec);
+                updateRetryPolicy(spec);
                 log.info("Spec for tenant '{}' were updated: {}", tenant, updatedKey);
             }
         } catch (Exception e) {
             log.error("Error read Scheduler specification from path: {}", updatedKey, e);
         }
+    }
+
+    private void updateRetryPolicy(SagaSpec spec) {
+        spec.getSagaTransactionSpec().forEach(tx ->
+            tx.getTasks().forEach(task ->
+                task.applyAsDefaultTransactionConfig(tx)
+            )
+        );
     }
 
     private String extractTenant(final String updatedKey) {
