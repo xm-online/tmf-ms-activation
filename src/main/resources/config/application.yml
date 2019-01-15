@@ -52,30 +52,6 @@ spring:
                     autoAddPartitions: true
                     minPartitionCount: 16
 
-                bindings:
-                    activation-events-out:
-                        destination: activation-events
-                        contentType: application/json
-                    activation-events-in:
-                        group: activation
-                        destination: activation-events
-                        contentType: application/json
-                        consumer:
-                            headerMode: raw
-                            maxAttempts: 2147483646
-                            startOffset: earliest
-                            autoCommitOffset: false
-            bindings:
-                activation-events-in:
-                    group: activation
-                    destination: activation-events
-                    contentType: application/json
-                    consumer:
-                        headerMode: raw
-                        maxAttempts: 2147483646
-                        startOffset: earliest
-                        autoCommitOffset: false
-
     jpa:
         open-in-view: false
         properties:
