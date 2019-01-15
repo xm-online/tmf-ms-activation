@@ -11,7 +11,7 @@ import org.springframework.stereotype.Service;
 @Slf4j
 @Service
 @LepService(group = "tasks")
-public class TaskExecutor {
+public class SagaTaskExecutor {
 
     @LogicExtensionPoint(value = "Task", resolver = TaskTypeKeyResolver.class)
     public void executeTask(SagaTaskSpec task, SagaTransaction sagaTransaction) {

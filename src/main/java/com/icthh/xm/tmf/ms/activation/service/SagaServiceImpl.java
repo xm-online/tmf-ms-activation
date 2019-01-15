@@ -18,10 +18,9 @@ import com.icthh.xm.tmf.ms.activation.domain.SagaEvent;
 import com.icthh.xm.tmf.ms.activation.domain.SagaLog;
 import com.icthh.xm.tmf.ms.activation.domain.SagaLogType;
 import com.icthh.xm.tmf.ms.activation.domain.SagaTransaction;
-import com.icthh.xm.tmf.ms.activation.domain.spec.SagaSpec;
 import com.icthh.xm.tmf.ms.activation.domain.spec.SagaTaskSpec;
 import com.icthh.xm.tmf.ms.activation.domain.spec.SagaTransactionSpec;
-import com.icthh.xm.tmf.ms.activation.events.EventsManager;
+import com.icthh.xm.tmf.ms.activation.events.EventsSender;
 import com.icthh.xm.tmf.ms.activation.repository.SagaLogRepository;
 import com.icthh.xm.tmf.ms.activation.repository.SagaTransactionRepository;
 import com.icthh.xm.tmf.ms.activation.utils.TenantUtils;
@@ -34,7 +33,6 @@ import org.apache.commons.lang3.NotImplementedException;
 import org.apache.commons.lang3.time.StopWatch;
 import org.springframework.stereotype.Service;
 
-import javax.annotation.Nullable;
 import javax.persistence.criteria.Predicate;
 import java.util.Collection;
 import java.util.HashSet;
@@ -51,9 +49,9 @@ public class SagaServiceImpl implements SagaService {
     private final SagaLogRepository logRepository;
     private final SagaTransactionRepository transactionRepository;
     private final SagaSpecService specService;
-    private final EventsManager eventsManager;
+    private final EventsSender eventsManager;
     private final TenantUtils tenantUtils;
-    private final TaskExecutor taskExecutor;
+    private final SagaTaskExecutor taskExecutor;
 
     @Override
     public SagaTransaction createNewSaga(SagaTransaction sagaTransaction) {
