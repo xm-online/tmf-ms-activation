@@ -5,6 +5,7 @@ import com.icthh.xm.commons.lep.spring.LepService;
 import com.icthh.xm.tmf.ms.activation.domain.SagaTransaction;
 import com.icthh.xm.tmf.ms.activation.domain.spec.SagaTaskSpec;
 import com.icthh.xm.tmf.ms.activation.resolver.TaskTypeKeyResolver;
+import com.icthh.xm.tmf.ms.activation.resolver.TransactionTypeKeyResolver;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
@@ -18,4 +19,8 @@ public class SagaTaskExecutor {
         log.error("Script for task {} not found. Transaction {}.", task, sagaTransaction);
     }
 
+    @LogicExtensionPoint(value = "OnFinish", resolver = TransactionTypeKeyResolver.class)
+    public void onFinish(SagaTransaction sagaTransaction) {
+        log.warn("Script for finish not found. Transaction {}.", sagaTransaction);
+    }
 }

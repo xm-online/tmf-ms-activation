@@ -4,8 +4,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.icthh.xm.commons.config.client.api.RefreshableConfiguration;
 import com.icthh.xm.commons.exceptions.BusinessException;
-import com.icthh.xm.commons.tenant.TenantContextHolder;
-import com.icthh.xm.tmf.ms.activation.domain.SagaTransaction;
 import com.icthh.xm.tmf.ms.activation.domain.spec.SagaSpec;
 import com.icthh.xm.tmf.ms.activation.domain.spec.SagaTransactionSpec;
 import com.icthh.xm.tmf.ms.activation.utils.TenantUtils;
@@ -68,7 +66,7 @@ public class SagaSpecService implements RefreshableConfiguration {
     }
 
     private void updateRetryPolicy(SagaSpec spec) {
-        spec.getSagaTransactionSpec().forEach(tx ->
+        spec.getTransactions().forEach(tx ->
             tx.getTasks().forEach(task ->
                 task.applyAsDefaultTransactionConfig(tx)
             )
@@ -83,7 +81,8 @@ public class SagaSpecService implements RefreshableConfiguration {
         String tenantKey = tenantUtils.getTenantKey();
         SagaSpec sagaSpec = sagaSpecs.get(tenantKey);
         if (sagaSpec == null) {
-            throw new BusinessException("saga.spec.not.found", "Saga spec for type " + tenantKey + " and tenant " + tenantKey + " not found.");
+            throw new BusinessException("saga.spec.not.found",
+                "Saga spec for type " + tenantKey + " and tenant " + tenantKey + " not found.");
         }
         return sagaSpec.getByType(typeKey);
     }

@@ -60,8 +60,8 @@ public class MessaginsConfiguration implements RefreshableConfiguration {
     private final BindingService bindingService;
     private final KafkaExtendedBindingProperties kafkaExtendedBindingProperties = new KafkaExtendedBindingProperties();
     private final Map<String, SubscribableChannel> channels = new ConcurrentHashMap<>();
-    private final SagaService sagaService;
     private final ObjectMapper objectMapper;
+    private final EventHandler eventHandler;
 
     @Value("${spring.application.name}")
     private String appName;
@@ -72,11 +72,11 @@ public class MessaginsConfiguration implements RefreshableConfiguration {
                                   BindingService bindingService,
                                   KafkaMessageChannelBinder kafkaMessageChannelBinder,
                                   ObjectMapper objectMapper,
-                                  SagaService sagaService) {
+                                  EventHandler eventHandler) {
         this.bindingServiceProperties = bindingServiceProperties;
         this.bindingTargetFactory = bindingTargetFactory;
         this.bindingService = bindingService;
-        this.sagaService = sagaService;
+        this.eventHandler = eventHandler;
         this.objectMapper = objectMapper;
         kafkaMessageChannelBinder.setExtendedBindingProperties(kafkaExtendedBindingProperties);
     }
@@ -130,7 +130,7 @@ public class MessaginsConfiguration implements RefreshableConfiguration {
                     log.info("start processign message for tenant: [{}], body = {}", tenantName, payloadString);
                     String eventBody = new String(Base64.getDecoder().decode(payloadString), UTF_8);
 
-                    sagaService.onSagaEvent(mapToEvent(eventBody));
+                    eventHandler.onEvent(mapToEvent(eventBody), tenantName);
 
                     message.getHeaders().get(KafkaHeaders.ACKNOWLEDGMENT, Acknowledgment.class).acknowledge();
                     log.info("stop processign message for tenant: [{}], time = {}", tenantName, stopWatch.getTime());

@@ -64,7 +64,7 @@ spring:
             discovery:
                 enabled: true
     kafka:
-        bootstrap-servers: localhost:9093
+        bootstrap-servers: localhost:9092
 # ===================================================================
 # To enable TLS in production, generate a certificate using:
 # keytool -genkey -alias activation -storetype PKCS12 -keyalg RSA -keysize 2048 -keystore keystore.p12 -validity 3650

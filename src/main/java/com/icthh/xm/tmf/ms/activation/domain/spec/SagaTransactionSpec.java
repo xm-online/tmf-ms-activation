@@ -26,8 +26,6 @@ public class SagaTransactionSpec {
     private Integer backOff;
     private Integer maxBackOff;
     private List<SagaTaskSpec> tasks;
-    private String onFinish;
-    private String onFail;
 
     public static Predicate<SagaTransactionSpec> isEqualsKey(String key) {
         return it -> it != null && Objects.equals(key, it.getKey());

@@ -11,7 +11,6 @@ import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 import static java.util.stream.Collectors.toList;
-import static org.springframework.data.jpa.domain.Specification.where;
 
 import com.icthh.xm.commons.exceptions.EntityNotFoundException;
 import com.icthh.xm.tmf.ms.activation.domain.SagaEvent;
@@ -33,7 +32,6 @@ import org.apache.commons.lang3.NotImplementedException;
 import org.apache.commons.lang3.time.StopWatch;
 import org.springframework.stereotype.Service;
 
-import javax.persistence.criteria.Predicate;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
@@ -58,7 +56,7 @@ public class SagaServiceImpl implements SagaService {
         sagaTransaction.setId(null);
         sagaTransaction.setSagaTransactionState(NEW);
         SagaTransaction saved = transactionRepository.save(sagaTransaction);
-        generateFirstEvents(sagaTransaction);
+        generateFirstEvents(saved);
         return saved;
     }
 
@@ -70,8 +68,8 @@ public class SagaServiceImpl implements SagaService {
         List<BiFunction<SagaEvent, Context, Boolean>> preconditions = asList(
             this::isTransactionExists,
             this::isTransactionInCorrectState,
-            this::isAllDependsTaskFinished,
-            this::isCurrentTaskNotFinished
+            this::isCurrentTaskNotFinished,
+            this::isAllDependsTaskFinished
         );
 
         for (val precondition: preconditions) {
@@ -85,12 +83,20 @@ public class SagaServiceImpl implements SagaService {
         SagaTaskSpec taskSpec = context.getTaskSpec();
         writeLog(sagaEvent, transaction, EVENT_START);
 
-        execute(sagaEvent, transaction, taskSpec);
+        try {
+            StopWatch stopWatch = StopWatch.createStarted();
+            log.info("Start execute task by event {} transaction {}", sagaEvent, transaction);
+            taskExecutor.executeTask(taskSpec, transaction);
+            log.info("Finish execute task by event {} transaction {}. Time: {}ms", sagaEvent, transaction, stopWatch.getTime());
 
-        List<SagaTaskSpec> tasks = taskSpec.getNext().stream().map(transactionSpec::getTask).collect(toList());
-        generateEvents(txId, tasks);
-        writeLog(sagaEvent, transaction, EVENT_END);
-        updateTransactionStatus(transaction, transactionSpec);
+            List<SagaTaskSpec> tasks = taskSpec.getNext().stream().map(transactionSpec::getTask).collect(toList());
+            generateEvents(txId, tasks);
+            writeLog(sagaEvent, transaction, EVENT_END);
+            updateTransactionStatus(transaction, transactionSpec);
+        } catch (Exception e) {
+            log.error("Error execute task.", e);
+            failHandler(transaction, sagaEvent, taskSpec);
+        }
     }
 
     private Context initContext(SagaEvent sagaEvent) {
@@ -111,7 +117,7 @@ public class SagaServiceImpl implements SagaService {
 
     private boolean isTransactionInCorrectState(SagaEvent sagaEvent, Context context) {
         SagaTransaction transaction = context.getTransaction();
-        if (NEW == transaction.getSagaTransactionState()) {
+        if (NEW != transaction.getSagaTransactionState()) {
             log.warn("Transaction {} in incorrect state. Event {} skipped.", transaction, sagaEvent);
             return false;
         }
@@ -148,7 +154,7 @@ public class SagaServiceImpl implements SagaService {
     }
 
     private boolean isTaskFinished(SagaEvent sagaEvent, String txId) {
-        return !getNotFinishedTasks(txId, singletonList(sagaEvent.getTypeKey())).isEmpty();
+        return getNotFinishedTasks(txId, singletonList(sagaEvent.getTypeKey())).isEmpty();
     }
 
     @Override
@@ -178,24 +184,15 @@ public class SagaServiceImpl implements SagaService {
         Collection<String> notFinishedTasks = getNotFinishedTasks(transaction.getId(), txTasks);
         if (notFinishedTasks.isEmpty()) {
             transactionRepository.save(transaction.setSagaTransactionState(FINISHED));
+            taskExecutor.onFinish(transaction);
         }
     }
 
     private void retry(SagaEvent sagaEvent) {
-        eventsManager.sendEvent(sagaEvent);
+        eventsManager.resendEvent(sagaEvent);
     }
 
-    private void execute(SagaEvent sagaEvent, SagaTransaction transaction, SagaTaskSpec taskSpec) {
-        try {
-            StopWatch stopWatch = StopWatch.createStarted();
-            log.info("Start execute task by event {} transaction {}", sagaEvent, transaction);
-            taskExecutor.executeTask(taskSpec, transaction);
-            log.info("Finish execute task by event {} transaction {}. Time: {}ms", sagaEvent, transaction, stopWatch.getTime());
-        } catch (Exception e) {
-            log.error("Error execute task.", e);
-            failHandler(transaction, sagaEvent, taskSpec);
-        }
-    }
+
 
     private void failHandler(SagaTransaction transaction, SagaEvent sagaEvent, SagaTaskSpec taskSpec) {
         if (taskSpec.getRetryPolicy() == RETRY) {
@@ -213,18 +210,7 @@ public class SagaServiceImpl implements SagaService {
             return emptyList();
         }
 
-        List<SagaLog> finished = logRepository.findAll(where((root, query, cb) -> {
-            Predicate conjunction = cb.conjunction();
-            for (String key : taskKeys) {
-                conjunction = cb.and(
-                    conjunction,
-                    cb.equal(root.get("eventTypeKey"), key),
-                    cb.equal(root.get("logType"), EVENT_END),
-                    cb.equal(root.get("sagaTransaction").get("id"), sagaTxId)
-                );
-            }
-            return conjunction;
-        }));
+        List<SagaLog> finished = logRepository.getFinishLogs(sagaTxId, taskKeys);
         Set<String> depends = new HashSet<>(taskKeys);
         finished.forEach(log -> depends.remove(log.getEventTypeKey()));
         return depends;

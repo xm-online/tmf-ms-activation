@@ -17,8 +17,15 @@ public class KafkaEventsSender implements EventsSender {
 
     @Override
     public void sendEvent(SagaEvent sagaEvent) {
-        log.info("send saga event: {}", sagaEvent);
+        log.info("Send saga event: {}", sagaEvent);
         channelResolver.resolveDestination(MessaginsConfiguration.buildChanelName(sagaEvent.getTenantKey().toUpperCase()))
             .send(MessageBuilder.withPayload(sagaEvent).build());
     }
+
+    @Override
+    public void resendEvent(SagaEvent sagaEvent) {
+
+    }
+
+
 }

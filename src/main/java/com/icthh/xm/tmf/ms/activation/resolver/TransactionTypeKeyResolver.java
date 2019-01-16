@@ -7,17 +7,13 @@ import com.icthh.xm.lep.api.commons.SeparatorSegmentedLepKey;
 import com.icthh.xm.tmf.ms.activation.domain.SagaTransaction;
 import com.icthh.xm.tmf.ms.activation.domain.spec.SagaTaskSpec;
 
-public class TaskTypeKeyResolver extends AppendLepKeyResolver {
+public class TransactionTypeKeyResolver extends AppendLepKeyResolver {
     @Override
     protected String[] getAppendSegments(SeparatorSegmentedLepKey baseKey, LepMethod method, LepManagerService managerService) {
-        SagaTaskSpec task = getRequiredParam(method, "task", SagaTaskSpec.class);
         SagaTransaction sagaTransaction = getRequiredParam(method, "sagaTransaction", SagaTransaction.class);
-
         String translatedSagaTransactionKey = translateToLepConvention(sagaTransaction.getTypeKey());
-        String translatedTaskKey = translateToLepConvention(task.getKey());
         return new String[] {
-            translatedSagaTransactionKey,
-            translatedTaskKey
+            translatedSagaTransactionKey
         };
     }
 }

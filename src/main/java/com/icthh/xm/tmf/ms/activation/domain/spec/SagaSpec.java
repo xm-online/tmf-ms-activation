@@ -15,13 +15,13 @@ import java.util.List;
 @Accessors(chain = true)
 public class SagaSpec {
 
-    private List<SagaTransactionSpec> sagaTransactionSpec;
+    private List<SagaTransactionSpec> transactions;
 
     public SagaTransactionSpec getByType(String typeKey) {
-        if (sagaTransactionSpec == null) {
+        if (transactions == null) {
             throw notFound(typeKey);
         }
-        return sagaTransactionSpec.stream().filter(isEqualsKey(typeKey)).findFirst()
+        return transactions.stream().filter(isEqualsKey(typeKey)).findFirst()
             .orElseThrow(() -> notFound(typeKey));
     }
 
