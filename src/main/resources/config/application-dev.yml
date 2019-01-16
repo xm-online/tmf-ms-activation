@@ -18,7 +18,6 @@ logging:
         ROOT: DEBUG
         io.github.jhipster: DEBUG
         com.icthh.xm.tmf.ms.activation: DEBUG
-
 spring:
     profiles:
         active: dev
@@ -41,11 +40,9 @@ spring:
             port: 8500
     datasource:
         type: com.zaxxer.hikari.HikariDataSource
-        url: jdbc:h2:mem:activation;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+        url: jdbc:h2:mem:activation;DB_CLOSE_DELAY=-1
         username: activation
         password:
-        hikari:
-            auto-commit: false
     h2:
         console:
             enabled: false

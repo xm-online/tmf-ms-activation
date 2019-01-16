@@ -15,6 +15,7 @@ import static javax.persistence.EnumType.STRING;
 
 @Data
 @Entity
+@Table(name = "saga_transaction")
 @Accessors(chain = true)
 public class SagaTransaction implements Serializable {
 
@@ -23,10 +24,13 @@ public class SagaTransaction implements Serializable {
     @GenericGenerator(name = "uuid", strategy = "uuid2")
     private String id;
     @NotNull
+    @Column(name = "type_key")
     private String typeKey;
     @Convert(converter = MapToStringConverter.class)
+    @Column(name = "context")
     private Map<String, Object> context = new HashMap<>();
     @Enumerated(STRING)
+    @Column(name = "saga_transaction_state")
     private SagaTransactionState sagaTransactionState;
 
 }

@@ -53,6 +53,7 @@ public class SagaServiceImpl implements SagaService {
 
     @Override
     public SagaTransaction createNewSaga(SagaTransaction sagaTransaction) {
+        specService.getTransactionSpec(sagaTransaction.getTypeKey());
         sagaTransaction.setId(null);
         sagaTransaction.setSagaTransactionState(NEW);
         SagaTransaction saved = transactionRepository.save(sagaTransaction);

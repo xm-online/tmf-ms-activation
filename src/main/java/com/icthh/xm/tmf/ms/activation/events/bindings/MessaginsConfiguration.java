@@ -86,7 +86,7 @@ public class MessaginsConfiguration implements RefreshableConfiguration {
             String tenantKey = upperCase(tenantName);
             createHandler(buildChanelName(tenantKey), "activation", tenantKey, earliest);
         } catch (Exception e) {
-            log.error("Error create scheduler channels for tenant " + tenantName, e);
+            log.error("Error create channels for tenant " + tenantName, e);
             throw e;
         }
     }
@@ -124,8 +124,7 @@ public class MessaginsConfiguration implements RefreshableConfiguration {
                 try {
                     MdcUtils.putRid(MdcUtils.generateRid() + ":" + tenantName);
                     StopWatch stopWatch = StopWatch.createStarted();
-                    byte[] payload = (byte[]) message.getPayload();
-                    String payloadString = new String(payload, UTF_8);
+                    String payloadString = (String) message.getPayload();
                     payloadString = unwrap(payloadString, "\"");
                     log.info("start processign message for tenant: [{}], body = {}", tenantName, payloadString);
                     String eventBody = new String(Base64.getDecoder().decode(payloadString), UTF_8);

@@ -7,10 +7,63 @@
                         http://www.liquibase.org/xml/ns/dbchangelog-ext http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-ext.xsd">
 
     <property name="now" value="now()" dbms="h2"/>
+
     <property name="now" value="current_timestamp" dbms="postgresql"/>
+
+    <property name="floatType" value="float4" dbms="postgresql, h2"/>
+    <property name="floatType" value="float" dbms="mysql, oracle, mssql"/>
+
+    <property name="textType" value="varchar" dbms="postgresql, h2"/>
+    <property name="textType" value="text" dbms="oracle"/>
 
     <changeSet id="00000000000000" author="jhipster">
         <createSequence sequenceName="hibernate_sequence" startValue="1000" incrementBy="50"/>
     </changeSet>
+
+    <changeSet id="20190116185200-1" author="ssenko">
+        <createTable tableName="saga_transaction">
+            <column name="id" type="varchar(255)">
+                <constraints nullable="true" />
+            </column>
+
+            <column name="type_key" type="varchar(255)">
+                <constraints nullable="false" />
+            </column>
+
+            <column name="context" type="${textType}">
+                <constraints nullable="true" />
+            </column>
+
+            <column name="saga_transaction_state" type="varchar(255)">
+                <constraints nullable="true" />
+            </column>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="20190116185200-2" author="ssenko">
+        <createTable tableName="saga_log">
+            <column name="id" type="bigint" autoIncrement="${autoIncrement}">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+
+            <column name="event_type_key" type="varchar(255)">
+                <constraints nullable="false" />
+            </column>
+
+            <column name="log_type" type="varchar(255)">
+                <constraints nullable="true" />
+            </column>
+
+            <column name="saga_transaction_id" type="varchar(255)">
+                <constraints nullable="true" />
+            </column>
+        </createTable>
+        <addForeignKeyConstraint baseColumnNames="saga_transaction_id"
+                                 baseTableName="saga_log"
+                                 constraintName="fk_saga_log_saga_transaction_id"
+                                 referencedColumnNames="id"
+                                 referencedTableName="saga_transaction"/>
+    </changeSet>
+
 
 </databaseChangeLog>

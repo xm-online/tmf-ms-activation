@@ -10,6 +10,7 @@ import static javax.persistence.EnumType.STRING;
 
 @Data
 @Entity
+@Table(name = "saga_log")
 @Accessors(chain = true)
 public class SagaLog implements Serializable {
 
@@ -18,9 +19,12 @@ public class SagaLog implements Serializable {
     @SequenceGenerator(name = "sequenceGenerator")
     private Long id;
     @ManyToOne
+    @JoinColumn(name = "saga_transaction_id")
     private SagaTransaction sagaTransaction;
+    @Column(name = "event_type_key")
     private String eventTypeKey;
     @Enumerated(STRING)
+    @Column(name = "log_type")
     private SagaLogType logType;
 
 }

@@ -61,7 +61,7 @@ public class SagaSpecService implements RefreshableConfiguration {
                 log.info("Spec for tenant '{}' were updated: {}", tenant, updatedKey);
             }
         } catch (Exception e) {
-            log.error("Error read Scheduler specification from path: {}", updatedKey, e);
+            log.error("Error read specification from path: {}", updatedKey, e);
         }
     }
 
