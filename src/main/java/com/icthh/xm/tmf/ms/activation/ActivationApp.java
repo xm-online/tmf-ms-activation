@@ -43,7 +43,6 @@ public class ActivationApp {
         this.tenantContextHolder = tenantContextHolder;
     }
 
-
     /**
      * Initializes activation.
      * <p>
@@ -68,7 +67,6 @@ public class ActivationApp {
     private void initContexts() {
         // init tenant context, by default this is XM super tenant
         TenantContextUtils.setTenant(tenantContextHolder, TenantKey.SUPER);
-
         // init logger MDC context
         MdcUtils.putRid(MdcUtils.generateRid() + "::" + TenantKey.SUPER.getValue());
     }
@@ -79,9 +77,7 @@ public class ActivationApp {
      * @param args the command line arguments
      */
     public static void main(String[] args) {
-
         MdcUtils.putRid();
-
         SpringApplication app = new SpringApplication(ActivationApp.class);
         DefaultProfileUtil.addDefaultProfile(app);
         Environment env = app.run(args).getEnvironment();
