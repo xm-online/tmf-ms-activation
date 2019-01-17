@@ -2,6 +2,7 @@ package com.icthh.xm.tmf.ms.activation.service;
 
 import com.icthh.xm.commons.lep.LogicExtensionPoint;
 import com.icthh.xm.commons.lep.spring.LepService;
+import com.icthh.xm.tmf.ms.activation.domain.SagaEvent;
 import com.icthh.xm.tmf.ms.activation.domain.SagaTransaction;
 import com.icthh.xm.tmf.ms.activation.domain.spec.SagaTaskSpec;
 import com.icthh.xm.tmf.ms.activation.resolver.TaskTypeKeyResolver;
@@ -18,7 +19,7 @@ import java.util.Map;
 public class SagaTaskExecutor {
 
     @LogicExtensionPoint(value = "Task", resolver = TaskTypeKeyResolver.class)
-    public Map<String, Object> executeTask(SagaTaskSpec task, SagaTransaction sagaTransaction) {
+    public Map<String, Object> executeTask(SagaTaskSpec task, SagaEvent sagaEvent, SagaTransaction sagaTransaction) {
         log.error("Script for task {} not found. Transaction {}.", task, sagaTransaction);
         return Collections.emptyMap();
     }

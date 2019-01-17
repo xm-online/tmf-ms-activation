@@ -2,11 +2,12 @@ package com.icthh.xm.tmf.ms.activation.service;
 
 import static com.icthh.xm.tmf.ms.activation.domain.SagaEvent.SagaEventType.ON_RETRY;
 
-import com.icthh.xm.tmf.ms.activation.config.ApplicationProperties;
+import com.icthh.xm.commons.tenant.TenantContextHolder;
 import com.icthh.xm.tmf.ms.activation.domain.SagaEvent;
 import com.icthh.xm.tmf.ms.activation.domain.spec.SagaTaskSpec;
 import com.icthh.xm.tmf.ms.activation.events.EventsSender;
 import com.icthh.xm.tmf.ms.activation.repository.SagaEventRepository;
+import com.icthh.xm.tmf.ms.activation.utils.TenantUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,6 +16,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.PostConstruct;
+import java.time.Instant;
+import java.util.Date;
 import java.util.List;
 
 @Slf4j
@@ -25,6 +28,7 @@ public class RetryService {
     private final ThreadPoolTaskScheduler threadPoolTaskScheduler;
     private final EventsSender eventsSender;
     private final SagaEventRepository sagaEventRepository;
+    private final TenantUtils tenantUtils;
 
     private RetryService self;
 
@@ -55,19 +59,22 @@ public class RetryService {
 
     private void scheduleRetry(SagaEvent sagaEvent) {
         SagaEvent savedSagaEvent = sagaEventRepository.save(sagaEvent);
-        log.info("Schedule event {} for delay {}", savedSagaEvent);
-        threadPoolTaskScheduler.scheduleWithFixedDelay(() -> doResend(savedSagaEvent), sagaEvent.getBackOff() * 1000);
+        log.info("Schedule event {} for delay {}", savedSagaEvent, sagaEvent.getBackOff());
+        threadPoolTaskScheduler.schedule(() -> doResend(savedSagaEvent), Instant.now().plusSeconds(sagaEvent.getBackOff()));
     }
 
     public void doResend(SagaEvent sagaEvent) {
-        try {
-            log.info("Retry event {}. Send into broker.", sagaEvent);
-            eventsSender.sendEvent(sagaEvent);
-            sagaEventRepository.delete(sagaEvent);
-        } catch (Exception e) {
-            scheduleRetry(sagaEvent);
-            throw e;
-        }
+        tenantUtils.doInTenantContext(() -> {
+            try {
+                log.info("Retry event {}. Send into broker.", sagaEvent);
+                eventsSender.sendEvent(sagaEvent);
+                sagaEventRepository.delete(sagaEvent);
+            } catch (Exception e) {
+                scheduleRetry(sagaEvent);
+                log.info("Error has happend.", e);
+                throw e;
+            }
+        }, sagaEvent.getTenantKey());
     }
 
     @Autowired

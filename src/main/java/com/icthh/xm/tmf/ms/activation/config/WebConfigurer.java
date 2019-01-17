@@ -157,7 +157,7 @@ public class WebConfigurer implements ServletContextInitializer, WebServerFactor
     public ThreadPoolTaskScheduler threadPoolTaskScheduler(ApplicationProperties applicationProperties) {
         ThreadPoolTaskScheduler threadPoolTaskScheduler = new ThreadPoolTaskScheduler();
         threadPoolTaskScheduler.setPoolSize(applicationProperties.getRetryThreadCount());
-        threadPoolTaskScheduler.setThreadNamePrefix("xm-activation-retry");
+        threadPoolTaskScheduler.setThreadNamePrefix("activation-retry");
         return threadPoolTaskScheduler;
     }
 

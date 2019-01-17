@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Map;
 
-@RestController("/api")
+@RestController("/api/internal")
 @RequiredArgsConstructor
 public class SagaTransactionResource {
 

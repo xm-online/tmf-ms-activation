@@ -26,6 +26,7 @@ import com.icthh.xm.tmf.ms.activation.domain.SagaTransactionState;
 import com.icthh.xm.tmf.ms.activation.domain.spec.RetryPolicy;
 import com.icthh.xm.tmf.ms.activation.domain.spec.SagaTaskSpec;
 import com.icthh.xm.tmf.ms.activation.events.EventsSender;
+import com.icthh.xm.tmf.ms.activation.repository.SagaEventRepository;
 import com.icthh.xm.tmf.ms.activation.repository.SagaLogRepository;
 import com.icthh.xm.tmf.ms.activation.repository.SagaTransactionRepository;
 import com.icthh.xm.tmf.ms.activation.utils.TenantUtils;
@@ -63,6 +64,8 @@ public class SagaServiceTest {
     private SagaTaskExecutor taskExecutor;
     @Mock
     private RetryService retryService;
+    @Mock
+    private SagaEventRepository sagaEventRepository;
 
     private List<String> allTasks = asList("FIRST-PARALEL-TASK", "PARALEL-TASK1", "PARALEL-TASK2", "NEXT-JOIN-TASK",
         "SECOND-PARALEL-TASK", "SOME-OTHER-TASK");
@@ -71,7 +74,7 @@ public class SagaServiceTest {
     public void before() throws IOException {
         specService = new SagaSpecService(tenantUtils);
         sagaService = new SagaServiceImpl(logRepository, transactionRepository, specService, eventsManager,
-            tenantUtils, taskExecutor, retryService);
+            tenantUtils, taskExecutor, retryService, sagaEventRepository);
         specService.onRefresh("/config/tenants/XM/activation/transaction-spec.yml", loadFile("spec/transaction-spec.yml"));
     }
 
