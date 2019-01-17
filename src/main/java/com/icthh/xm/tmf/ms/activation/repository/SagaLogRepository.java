@@ -13,9 +13,6 @@ import javax.persistence.criteria.Predicate;
 import java.util.List;
 
 public interface SagaLogRepository extends JpaRepository<SagaLog, Long>, JpaSpecificationExecutor<SagaLog> {
-    List<SagaLog> findByLogTypeAndEventTypeKeyAndSagaTransaction(SagaLogType logType, String taskKey,
-                                                                 SagaTransaction transaction);
-
 
     default List<SagaLog> getFinishLogs(String sagaTxId, List<String> taskKeys) {
         return findAll(where((root, query, cb) -> {

@@ -14,7 +14,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.List;
 
-
 @Slf4j
 @DataSet(value = "init-logs.xml")
 public class LogsRepositoryTest extends BaseDaoTest {
