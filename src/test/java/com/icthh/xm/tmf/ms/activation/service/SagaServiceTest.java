@@ -11,6 +11,7 @@ import static java.util.Collections.emptyList;
 import static java.util.Optional.empty;
 import static java.util.Optional.of;
 import static java.util.stream.Collectors.toList;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.refEq;
 import static org.mockito.Mockito.doThrow;
@@ -38,6 +39,7 @@ import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.springframework.core.io.ClassPathResource;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.UUID;
 
@@ -59,20 +61,21 @@ public class SagaServiceTest {
     private TenantUtils tenantUtils;
     @Mock
     private SagaTaskExecutor taskExecutor;
+    @Mock
+    private RetryService retryService;
 
     private List<String> allTasks = asList("FIRST-PARALEL-TASK", "PARALEL-TASK1", "PARALEL-TASK2", "NEXT-JOIN-TASK",
         "SECOND-PARALEL-TASK", "SOME-OTHER-TASK");
 
     @Before
-    public void before() {
+    public void before() throws IOException {
         specService = new SagaSpecService(tenantUtils);
         sagaService = new SagaServiceImpl(logRepository, transactionRepository, specService, eventsManager,
-            tenantUtils, taskExecutor);
+            tenantUtils, taskExecutor, retryService);
         specService.onRefresh("/config/tenants/XM/activation/transaction-spec.yml", loadFile("spec/transaction-spec.yml"));
     }
 
-    @SneakyThrows
-    public static String loadFile(String path) {
+    public static String loadFile(String path) throws IOException {
         return IOUtils.toString(new ClassPathResource(path).getInputStream(), UTF_8);
     }
 
@@ -193,9 +196,9 @@ public class SagaServiceTest {
         verify(logRepository).getFinishLogs(eq(txId), eq(asList("NEXT-JOIN-TASK")));
         verify(logRepository).getFinishLogs(eq(txId), eq(asList("PARALEL-TASK1", "PARALEL-TASK2")));
 
-        verify(eventsManager).resendEvent(refEq(new SagaEvent().setTenantKey("XM")
+        verify(retryService).retry(refEq(new SagaEvent().setTenantKey("XM")
             .setTypeKey("NEXT-JOIN-TASK")
-            .setTransactionId(txId), "id"));
+            .setTransactionId(txId), "id"), any());
 
         noMoreInteraction();
     }
@@ -273,9 +276,9 @@ public class SagaServiceTest {
         verify(logRepository).save(refEq(createLog(txId, "NEXT-JOIN-TASK", EVENT_START)));
         verify(taskExecutor).executeTask(refEq(sagaTaskSpec), refEq(mockTx(txId)));
 
-        verify(eventsManager).resendEvent(refEq(new SagaEvent().setTenantKey("XM")
+        verify(retryService).retry(refEq(new SagaEvent().setTenantKey("XM")
             .setTypeKey("NEXT-JOIN-TASK")
-            .setTransactionId(txId), "id"));
+            .setTransactionId(txId), "id"), any());
 
         noMoreInteraction();
     }

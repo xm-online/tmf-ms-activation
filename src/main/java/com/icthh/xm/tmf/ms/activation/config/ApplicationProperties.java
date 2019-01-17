@@ -34,4 +34,7 @@ public class ApplicationProperties {
         private TenantScriptStorage tenantScriptStorage;
         private String lepResourcePathPattern;
     }
+
+    private int retryThreadCount;
+
 }

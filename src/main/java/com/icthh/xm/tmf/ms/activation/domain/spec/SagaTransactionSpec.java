@@ -22,9 +22,9 @@ public class SagaTransactionSpec {
 
     private String key;
     private RetryPolicy retryPolicy;
-    private Long retryCount;
-    private Integer backOff;
-    private Integer maxBackOff;
+    private Long retryCount = -1L;
+    private Integer backOff = 5;
+    private Integer maxBackOff = 30;
     private List<SagaTaskSpec> tasks;
 
     public static Predicate<SagaTransactionSpec> isEqualsKey(String key) {

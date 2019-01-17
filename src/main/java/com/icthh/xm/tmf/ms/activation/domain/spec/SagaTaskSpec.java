@@ -25,6 +25,7 @@ public class SagaTaskSpec {
     private Integer maxBackOff = 30;
     private List<String> next;
     private List<String> depends;
+    private Boolean isSuspendable;
 
     public List<String> getNext() {
         if (next == null) {

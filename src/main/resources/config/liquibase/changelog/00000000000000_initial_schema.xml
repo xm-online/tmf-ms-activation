@@ -65,5 +65,42 @@
                                  referencedTableName="saga_transaction"/>
     </changeSet>
 
+    <changeSet id="20190116185200-3" author="ssenko">
+        <createTable tableName="saga_event">
+            <column name="id" type="varchar(255)">
+                <constraints nullable="true" />
+            </column>
+
+            <column name="type_key" type="varchar(255)">
+                <constraints nullable="false" />
+            </column>
+
+            <column name="tenant_key" type="varchar(255)">
+                <constraints nullable="false" />
+            </column>
+
+            <column name="transaction_id" type="varchar(255)">
+                <constraints nullable="false" />
+            </column>
+
+            <column name="task_context" type="${textType}">
+                <constraints nullable="true" />
+            </column>
+
+            <column name="status" type="varchar(255)">
+                <constraints nullable="true" />
+            </column>
+
+            <column name="back_off" type="bigint">
+                <constraints nullable="true" />
+            </column>
+
+            <column name="retry_number" type="bigint">
+                <constraints nullable="true" />
+            </column>
+
+        </createTable>
+    </changeSet>
+
 
 </databaseChangeLog>

@@ -126,8 +126,9 @@ public class MessaginsConfiguration implements RefreshableConfiguration {
                     StopWatch stopWatch = StopWatch.createStarted();
                     String payloadString = (String) message.getPayload();
                     payloadString = unwrap(payloadString, "\"");
-                    log.info("start processign message for tenant: [{}], body = {}", tenantName, payloadString);
+                    log.info("start processign message for tenant: [{}], base64 body = {}", tenantName, payloadString);
                     String eventBody = new String(Base64.getDecoder().decode(payloadString), UTF_8);
+                    log.info("start processign message for tenant: [{}], json body = {}", tenantName, eventBody);
 
                     eventHandler.onEvent(mapToEvent(eventBody), tenantName);
 

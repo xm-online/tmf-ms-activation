@@ -9,14 +9,18 @@ import com.icthh.xm.tmf.ms.activation.resolver.TransactionTypeKeyResolver;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.util.Collections;
+import java.util.Map;
+
 @Slf4j
 @Service
 @LepService(group = "tasks")
 public class SagaTaskExecutor {
 
     @LogicExtensionPoint(value = "Task", resolver = TaskTypeKeyResolver.class)
-    public void executeTask(SagaTaskSpec task, SagaTransaction sagaTransaction) {
+    public Map<String, Object> executeTask(SagaTaskSpec task, SagaTransaction sagaTransaction) {
         log.error("Script for task {} not found. Transaction {}.", task, sagaTransaction);
+        return Collections.emptyMap();
     }
 
     @LogicExtensionPoint(value = "OnFinish", resolver = TransactionTypeKeyResolver.class)

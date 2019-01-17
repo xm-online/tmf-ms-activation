@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.icthh.xm.commons.config.client.api.RefreshableConfiguration;
 import com.icthh.xm.commons.exceptions.BusinessException;
+import com.icthh.xm.commons.logging.aop.IgnoreLogginAspect;
 import com.icthh.xm.tmf.ms.activation.domain.spec.SagaSpec;
 import com.icthh.xm.tmf.ms.activation.domain.spec.SagaTransactionSpec;
 import com.icthh.xm.tmf.ms.activation.utils.TenantUtils;
@@ -77,6 +78,7 @@ public class SagaSpecService implements RefreshableConfiguration {
         return matcher.extractUriTemplateVariables(PATH_PATTERN, updatedKey).get(TENANT_NAME);
     }
 
+    @IgnoreLogginAspect
     public SagaTransactionSpec getTransactionSpec(String typeKey) {
         String tenantKey = tenantUtils.getTenantKey();
         SagaSpec sagaSpec = sagaSpecs.get(tenantKey);

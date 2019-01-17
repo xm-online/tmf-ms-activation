@@ -19,13 +19,15 @@ public interface SagaLogRepository extends JpaRepository<SagaLog, Long>, JpaSpec
 
     default List<SagaLog> getFinishLogs(String sagaTxId, List<String> taskKeys) {
         return findAll(where((root, query, cb) -> {
-            Predicate conjunction = cb.conjunction();
+            Predicate conjunction = cb.disjunction();
             for (String key : taskKeys) {
-                conjunction = cb.and(
+                conjunction = cb.or(
                     conjunction,
-                    cb.equal(root.get("eventTypeKey"), key),
-                    cb.equal(root.get("logType"), EVENT_END),
-                    cb.equal(root.get("sagaTransaction").get("id"), sagaTxId)
+                    cb.and(
+                        cb.equal(root.get("eventTypeKey"), key),
+                        cb.equal(root.get("logType"), EVENT_END),
+                        cb.equal(root.get("sagaTransaction").get("id"), sagaTxId)
+                    )
                 );
             }
             return conjunction;

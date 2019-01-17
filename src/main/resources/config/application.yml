@@ -158,6 +158,7 @@ xm-config:
     kafka-config-topic: config_topic
 
 application:
+    retryThreadCount: 3
     kafka-enabled: true
     kafka-system-topic: system_topic
     kafka-system-queue: system_queue

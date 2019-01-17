@@ -3,6 +3,7 @@ package com.icthh.xm.tmf.ms.activation.events;
 import com.icthh.xm.tmf.ms.activation.domain.SagaEvent;
 import com.icthh.xm.tmf.ms.activation.events.bindings.MessaginsConfiguration;
 import lombok.RequiredArgsConstructor;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cloud.stream.binding.BinderAwareChannelResolver;
 import org.springframework.messaging.support.MessageBuilder;
@@ -23,8 +24,9 @@ public class KafkaEventsSender implements EventsSender {
     }
 
     @Override
+    @SneakyThrows
     public void resendEvent(SagaEvent sagaEvent) {
-
+        sendEvent(sagaEvent);
     }
 
 
