@@ -291,12 +291,8 @@ dependencies {
     compile "com.icthh.xm.commons:xm-commons-lep:${xm_commons_version}"
     compile "com.icthh.xm.commons:xm-commons-ms-web:${xm_commons_version}"
     compile "com.icthh.xm.commons:xm-commons-timeline:${xm_commons_version}"
-
     compileOnly 'org.projectlombok:lombok'
-
-
     compile 'org.hibernate:hibernate-jpamodelgen'
-
     annotationProcessor "org.mapstruct:mapstruct-processor:${mapstruct_version}"
     annotationProcessor "org.hibernate:hibernate-jpamodelgen"
     annotationProcessor ("org.springframework.boot:spring-boot-configuration-processor") {
