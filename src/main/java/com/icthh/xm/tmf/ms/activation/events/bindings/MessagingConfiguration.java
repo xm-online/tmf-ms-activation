@@ -50,6 +50,7 @@ import org.springframework.stereotype.Component;
 @Import(KafkaBinderConfiguration.class)
 public class MessagingConfiguration implements RefreshableConfiguration {
 
+    public static final String SAGA_EVENTS_PREFIX = "saga-events-";
     private final BindingServiceProperties bindingServiceProperties;
     private final SubscribableChannelBindingTargetFactory bindingTargetFactory;
     private final BindingService bindingService;
@@ -75,7 +76,7 @@ public class MessagingConfiguration implements RefreshableConfiguration {
     }
 
     public static String buildChanelName(String tenantKey) {
-        return tenantKey + "-saga-events";
+        return SAGA_EVENTS_PREFIX + tenantKey;
     }
 
     private void createChannels(String tenantName) {
@@ -102,6 +103,7 @@ public class MessagingConfiguration implements RefreshableConfiguration {
             ConsumerProperties consumerProperties = new ConsumerProperties();
             consumerProperties.setMaxAttempts(Integer.MAX_VALUE);
             consumerProperties.setHeaderMode(HeaderMode.none);
+            consumerProperties.setPartitioned(true);
 
             BindingProperties bindingProperties = new BindingProperties();
             bindingProperties.setConsumer(consumerProperties);

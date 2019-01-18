@@ -108,8 +108,6 @@ public class SagaServiceImpl implements SagaService {
         } catch (Exception e) {
             log.error("Error execute task.", e);
             failHandler(transaction, sagaEvent, taskSpec);
-        } finally {
-            updateTransactionStatus(transaction, transactionSpec);
         }
     }
 
@@ -131,6 +129,7 @@ public class SagaServiceImpl implements SagaService {
         List<SagaTaskSpec> tasks = taskSpec.getNext().stream().map(transactionSpec::getTask).collect(toList());
         generateEvents(transaction.getId(), tasks, taskContext);
         writeLog(sagaEvent, transaction, EVENT_END);
+        updateTransactionStatus(transaction, transactionSpec);
     }
 
     private Context initContext(SagaEvent sagaEvent) {
