@@ -35,11 +35,11 @@ public class SagaEvent implements Serializable {
     @Column(name = "task_context")
     private Map<String, Object> taskContext = new HashMap<>();
 
-    @Column(name="back_off")
+    @Column(name = "back_off")
     private int backOff = 0;
-    @Column(name="retry_number")
+    @Column(name = "retry_number")
     private int retryNumber = 0;
-    @Column(name="status")
+    @Column(name = "status")
     private SagaEventType status;
 
     public enum SagaEventType {
