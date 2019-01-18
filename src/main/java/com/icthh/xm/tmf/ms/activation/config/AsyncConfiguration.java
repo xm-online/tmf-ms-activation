@@ -13,6 +13,7 @@ import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.SchedulingConfigurer;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 import org.springframework.scheduling.config.ScheduledTaskRegistrar;
 
 import java.util.concurrent.Executor;
@@ -47,7 +48,7 @@ public class AsyncConfiguration implements AsyncConfigurer, SchedulingConfigurer
     public AsyncUncaughtExceptionHandler getAsyncUncaughtExceptionHandler() {
         return new SimpleAsyncUncaughtExceptionHandler();
     }
-    
+
     @Override
     public void configureTasks(ScheduledTaskRegistrar taskRegistrar) {
         taskRegistrar.setScheduler(scheduledTaskExecutor());
@@ -56,5 +57,13 @@ public class AsyncConfiguration implements AsyncConfigurer, SchedulingConfigurer
     @Bean
     public Executor scheduledTaskExecutor() {
         return Executors.newScheduledThreadPool(jHipsterProperties.getAsync().getCorePoolSize());
+    }
+
+    @Bean
+    public ThreadPoolTaskScheduler threadPoolTaskScheduler(ApplicationProperties applicationProperties) {
+        ThreadPoolTaskScheduler threadPoolTaskScheduler = new ThreadPoolTaskScheduler();
+        threadPoolTaskScheduler.setPoolSize(applicationProperties.getRetryThreadCount());
+        threadPoolTaskScheduler.setThreadNamePrefix("activation-retry");
+        return threadPoolTaskScheduler;
     }
 }
