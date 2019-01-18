@@ -37,6 +37,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.integration.config.EnableIntegration;
 import org.springframework.kafka.support.Acknowledgment;
 import org.springframework.kafka.support.KafkaHeaders;
+import org.springframework.messaging.Message;
 import org.springframework.messaging.SubscribableChannel;
 import org.springframework.stereotype.Component;
 
@@ -123,17 +124,7 @@ public class MessaginsConfiguration implements RefreshableConfiguration {
             channel.subscribe(message -> {
                 try {
                     MdcUtils.putRid(MdcUtils.generateRid() + ":" + tenantName);
-                    StopWatch stopWatch = StopWatch.createStarted();
-                    String payloadString = (String) message.getPayload();
-                    payloadString = unwrap(payloadString, "\"");
-                    log.info("start processign message for tenant: [{}], base64 body = {}", tenantName, payloadString);
-                    String eventBody = new String(Base64.getDecoder().decode(payloadString), UTF_8);
-                    log.info("start processign message for tenant: [{}], json body = {}", tenantName, eventBody);
-
-                    eventHandler.onEvent(mapToEvent(eventBody), tenantName);
-
-                    message.getHeaders().get(KafkaHeaders.ACKNOWLEDGMENT, Acknowledgment.class).acknowledge();
-                    log.info("stop processign message for tenant: [{}], time = {}", tenantName, stopWatch.getTime());
+                    handleEvent(tenantName, message);
                 } catch (Exception e) {
                     log.error("error processign event for tenant [{}]", tenantName, e);
                     throw e;
@@ -142,6 +133,20 @@ public class MessaginsConfiguration implements RefreshableConfiguration {
                 }
             });
         }
+    }
+
+    private void handleEvent(String tenantName, Message<?> message) {
+        StopWatch stopWatch = StopWatch.createStarted();
+        String payloadString = (String) message.getPayload();
+        payloadString = unwrap(payloadString, "\"");
+        log.info("start processign message for tenant: [{}], base64 body = {}", tenantName, payloadString);
+        String eventBody = new String(Base64.getDecoder().decode(payloadString), UTF_8);
+        log.info("start processign message for tenant: [{}], json body = {}", tenantName, eventBody);
+
+        eventHandler.onEvent(mapToEvent(eventBody), tenantName);
+
+        message.getHeaders().get(KafkaHeaders.ACKNOWLEDGMENT, Acknowledgment.class).acknowledge();
+        log.info("stop processign message for tenant: [{}], time = {}", tenantName, stopWatch.getTime());
     }
 
     @SneakyThrows
