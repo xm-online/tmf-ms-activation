@@ -78,12 +78,11 @@ spring:
             concurrency: 16
         producer:
             key-serializer: org.apache.kafka.common.serialization.StringSerializer
-            value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+            value-serializer: com.icthh.xm.tmf.ms.activation.events.bindings.RoutingSerializer
         properties:
             reconnect.backoff.ms: 1000
         admin:
             fail-fast: true
-
 
     liquibase:
         default-schema: XM
