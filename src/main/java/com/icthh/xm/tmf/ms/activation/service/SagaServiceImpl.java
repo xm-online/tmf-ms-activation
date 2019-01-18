@@ -109,7 +109,6 @@ public class SagaServiceImpl implements SagaService {
             log.error("Error execute task.", e);
             failHandler(transaction, sagaEvent, taskSpec);
         } finally {
-
             updateTransactionStatus(transaction, transactionSpec);
         }
     }
