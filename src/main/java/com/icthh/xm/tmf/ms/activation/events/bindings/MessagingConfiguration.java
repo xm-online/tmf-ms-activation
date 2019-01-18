@@ -1,20 +1,21 @@
 package com.icthh.xm.tmf.ms.activation.events.bindings;
 
-import static com.fasterxml.jackson.databind.type.TypeFactory.defaultInstance;
 import static com.icthh.xm.commons.config.client.repository.TenantListRepository.TENANTS_LIST_CONFIG_KEY;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.commons.lang3.StringUtils.unwrap;
 import static org.apache.commons.lang3.StringUtils.upperCase;
 import static org.springframework.cloud.stream.binder.kafka.properties.KafkaConsumerProperties.StartOffset.earliest;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.type.CollectionType;
-import com.fasterxml.jackson.databind.type.MapType;
 import com.icthh.xm.commons.config.client.api.RefreshableConfiguration;
 import com.icthh.xm.commons.config.domain.TenantState;
 import com.icthh.xm.commons.logging.util.MdcUtils;
 import com.icthh.xm.tmf.ms.activation.domain.SagaEvent;
-import com.icthh.xm.tmf.ms.activation.service.SagaService;
+import java.util.Base64;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
@@ -41,20 +42,13 @@ import org.springframework.messaging.Message;
 import org.springframework.messaging.SubscribableChannel;
 import org.springframework.stereotype.Component;
 
-import java.util.Base64;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-
 @Slf4j
 @Component
 @EnableBinding
 @EnableIntegration
 @RequiredArgsConstructor
 @Import(KafkaBinderConfiguration.class)
-public class MessaginsConfiguration implements RefreshableConfiguration {
+public class MessagingConfiguration implements RefreshableConfiguration {
 
     private final BindingServiceProperties bindingServiceProperties;
     private final SubscribableChannelBindingTargetFactory bindingTargetFactory;
@@ -68,18 +62,20 @@ public class MessaginsConfiguration implements RefreshableConfiguration {
     private String appName;
 
     @Autowired
-    public MessaginsConfiguration(BindingServiceProperties bindingServiceProperties,
+    public MessagingConfiguration(BindingServiceProperties bindingServiceProperties,
                                   SubscribableChannelBindingTargetFactory bindingTargetFactory,
-                                  BindingService bindingService,
-                                  KafkaMessageChannelBinder kafkaMessageChannelBinder,
-                                  ObjectMapper objectMapper,
-                                  EventHandler eventHandler) {
+                                  BindingService bindingService, KafkaMessageChannelBinder kafkaMessageChannelBinder,
+                                  ObjectMapper objectMapper, EventHandler eventHandler) {
         this.bindingServiceProperties = bindingServiceProperties;
         this.bindingTargetFactory = bindingTargetFactory;
         this.bindingService = bindingService;
         this.eventHandler = eventHandler;
         this.objectMapper = objectMapper;
         kafkaMessageChannelBinder.setExtendedBindingProperties(kafkaExtendedBindingProperties);
+    }
+
+    public static String buildChanelName(String tenantKey) {
+        return tenantKey + "-saga-events";
     }
 
     private void createChannels(String tenantName) {
@@ -92,11 +88,8 @@ public class MessaginsConfiguration implements RefreshableConfiguration {
         }
     }
 
-    public static String buildChanelName(String tenantKey) {
-        return tenantKey + "-saga-events";
-    }
-
-    private synchronized void createHandler(String chanelName, String consumerGroup, String tenantName, StartOffset startOffset) {
+    private synchronized void createHandler(String chanelName, String consumerGroup, String tenantName,
+                                            StartOffset startOffset) {
         if (!channels.containsKey(chanelName)) {
 
             log.info("Create binding to {}. Consumer group {}", chanelName, consumerGroup);
@@ -116,7 +109,7 @@ public class MessaginsConfiguration implements RefreshableConfiguration {
             bindingProperties.setGroup(consumerGroup);
             bindingServiceProperties.getBindings().put(chanelName, bindingProperties);
 
-            SubscribableChannel channel = (SubscribableChannel) bindingTargetFactory.createInput(chanelName);
+            SubscribableChannel channel = bindingTargetFactory.createInput(chanelName);
             bindingService.bindConsumer(channel, chanelName);
 
             channels.put(chanelName, channel);
@@ -136,7 +129,7 @@ public class MessaginsConfiguration implements RefreshableConfiguration {
     }
 
     private void handleEvent(String tenantName, Message<?> message) {
-        StopWatch stopWatch = StopWatch.createStarted();
+        final StopWatch stopWatch = StopWatch.createStarted();
         String payloadString = (String) message.getPayload();
         payloadString = unwrap(payloadString, "\"");
         log.info("start processign message for tenant: [{}], base64 body = {}", tenantName, payloadString);
@@ -162,11 +155,9 @@ public class MessaginsConfiguration implements RefreshableConfiguration {
             throw new IllegalArgumentException("Wrong config key to update " + key);
         }
 
-        CollectionType setType = defaultInstance().constructCollectionType(HashSet.class, TenantState.class);
-        MapType type = defaultInstance().constructMapType(HashMap.class, defaultInstance().constructType(String.class), setType);
-        Map<String, Set<TenantState>> tenantsByServiceMap = objectMapper.readValue(config, type);
+        TypeReference<Map<String, Set<TenantState>>> typeRef = new TypeReference<Map<String, Set<TenantState>>>() {};
+        Map<String, Set<TenantState>> tenantsByServiceMap = objectMapper.readValue(config, typeRef);
         Set<TenantState> tenantKeys = tenantsByServiceMap.get(appName);
-
         tenantKeys.stream().map(TenantState::getName).forEach(this::createChannels);
     }
 
@@ -184,5 +175,4 @@ public class MessaginsConfiguration implements RefreshableConfiguration {
     public void onInit(String key, String config) {
         updateTenants(key, config);
     }
-
 }

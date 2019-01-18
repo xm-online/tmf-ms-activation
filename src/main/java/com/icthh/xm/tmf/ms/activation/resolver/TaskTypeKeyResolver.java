@@ -11,15 +11,13 @@ import org.springframework.stereotype.Component;
 @Component
 public class TaskTypeKeyResolver extends AppendLepKeyResolver {
     @Override
-    protected String[] getAppendSegments(SeparatorSegmentedLepKey baseKey, LepMethod method, LepManagerService managerService) {
+    protected String[] getAppendSegments(SeparatorSegmentedLepKey baseKey, LepMethod method,
+                                         LepManagerService managerService) {
         SagaTaskSpec task = getRequiredParam(method, "task", SagaTaskSpec.class);
         SagaTransaction sagaTransaction = getRequiredParam(method, "sagaTransaction", SagaTransaction.class);
 
         String translatedSagaTransactionKey = translateToLepConvention(sagaTransaction.getTypeKey());
         String translatedTaskKey = translateToLepConvention(task.getKey());
-        return new String[] {
-            translatedSagaTransactionKey,
-            translatedTaskKey
-        };
+        return new String[] {translatedSagaTransactionKey, translatedTaskKey};
     }
 }

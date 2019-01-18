@@ -1,7 +1,7 @@
 package com.icthh.xm.tmf.ms.activation.events;
 
 import com.icthh.xm.tmf.ms.activation.domain.SagaEvent;
-import com.icthh.xm.tmf.ms.activation.events.bindings.MessaginsConfiguration;
+import com.icthh.xm.tmf.ms.activation.events.bindings.MessagingConfiguration;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
@@ -19,7 +19,8 @@ public class KafkaEventsSender implements EventsSender {
     @Override
     public void sendEvent(SagaEvent sagaEvent) {
         log.info("Send saga event: {}", sagaEvent);
-        channelResolver.resolveDestination(MessaginsConfiguration.buildChanelName(sagaEvent.getTenantKey().toUpperCase()))
+        channelResolver
+            .resolveDestination(MessagingConfiguration.buildChanelName(sagaEvent.getTenantKey().toUpperCase()))
             .send(MessageBuilder.withPayload(sagaEvent).build());
     }
 

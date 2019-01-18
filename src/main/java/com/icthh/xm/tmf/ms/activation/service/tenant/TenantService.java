@@ -42,14 +42,11 @@ public class TenantService {
             tenantListRepository.addTenant(tenantKey);
             databaseService.create(tenantKey);
             databaseService.migrate(tenantKey);
-            log.info("STOP  - SETUP:CreateTenant: tenantKey: {}, result: OK, time = {} ms",
-                     tenantKey,
+            log.info("STOP  - SETUP:CreateTenant: tenantKey: {}, result: OK, time = {} ms", tenantKey,
                      stopWatch.getTime());
         } catch (Exception e) {
-            log.error("STOP  - SETUP:CreateTenant: tenantKey: {}, result: FAIL, error: {}, time = {} ms",
-                      tenantKey,
-                      e.getMessage(),
-                      stopWatch.getTime());
+            log.error("STOP  - SETUP:CreateTenant: tenantKey: {}, result: FAIL, error: {}, time = {} ms", tenantKey,
+                      e.getMessage(), stopWatch.getTime());
             throw e;
         }
     }
@@ -67,14 +64,11 @@ public class TenantService {
             databaseService.drop(tenantKey);
             tenantListRepository.deleteTenant(tenantKey);
 
-            log.info("STOP  - SETUP:DeleteTenant: tenantKey: {}, result: OK, time = {} ms",
-                     tenantKey,
+            log.info("STOP  - SETUP:DeleteTenant: tenantKey: {}, result: OK, time = {} ms", tenantKey,
                      stopWatch.getTime());
         } catch (Exception e) {
-            log.error("STOP  - SETUP:DeleteTenant: tenantKey: {}, result: FAIL, error: {}, time = {} ms",
-                      tenantKey,
-                      e.getMessage(),
-                      stopWatch.getTime());
+            log.error("STOP  - SETUP:DeleteTenant: tenantKey: {}, result: FAIL, error: {}, time = {} ms", tenantKey,
+                      e.getMessage(), stopWatch.getTime());
             throw e;
         }
     }
@@ -85,16 +79,11 @@ public class TenantService {
         log.info("START - SETUP:ManageTenant: tenantKey: {}, state: {}", tenantKey, state);
         try {
             tenantListRepository.updateTenant(tenantKey, state.toUpperCase());
-            log.info("STOP  - SETUP:ManageTenant: tenantKey: {}, state: {}, result: OK, time = {} ms",
-                     tenantKey,
-                     state,
+            log.info("STOP  - SETUP:ManageTenant: tenantKey: {}, state: {}, result: OK, time = {} ms", tenantKey, state,
                      stopWatch.getTime());
         } catch (Exception e) {
             log.error("STOP  - SETUP:ManageTenant: tenantKey: {}, state: {}, result: FAIL, error: {}, time = {} ms",
-                      tenantKey,
-                      state,
-                      e.getMessage(),
-                      stopWatch.getTime());
+                      tenantKey, state, e.getMessage(), stopWatch.getTime());
             throw e;
         }
     }

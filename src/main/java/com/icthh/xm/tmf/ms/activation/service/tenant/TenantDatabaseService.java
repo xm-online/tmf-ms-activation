@@ -6,6 +6,9 @@ import static org.apache.commons.lang3.time.StopWatch.createStarted;
 import com.icthh.xm.commons.logging.aop.IgnoreLogginAspect;
 import com.icthh.xm.commons.migration.db.tenant.DropSchemaResolver;
 import com.icthh.xm.commons.migration.db.util.DatabaseUtil;
+import java.sql.Connection;
+import java.sql.Statement;
+import javax.sql.DataSource;
 import liquibase.integration.spring.SpringLiquibase;
 import lombok.AllArgsConstructor;
 import lombok.SneakyThrows;
@@ -14,10 +17,6 @@ import org.apache.commons.lang3.time.StopWatch;
 import org.springframework.boot.autoconfigure.liquibase.LiquibaseProperties;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.stereotype.Service;
-
-import javax.sql.DataSource;
-import java.sql.Connection;
-import java.sql.Statement;
 
 @Service
 @AllArgsConstructor
@@ -40,14 +39,11 @@ public class TenantDatabaseService {
         log.info("START - SETUP:CreateTenant:schema tenantKey: {}", tenantKey);
         try {
             DatabaseUtil.createSchema(dataSource, tenantKey);
-            log.info("STOP  - SETUP:CreateTenant:schema tenantKey: {}, result: OK, time = {} ms",
-                     tenantKey,
+            log.info("STOP  - SETUP:CreateTenant:schema tenantKey: {}, result: OK, time = {} ms", tenantKey,
                      stopWatch.getTime());
         } catch (Exception e) {
             log.error("STOP  - SETUP:CreateTenant:schema tenantKey: {}, result: FAIL, error: {}, time = {} ms",
-                      tenantKey,
-                      e.getMessage(),
-                      stopWatch.getTime());
+                      tenantKey, e.getMessage(), stopWatch.getTime());
             throw e;
         }
 
@@ -72,14 +68,11 @@ public class TenantDatabaseService {
             liquibase.setDropFirst(liquibaseProperties.isDropFirst());
             liquibase.setShouldRun(true);
             liquibase.afterPropertiesSet();
-            log.info("STOP  - SETUP:CreateTenant:liquibase tenantKey: {}, result: OK, time = {} ms",
-                     tenantKey,
+            log.info("STOP  - SETUP:CreateTenant:liquibase tenantKey: {}, result: OK, time = {} ms", tenantKey,
                      stopWatch.getTime());
         } catch (Exception e) {
             log.error("STOP  - SETUP:CreateTenant:liquibase tenantKey: {}, result: FAIL, error: {}, time = {} ms",
-                      tenantKey,
-                      e.getMessage(),
-                      stopWatch.getTime());
+                      tenantKey, e.getMessage(), stopWatch.getTime());
             throw e;
         }
     }
@@ -93,17 +86,13 @@ public class TenantDatabaseService {
     public void drop(String tenantKey) {
         StopWatch stopWatch = createStarted();
         log.info("START - SETUP:DeleteTenant:schema tenantKey: {}", tenantKey);
-        try (Connection connection = dataSource.getConnection();
-             Statement statement = connection.createStatement()) {
+        try (Connection connection = dataSource.getConnection(); Statement statement = connection.createStatement()) {
             statement.executeUpdate(String.format(schemaDropResolver.getSchemaDropCommand(), tenantKey));
-            log.info("STOP  - SETUP:DeleteTenant:schema tenantKey: {}, result: OK, time = {} ms",
-                     tenantKey,
+            log.info("STOP  - SETUP:DeleteTenant:schema tenantKey: {}, result: OK, time = {} ms", tenantKey,
                      stopWatch.getTime());
         } catch (Exception e) {
             log.error("STOP  - SETUP:DeleteTenant:schema tenantKey: {}, result: FAIL, error: {}, time = {} ms",
-                      tenantKey,
-                      e.getMessage(),
-                      stopWatch.getTime());
+                      tenantKey, e.getMessage(), stopWatch.getTime());
             throw e;
         }
     }

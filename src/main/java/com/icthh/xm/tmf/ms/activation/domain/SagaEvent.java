@@ -1,23 +1,22 @@
 package com.icthh.xm.tmf.ms.activation.domain;
 
 import com.icthh.xm.tmf.ms.activation.repository.converter.MapToStringConverter;
-import lombok.Data;
-import lombok.experimental.Accessors;
-
+import java.io.Serializable;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
 import javax.persistence.Column;
 import javax.persistence.Convert;
 import javax.persistence.Entity;
 import javax.persistence.Id;
 import javax.persistence.Table;
-import java.io.Serializable;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
+import lombok.Data;
+import lombok.experimental.Accessors;
 
 @Data
 @Accessors(chain = true)
 @Entity
-@Table(name="saga_event")
+@Table(name = "saga_event")
 public class SagaEvent implements Serializable {
 
     @Id
