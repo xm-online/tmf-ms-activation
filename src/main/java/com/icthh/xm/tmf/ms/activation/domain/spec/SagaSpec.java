@@ -28,5 +28,4 @@ public class SagaSpec {
     private BusinessException notFound(String type) {
         return new BusinessException("error.spec.not.found", "Spec for type " + type + " not found");
     }
-
 }

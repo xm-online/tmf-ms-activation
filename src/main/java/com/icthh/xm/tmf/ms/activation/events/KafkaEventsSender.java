@@ -28,5 +28,4 @@ public class KafkaEventsSender implements EventsSender {
     public void resendEvent(SagaEvent sagaEvent) {
         sendEvent(sagaEvent);
     }
-
 }

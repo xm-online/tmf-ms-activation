@@ -53,5 +53,4 @@ public class SagaTaskSpec {
             setter.accept(value);
         }
     }
-
 }
