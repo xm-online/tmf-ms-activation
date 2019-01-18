@@ -44,10 +44,14 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.BiFunction;
 
+/**
+ *
+ * Without transaction! Important!
+ *
+ */
 @Slf4j
 @Service
 @RequiredArgsConstructor
-// Without transaction! Important!
 public class SagaServiceImpl implements SagaService {
 
     private final SagaLogRepository logRepository;
@@ -108,6 +112,7 @@ public class SagaServiceImpl implements SagaService {
             log.error("Error execute task.", e);
             failHandler(transaction, sagaEvent, taskSpec);
         } finally {
+
             updateTransactionStatus(transaction, transactionSpec);
         }
     }
