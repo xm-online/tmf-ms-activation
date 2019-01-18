@@ -1,5 +1,10 @@
 package com.icthh.xm.tmf.ms.activation;
 
+import com.icthh.xm.commons.logging.util.MdcUtils;
+import com.icthh.xm.commons.tenant.TenantContextHolder;
+import com.icthh.xm.commons.tenant.TenantContextUtils;
+import com.icthh.xm.commons.tenant.TenantKey;
+import com.icthh.xm.commons.tenant.spring.config.TenantContextConfiguration;
 import com.icthh.xm.tmf.ms.activation.config.ApplicationProperties;
 import com.icthh.xm.tmf.ms.activation.config.DefaultProfileUtil;
 import io.github.jhipster.config.JHipsterConstants;
@@ -12,6 +17,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.liquibase.LiquibaseProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
+import org.springframework.context.annotation.Import;
 import org.springframework.core.env.Environment;
 
 import javax.annotation.PostConstruct;
@@ -24,14 +30,17 @@ import java.util.Collection;
 @EnableDiscoveryClient
 @SpringBootApplication(scanBasePackages = { "com.icthh.xm", "com.icthh.xm.tmf.ms.activation" })
 @EnableAutoConfiguration
+@Import({TenantContextConfiguration.class})
 public class ActivationApp {
 
     private static final Logger log = LoggerFactory.getLogger(ActivationApp.class);
 
     private final Environment env;
+    private final TenantContextHolder tenantContextHolder;
 
-    public ActivationApp(Environment env) {
+    public ActivationApp(Environment env, TenantContextHolder tenantContextHolder) {
         this.env = env;
+        this.tenantContextHolder = tenantContextHolder;
     }
 
     /**
@@ -52,6 +61,14 @@ public class ActivationApp {
             log.error("You have misconfigured your application! It should not " +
                 "run with both the 'dev' and 'cloud' profiles at the same time.");
         }
+        initContexts();
+    }
+
+    private void initContexts() {
+        // init tenant context, by default this is XM super tenant
+        TenantContextUtils.setTenant(tenantContextHolder, TenantKey.SUPER);
+        // init logger MDC context
+        MdcUtils.putRid(MdcUtils.generateRid() + "::" + TenantKey.SUPER.getValue());
     }
 
     /**
@@ -60,6 +77,7 @@ public class ActivationApp {
      * @param args the command line arguments
      */
     public static void main(String[] args) {
+        MdcUtils.putRid();
         SpringApplication app = new SpringApplication(ActivationApp.class);
         DefaultProfileUtil.addDefaultProfile(app);
         Environment env = app.run(args).getEnvironment();

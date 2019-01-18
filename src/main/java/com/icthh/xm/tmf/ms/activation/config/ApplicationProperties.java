@@ -22,6 +22,7 @@ public class ApplicationProperties {
     private String kafkaSystemTopic;
     private String kafkaSystemQueue;
     private boolean timelinesEnabled;
+    private String dbSchemaSuffix;
 
     private final Lep lep = new Lep();
 
@@ -33,4 +34,7 @@ public class ApplicationProperties {
         private TenantScriptStorage tenantScriptStorage;
         private String lepResourcePathPattern;
     }
+
+    private int retryThreadCount;
+
 }

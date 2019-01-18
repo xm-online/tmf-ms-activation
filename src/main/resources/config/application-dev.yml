@@ -18,7 +18,6 @@ logging:
         ROOT: DEBUG
         io.github.jhipster: DEBUG
         com.icthh.xm.tmf.ms.activation: DEBUG
-
 spring:
     profiles:
         active: dev
@@ -41,11 +40,9 @@ spring:
             port: 8500
     datasource:
         type: com.zaxxer.hikari.HikariDataSource
-        url: jdbc:h2:mem:activation;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+        url: jdbc:h2:mem:activation;DB_CLOSE_DELAY=-1
         username: activation
         password:
-        hikari:
-            auto-commit: false
     h2:
         console:
             enabled: false
@@ -77,7 +74,7 @@ spring:
             discovery:
                 enabled: true
     kafka:
-        bootstrap-servers: localhost:9093
+        bootstrap-servers: localhost:9092
 server:
     port: 8712
 
@@ -141,4 +138,12 @@ oauth2:
 # https://www.jhipster.tech/common-application-properties/
 # ===================================================================
 
-# application:
+application:
+    kafka-enabled: true
+    kafka-system-topic: system_topic
+    kafka-system-queue: system_queue
+    timelines-enabled: false
+    tenant-ignored-path-list: /swagger-resources/configuration/ui, /management/health, /oauth/token_key, /h2-console
+    lep:
+        tenant-script-storage: XM_MS_CONFIG
+        lep-resource-path-pattern: /config/tenants/{tenantName}/entity/lep/resources/**/*

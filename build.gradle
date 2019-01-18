@@ -243,6 +243,8 @@ dependencies {
     compile "org.springframework.boot:spring-boot-starter-logging"
     compile "org.springframework.boot:spring-boot-starter-actuator"
     compile "org.springframework.boot:spring-boot-starter-aop"
+    compile "org.springframework.cloud:spring-cloud-stream"
+    compile "org.springframework.cloud:spring-cloud-stream-binder-kafka"
     compile "org.springframework.boot:spring-boot-starter-data-jpa"
     compile "org.springframework.boot:spring-boot-starter-security"
     compile ("org.springframework.boot:spring-boot-starter-web") {
@@ -275,18 +277,23 @@ dependencies {
 
     compile "com.icthh.xm.commons:xm-commons-security:${xm_commons_version}"
     compile "com.icthh.xm.commons:xm-commons-logging-web:${xm_commons_version}"
-
+    compile "com.icthh.xm.commons:xm-commons-i18n:${xm_commons_version}"
+    compile "com.icthh.xm.commons:xm-commons-tenant-endpoint:${xm_commons_version}"
+    compile "com.icthh.xm.commons:xm-commons-migration-db:${xm_commons_version}"
     compile "com.icthh.xm.commons:xm-commons-permission:${xm_commons_version}"
     compile "com.icthh.xm.commons:xm-commons-ms-web:${xm_commons_version}"
     compile "com.icthh.xm.commons:xm-commons-lep:${xm_commons_version}"
     compile "com.icthh.xm.commons:xm-commons-ms-web:${xm_commons_version}"
-    compile "com.icthh.xm.commons:xm-commons-timeline:${xm_commons_version}"
-    
+
+    compileOnly 'org.projectlombok:lombok'
+    compile 'org.hibernate:hibernate-jpamodelgen'
     annotationProcessor "org.mapstruct:mapstruct-processor:${mapstruct_version}"
     annotationProcessor "org.hibernate:hibernate-jpamodelgen"
     annotationProcessor ("org.springframework.boot:spring-boot-configuration-processor") {
         exclude group: 'com.vaadin.external.google', module: 'android-json'
     }
+    annotationProcessor "org.projectlombok:lombok:${lombok_version}"
+
     testCompile "com.jayway.jsonpath:json-path"
     testCompile "io.cucumber:cucumber-junit"
     testCompile "io.cucumber:cucumber-spring"
@@ -296,7 +303,7 @@ dependencies {
 
     provided "org.projectlombok:lombok:${lombok_version}"
     apt "org.projectlombok:lombok:${lombok_version}"
-    
+    testCompile "org.springframework.cloud:spring-cloud-stream-test-support"
     testCompile "org.springframework.security:spring-security-test"
     testCompile "org.springframework.boot:spring-boot-test"
     testCompile "org.assertj:assertj-core"
@@ -304,9 +311,14 @@ dependencies {
     testCompile "org.mockito:mockito-core"
     testCompile "com.mattbertolini:liquibase-slf4j"
     testCompile "org.hamcrest:hamcrest-library"
+    //jhipster-needle-gradle-dependency - JHipster will add additional dependencies here
+    testCompile ("com.github.database-rider:rider-spring:1.2.7") {
+        exclude module: 'slf4j-api'
+        exclude module: 'slf4j-simple'
+    }
+    testCompile "org.testcontainers:postgresql:1.6.0"
     testCompile "com.h2database:h2"
     liquibaseRuntime "com.h2database:h2"
-    //jhipster-needle-gradle-dependency - JHipster will add additional dependencies here
 }
 
 task cleanResources(type: Delete) {

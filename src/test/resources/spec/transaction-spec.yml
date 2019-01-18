@@ -1,0 +1,25 @@
+---
+transactions:
+- key: TEST-SAGA-TYPE-KEY
+  retryPolicy: RETRY
+  retryCount: -1
+  backOff: 5
+  maxBackOff: 30
+  tasks:
+  - key: FIRST-PARALEL-TASK
+    next:
+    - PARALEL-TASK1
+    - PARALEL-TASK2
+  - key: PARALEL-TASK1
+    retryPolicy: RETRY
+  - key: PARALEL-TASK2
+    next:
+    - NEXT-JOIN-TASK
+  - key: NEXT-JOIN-TASK
+    depends:
+    - PARALEL-TASK1
+    - PARALEL-TASK2
+    next:
+    - SOME-OTHER-TASK
+  - key: SECOND-PARALEL-TASK
+  - key: SOME-OTHER-TASK

@@ -7,7 +7,7 @@ import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.provider.authentication.OAuth2AuthenticationDetails;
 
-public class UserFeignClientInterceptor implements RequestInterceptor{
+public class UserFeignClientInterceptor implements RequestInterceptor {
 
     private static final String AUTHORIZATION_HEADER = "Authorization";
 

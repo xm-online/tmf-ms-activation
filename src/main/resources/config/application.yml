@@ -1,27 +1,7 @@
-# ===================================================================
-# Spring Boot configuration.
-#
-# This configuration will be overridden by the Spring profile you use,
-# for example application-dev.yml if you use the "dev" profile.
-#
-# More information on profiles: https://www.jhipster.tech/profiles/
-# More information on configuration properties: https://www.jhipster.tech/common-application-properties/
-# ===================================================================
-
-# ===================================================================
-# Standard Spring Boot properties.
-# Full reference is available at:
-# http://docs.spring.io/spring-boot/docs/current/reference/html/common-application-properties.html
-# ===================================================================
 
 feign:
     hystrix:
         enabled: true
-#    client:
-#        config:
-#            default:
-#                connectTimeout: 5000
-#                readTimeout: 5000
 
 # See https://github.com/Netflix/Hystrix/wiki/Configuration
 hystrix:
@@ -64,8 +44,18 @@ spring:
             config:
                 watch:
                     enabled: false
+        stream:
+            kafka:
+                binder:
+                    brokers: localhost:9092
+                    autoCreateTopics: true
+                    autoAddPartitions: true
+                    minPartitionCount: 16
+
     jpa:
         open-in-view: false
+        properties:
+            hibernate.jdbc.time_zone: UTC
         hibernate:
             ddl-auto: none
             naming:
@@ -78,6 +68,26 @@ spring:
             enabled: false
     thymeleaf:
         mode: HTML
+    kafka:
+        bootstrap-servers: localhost:9092
+        consumer:
+            group-id: entity
+            key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+            value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+        listener:
+            concurrency: 16
+        producer:
+            key-serializer: org.apache.kafka.common.serialization.StringSerializer
+            value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+        properties:
+            reconnect.backoff.ms: 1000
+        admin:
+            fail-fast: true
+
+
+    liquibase:
+        default-schema: XM
+
 security:
     oauth2:
         resource:
@@ -148,10 +158,11 @@ xm-config:
     kafka-config-topic: config_topic
 
 application:
+    retryThreadCount: 3
     kafka-enabled: true
     kafka-system-topic: system_topic
     kafka-system-queue: system_queue
-    timelines-enabled: true
+    db-schema-suffix:
     tenant-ignored-path-list: /swagger-resources/configuration/ui, /management/health, /oauth/token_key, /h2-console
     lep:
         tenant-script-storage: XM_MS_CONFIG
