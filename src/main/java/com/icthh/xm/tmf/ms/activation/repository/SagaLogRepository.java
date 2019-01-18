@@ -13,7 +13,6 @@ import javax.persistence.criteria.Predicate;
 import java.util.List;
 
 public interface SagaLogRepository extends JpaRepository<SagaLog, Long>, JpaSpecificationExecutor<SagaLog> {
-
     default List<SagaLog> getFinishLogs(String sagaTxId, List<String> taskKeys) {
         return findAll(where((root, query, cb) -> {
             Predicate conjunction = cb.disjunction();

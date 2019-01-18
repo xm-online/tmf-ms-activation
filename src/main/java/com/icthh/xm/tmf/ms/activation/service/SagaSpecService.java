@@ -8,14 +8,13 @@ import com.icthh.xm.commons.logging.aop.IgnoreLogginAspect;
 import com.icthh.xm.tmf.ms.activation.domain.spec.SagaSpec;
 import com.icthh.xm.tmf.ms.activation.domain.spec.SagaTransactionSpec;
 import com.icthh.xm.tmf.ms.activation.utils.TenantUtils;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.util.AntPathMatcher;
-
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 @Slf4j
 @Service
@@ -23,14 +22,12 @@ import java.util.concurrent.ConcurrentHashMap;
 public class SagaSpecService implements RefreshableConfiguration {
 
     private static final String TENANT_NAME = "tenantName";
-    private static final String PATH_PATTERN = "/config/tenants/{tenantName}/activation/transaction-spec.yml";;
-
+    private static final String PATH_PATTERN = "/config/tenants/{tenantName}/activation/transaction-spec.yml";
+    ;
+    private final Map<String, SagaSpec> sagaSpecs = new ConcurrentHashMap<>();
+    private final TenantUtils tenantUtils;
     private AntPathMatcher matcher = new AntPathMatcher();
     private ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
-
-    private final Map<String, SagaSpec> sagaSpecs = new ConcurrentHashMap<>();
-
-    private final TenantUtils tenantUtils;
 
     @Override
     public void onRefresh(String updatedKey, String config) {
@@ -49,7 +46,7 @@ public class SagaSpecService implements RefreshableConfiguration {
         }
     }
 
-    private void refreshConfig(String updatedKey, String config){
+    private void refreshConfig(String updatedKey, String config) {
         try {
             String tenant = extractTenant(updatedKey);
             if (StringUtils.isBlank(config)) {
@@ -67,11 +64,7 @@ public class SagaSpecService implements RefreshableConfiguration {
     }
 
     private void updateRetryPolicy(SagaSpec spec) {
-        spec.getTransactions().forEach(tx ->
-            tx.getTasks().forEach(task ->
-                task.applyAsDefaultTransactionConfig(tx)
-            )
-        );
+        spec.getTransactions().forEach(tx -> tx.getTasks().forEach(task -> task.applyAsDefaultTransactionConfig(tx)));
     }
 
     private String extractTenant(final String updatedKey) {
@@ -84,7 +77,7 @@ public class SagaSpecService implements RefreshableConfiguration {
         SagaSpec sagaSpec = sagaSpecs.get(tenantKey);
         if (sagaSpec == null) {
             throw new BusinessException("saga.spec.not.found",
-                "Saga spec for type " + tenantKey + " and tenant " + tenantKey + " not found.");
+                                        "Saga spec for type " + tenantKey + " and tenant " + tenantKey + " not found.");
         }
         return sagaSpec.getByType(typeKey);
     }

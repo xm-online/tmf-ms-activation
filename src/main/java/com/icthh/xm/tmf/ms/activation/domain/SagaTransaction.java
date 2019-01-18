@@ -1,17 +1,22 @@
 package com.icthh.xm.tmf.ms.activation.domain;
 
-import com.icthh.xm.tmf.ms.activation.repository.converter.MapToStringConverter;
-import lombok.Data;
-import lombok.experimental.Accessors;
-import org.hibernate.annotations.GenericGenerator;
+import static javax.persistence.EnumType.STRING;
 
-import javax.persistence.*;
-import javax.validation.constraints.NotNull;
+import com.icthh.xm.tmf.ms.activation.repository.converter.MapToStringConverter;
 import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
-
-import static javax.persistence.EnumType.STRING;
+import javax.persistence.Column;
+import javax.persistence.Convert;
+import javax.persistence.Entity;
+import javax.persistence.Enumerated;
+import javax.persistence.GeneratedValue;
+import javax.persistence.Id;
+import javax.persistence.Table;
+import javax.validation.constraints.NotNull;
+import lombok.Data;
+import lombok.experimental.Accessors;
+import org.hibernate.annotations.GenericGenerator;
 
 @Data
 @Entity

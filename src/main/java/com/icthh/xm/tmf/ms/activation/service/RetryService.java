@@ -2,23 +2,20 @@ package com.icthh.xm.tmf.ms.activation.service;
 
 import static com.icthh.xm.tmf.ms.activation.domain.SagaEvent.SagaEventType.ON_RETRY;
 
-import com.icthh.xm.commons.tenant.TenantContextHolder;
 import com.icthh.xm.tmf.ms.activation.domain.SagaEvent;
 import com.icthh.xm.tmf.ms.activation.domain.spec.SagaTaskSpec;
 import com.icthh.xm.tmf.ms.activation.events.EventsSender;
 import com.icthh.xm.tmf.ms.activation.repository.SagaEventRepository;
 import com.icthh.xm.tmf.ms.activation.utils.TenantUtils;
+import java.time.Instant;
+import java.util.List;
+import javax.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import javax.annotation.PostConstruct;
-import java.time.Instant;
-import java.util.Date;
-import java.util.List;
 
 @Slf4j
 @Service
@@ -50,7 +47,7 @@ public class RetryService {
 
         if (sagaEvent.getRetryNumber() > sagaTaskSpec.getRetryCount() && sagaTaskSpec.getRetryCount() >= 0) {
             log.warn("Limit retry exceeded for event {}. {} > {}", sagaEvent, sagaEvent.getRetryNumber(),
-                sagaTaskSpec.getRetryCount());
+                     sagaTaskSpec.getRetryCount());
             return;
         }
 
@@ -60,7 +57,8 @@ public class RetryService {
     private void scheduleRetry(SagaEvent sagaEvent) {
         SagaEvent savedSagaEvent = sagaEventRepository.save(sagaEvent);
         log.info("Schedule event {} for delay {}", savedSagaEvent, sagaEvent.getBackOff());
-        threadPoolTaskScheduler.schedule(() -> doResend(savedSagaEvent), Instant.now().plusSeconds(sagaEvent.getBackOff()));
+        threadPoolTaskScheduler
+            .schedule(() -> doResend(savedSagaEvent), Instant.now().plusSeconds(sagaEvent.getBackOff()));
     }
 
     public void doResend(SagaEvent sagaEvent) {

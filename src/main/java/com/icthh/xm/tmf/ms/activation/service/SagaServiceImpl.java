@@ -28,6 +28,12 @@ import com.icthh.xm.tmf.ms.activation.repository.SagaEventRepository;
 import com.icthh.xm.tmf.ms.activation.repository.SagaLogRepository;
 import com.icthh.xm.tmf.ms.activation.repository.SagaTransactionRepository;
 import com.icthh.xm.tmf.ms.activation.utils.TenantUtils;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.BiFunction;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
@@ -37,17 +43,10 @@ import org.apache.commons.lang3.NotImplementedException;
 import org.apache.commons.lang3.time.StopWatch;
 import org.springframework.stereotype.Service;
 
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.function.BiFunction;
-
 /**
- *
  * Without transaction! Important!
- *
+ * Each write to database is atomic operation and should be commited.
+ * For example start log should not rollback if execute task failed.
  */
 @Slf4j
 @Service
@@ -78,14 +77,12 @@ public class SagaServiceImpl implements SagaService {
     public void onSagaEvent(SagaEvent sagaEvent) {
 
         Context context = initContext(sagaEvent);
-        List<BiFunction<SagaEvent, Context, Boolean>> preconditions = asList(
-            this::isTransactionExists,
-            this::isTransactionInCorrectState,
-            this::isCurrentTaskNotFinished,
-            this::isAllDependsTaskFinished
-        );
+        List<BiFunction<SagaEvent, Context, Boolean>> preconditions = asList(this::isTransactionExists,
+                                                                             this::isTransactionInCorrectState,
+                                                                             this::isCurrentTaskNotFinished,
+                                                                             this::isAllDependsTaskFinished);
 
-        for (val precondition: preconditions) {
+        for (val precondition : preconditions) {
             if (!precondition.apply(sagaEvent, context)) {
                 return;
             }
@@ -120,7 +117,8 @@ public class SagaServiceImpl implements SagaService {
     @Override
     public void continueTask(String taskId, Map<String, Object> taskContext) {
         SagaEvent sagaEvent = sagaEventRepository.findById(taskId)
-            .orElseThrow(() -> new EntityNotFoundException("Task with id " + taskId + " not found"));
+                                                 .orElseThrow(() -> new EntityNotFoundException(
+                                                     "Task with id " + taskId + " not found"));
         Context context = initContext(sagaEvent);
         SagaTransaction transaction = context.getTransaction();
         SagaTransactionSpec transactionSpec = context.getTransactionSpec();
@@ -137,10 +135,9 @@ public class SagaServiceImpl implements SagaService {
     }
 
     private Context initContext(SagaEvent sagaEvent) {
-        return transactionRepository
-            .findById(sagaEvent.getTransactionId())
-            .map(tx -> transactionToContext(sagaEvent, tx))
-            .orElse(null);
+        return transactionRepository.findById(sagaEvent.getTransactionId())
+                                    .map(tx -> transactionToContext(sagaEvent, tx))
+                                    .orElse(null);
     }
 
     private boolean isTransactionExists(SagaEvent sagaEvent, Context context) {
@@ -166,7 +163,8 @@ public class SagaServiceImpl implements SagaService {
         String txId = context.getTxId();
         Collection<String> notFinishedTasks = getNotFinishedTasks(txId, taskSpec.getDepends());
         if (!notFinishedTasks.isEmpty()) {
-            log.warn("Task will not execute. Depends tasks {} not finished. Transaction id {}.", notFinishedTasks, txId);
+            log.warn("Task will not execute. Depends tasks {} not finished. Transaction id {}.", notFinishedTasks,
+                     txId);
             retry(sagaEvent, context);
             return false;
         }
@@ -206,18 +204,16 @@ public class SagaServiceImpl implements SagaService {
         generateEvents(sagaTransaction.getId(), spec.getFirstTasks(), emptyMap());
     }
 
-    private void generateEvents(String sagaTransactionId,
-                                List<SagaTaskSpec> sagaTaskSpecs,
+    private void generateEvents(String sagaTransactionId, List<SagaTaskSpec> sagaTaskSpecs,
                                 Map<String, Object> taskContext) {
 
         String tenantKey = tenantUtils.getTenantKey();
         sagaTaskSpecs.stream()
-            .map(task -> new SagaEvent()
-                .setTypeKey(task.getKey())
-                .setTenantKey(tenantKey)
-                .setTaskContext(taskContext)
-                .setTransactionId(sagaTransactionId)
-            ).forEach(eventsManager::sendEvent);
+                     .map(task -> new SagaEvent().setTypeKey(task.getKey())
+                                                 .setTenantKey(tenantKey)
+                                                 .setTaskContext(taskContext)
+                                                 .setTransactionId(sagaTransactionId))
+                     .forEach(eventsManager::sendEvent);
     }
 
     private void updateTransactionStatus(SagaTransaction transaction, SagaTransactionSpec transactionSpec) {
@@ -257,17 +253,17 @@ public class SagaServiceImpl implements SagaService {
     }
 
     private void writeLog(SagaEvent sagaEvent, SagaTransaction transaction, SagaLogType eventType) {
-        SagaLog sagaLog = new SagaLog()
-            .setLogType(eventType)
-            .setEventTypeKey(sagaEvent.getTypeKey())
-            .setSagaTransaction(transaction);
+        SagaLog sagaLog = new SagaLog().setLogType(eventType)
+                                       .setEventTypeKey(sagaEvent.getTypeKey())
+                                       .setSagaTransaction(transaction);
         logRepository.save(sagaLog);
         log.info("Write saga log {}", sagaLog);
     }
 
     private SagaTransaction getById(String sagaTxKey) {
         return transactionRepository.findById(sagaTxKey)
-            .orElseThrow(() -> new EntityNotFoundException("Transaction by id " + sagaTxKey + " not found"));
+                                    .orElseThrow(() -> new EntityNotFoundException(
+                                        "Transaction by id " + sagaTxKey + " not found"));
     }
 
     @Data
@@ -276,6 +272,7 @@ public class SagaServiceImpl implements SagaService {
         private SagaTransaction transaction;
         private SagaTransactionSpec transactionSpec;
         private SagaTaskSpec taskSpec;
+
         public String getTxId() {
             return transaction.getId();
         }
