@@ -1,4 +1,4 @@
-package com.icthh.xm.tmf.ms.activation.domain.tenant;
+package com.icthh.xm.tmf.ms.activation.service.tenant;
 
 import static com.icthh.xm.commons.migration.db.Constants.CHANGE_LOG_PATH;
 import static org.apache.commons.lang3.time.StopWatch.createStarted;

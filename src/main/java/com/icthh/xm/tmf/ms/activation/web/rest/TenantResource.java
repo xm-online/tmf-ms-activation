@@ -2,7 +2,7 @@ package com.icthh.xm.tmf.ms.activation.web.rest;
 
 import com.icthh.xm.commons.gen.api.TenantsApiDelegate;
 import com.icthh.xm.commons.gen.model.Tenant;
-import com.icthh.xm.tmf.ms.activation.domain.tenant.TenantService;
+import com.icthh.xm.tmf.ms.activation.service.tenant.TenantService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;

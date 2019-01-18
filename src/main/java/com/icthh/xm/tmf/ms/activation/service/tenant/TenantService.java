@@ -1,4 +1,4 @@
-package com.icthh.xm.tmf.ms.activation.domain.tenant;
+package com.icthh.xm.tmf.ms.activation.service.tenant;
 
 import com.icthh.xm.commons.config.client.repository.TenantConfigRepository;
 import com.icthh.xm.commons.config.client.repository.TenantListRepository;
