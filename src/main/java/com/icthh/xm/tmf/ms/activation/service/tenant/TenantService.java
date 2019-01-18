@@ -35,13 +35,9 @@ public class TenantService {
     @SneakyThrows
     public void createTenant(String tenant) {
         StopWatch stopWatch = StopWatch.createStarted();
-
         String tenantKey = formatTenantKey(tenant);
-
         log.info("START - SETUP:CreateTenant: tenantKey: {}", tenantKey);
-
         checkOnlySuperTenantOperation();
-
         try {
             tenantListRepository.addTenant(tenantKey);
             databaseService.create(tenantKey);
@@ -65,11 +61,8 @@ public class TenantService {
      */
     public void deleteTenant(String tenant) {
         StopWatch stopWatch = StopWatch.createStarted();
-
         String tenantKey = formatTenantKey(tenant);
-
         log.info("START - SETUP:DeleteTenant: tenantKey: {}", tenantKey);
-
         try {
             databaseService.drop(tenantKey);
             tenantListRepository.deleteTenant(tenantKey);
@@ -88,14 +81,10 @@ public class TenantService {
 
     public void manageTenant(String tenant, String state) {
         StopWatch stopWatch = StopWatch.createStarted();
-
         String tenantKey = formatTenantKey(tenant);
-
         log.info("START - SETUP:ManageTenant: tenantKey: {}, state: {}", tenantKey, state);
-
         try {
             tenantListRepository.updateTenant(tenantKey, state.toUpperCase());
-
             log.info("STOP  - SETUP:ManageTenant: tenantKey: {}, state: {}, result: OK, time = {} ms",
                      tenantKey,
                      state,
@@ -119,5 +108,4 @@ public class TenantService {
     private String formatTenantKey(String tenant) {
         return StringUtils.upperCase(tenant);
     }
-
 }
