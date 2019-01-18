@@ -21,5 +21,4 @@ public class EventHandler {
             sagaService.onSagaEvent(sagaEvent);
         }, tenant);
     }
-
 }
