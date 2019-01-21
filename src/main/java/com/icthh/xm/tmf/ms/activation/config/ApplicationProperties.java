@@ -25,6 +25,7 @@ public class ApplicationProperties {
     private String dbSchemaSuffix;
 
     private final Lep lep = new Lep();
+    private final Retry retry = new Retry();
 
     private List<String> tenantIgnoredPathList = Collections.emptyList();
 
@@ -36,5 +37,13 @@ public class ApplicationProperties {
     }
 
     private int retryThreadCount;
+
+    @Getter
+    @Setter
+    private static class Retry {
+        private int maxAttempts;
+        private long delay;
+        private int multiplier;
+    }
 
 }
