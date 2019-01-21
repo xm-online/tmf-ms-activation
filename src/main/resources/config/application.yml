@@ -87,6 +87,9 @@ spring:
     liquibase:
         default-schema: XM
 
+liquibase:
+    default-schema: XM
+
 security:
     oauth2:
         resource:

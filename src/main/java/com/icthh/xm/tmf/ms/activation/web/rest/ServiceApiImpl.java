@@ -1,11 +1,13 @@
 package com.icthh.xm.tmf.ms.activation.web.rest;
 
-import static com.google.common.collect.ImmutableBiMap.of;
+import static org.apache.commons.collections.CollectionUtils.isNotEmpty;
 
 import com.icthh.xm.tmf.ms.activation.api.ServiceApiDelegate;
 import com.icthh.xm.tmf.ms.activation.domain.SagaTransaction;
 import com.icthh.xm.tmf.ms.activation.model.Service;
 import com.icthh.xm.tmf.ms.activation.service.SagaService;
+import java.util.HashMap;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
@@ -19,8 +21,15 @@ public class ServiceApiImpl implements ServiceApiDelegate {
 
     @Override
     public ResponseEntity<Service> serviceCreate(Service service) {
-        sagaService.createNewSaga(new SagaTransaction().setTypeKey(service.getType())
-                                      .setContext(of(MSISDN, service.getRelatedParty().get(0).getId())));
+
+        Map<String, Object> params = new HashMap<>();
+        if (isNotEmpty(service.getRelatedParty())) {
+            params.put(MSISDN, service.getRelatedParty().get(0).getId());
+        }
+        if (isNotEmpty(service.getServiceCharacteristic())) {
+            service.getServiceCharacteristic().forEach(ch -> params.put(ch.getName(), ch.getValue()));
+        }
+        sagaService.createNewSaga(new SagaTransaction().setTypeKey(service.getType()).setContext(params));
         return ResponseEntity.ok(service);
     }
 }
