@@ -60,7 +60,7 @@
         </createTable>
         <addForeignKeyConstraint baseColumnNames="saga_transaction_id"
                                  baseTableName="saga_log"
-                                 constraintName="fk_saga_log_saga_transaction_id"
+                                 constraintName="fk_sg_tx_id"
                                  referencedColumnNames="id"
                                  referencedTableName="saga_transaction"/>
     </changeSet>
