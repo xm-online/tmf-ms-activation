@@ -32,7 +32,7 @@ public class SagaLog implements Serializable {
     @Column(name = "event_type_key")
     private String eventTypeKey;
     @Enumerated(STRING)
-    @Column(name = "log_type")
+    @Column(name = "saga_log_type")
     private SagaLogType logType;
 
 }

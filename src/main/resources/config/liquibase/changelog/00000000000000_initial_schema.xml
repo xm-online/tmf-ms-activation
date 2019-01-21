@@ -50,7 +50,7 @@
                 <constraints nullable="false" />
             </column>
 
-            <column name="log_type" type="varchar(255)">
+            <column name="saga_log_type" type="varchar(255)">
                 <constraints nullable="true" />
             </column>
 
