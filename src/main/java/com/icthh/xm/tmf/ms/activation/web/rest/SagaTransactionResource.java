@@ -28,4 +28,10 @@ public class SagaTransactionResource {
         return ResponseEntity.ok().build();
     }
 
+    @PostMapping("/transaction/{id}/cancel")
+    public ResponseEntity<SagaTransaction> cancelSagaTransaction(@PathVariable("id") String id) {
+        sagaService.cancelSagaEvent(id);
+        return ResponseEntity.ok().build();
+    }
+
 }

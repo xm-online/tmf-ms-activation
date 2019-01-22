@@ -22,8 +22,8 @@ import org.springframework.util.AntPathMatcher;
 public class SagaSpecService implements RefreshableConfiguration {
 
     private static final String TENANT_NAME = "tenantName";
-    private static final String PATH_PATTERN = "/config/tenants/{tenantName}/activation/transaction-spec.yml";
-    ;
+    private static final String PATH_PATTERN = "/config/tenants/{tenantName}/activation/activation-spec.yml";
+
     private final Map<String, SagaSpec> sagaSpecs = new ConcurrentHashMap<>();
     private final TenantUtils tenantUtils;
     private AntPathMatcher matcher = new AntPathMatcher();
