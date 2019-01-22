@@ -327,11 +327,6 @@ wrapper {
 task stage(dependsOn: 'bootWar') {
 }
 
-clean {
-    delete "target"
-}
-
-
 compileJava {
     dependsOn processResources
     // add method parameters names to .class (used by LEP scripts)
