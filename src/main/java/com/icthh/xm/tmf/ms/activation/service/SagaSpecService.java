@@ -77,7 +77,7 @@ public class SagaSpecService implements RefreshableConfiguration {
         SagaSpec sagaSpec = sagaSpecs.get(tenantKey);
         if (sagaSpec == null) {
             throw new BusinessException("saga.spec.not.found",
-                                        "Saga spec for type " + tenantKey + " and tenant " + tenantKey + " not found.");
+                                        "Saga spec for type " + typeKey + " and tenant " + tenantKey + " not found.");
         }
         return sagaSpec.getByType(typeKey);
     }
