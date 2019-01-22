@@ -75,7 +75,7 @@ public class SagaServiceTest {
         specService = new SagaSpecService(tenantUtils);
         sagaService = new SagaServiceImpl(logRepository, transactionRepository, specService, eventsManager,
             tenantUtils, taskExecutor, retryService, sagaEventRepository);
-        specService.onRefresh("/config/tenants/XM/activation/transaction-spec.yml", loadFile("spec/transaction-spec.yml"));
+        specService.onRefresh("/config/tenants/XM/activation/activation-spec.yml", loadFile("spec/activation-spec.yml"));
     }
 
     public static String loadFile(String path) throws IOException {
