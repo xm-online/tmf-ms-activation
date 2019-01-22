@@ -297,7 +297,6 @@ dependencies {
     testCompile ("org.springframework.boot:spring-boot-starter-test") {
         exclude group: 'com.vaadin.external.google', module: 'android-json'
     }
-    //annotationProcessor "org.projectlombok:lombok:${lombok_version}"
     provided "org.projectlombok:lombok:${lombok_version}"
     apt "org.projectlombok:lombok:${lombok_version}"
     testCompile "org.springframework.cloud:spring-cloud-stream-test-support"
