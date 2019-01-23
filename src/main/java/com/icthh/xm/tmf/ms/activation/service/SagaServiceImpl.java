@@ -68,6 +68,7 @@ public class SagaServiceImpl implements SagaService {
         sagaTransaction.setId(null);
         sagaTransaction.setSagaTransactionState(NEW);
         SagaTransaction saved = transactionRepository.save(sagaTransaction);
+        log.info("Saga transaction created {}", sagaTransaction);
         generateFirstEvents(saved);
         return saved;
     }
@@ -251,11 +252,13 @@ public class SagaServiceImpl implements SagaService {
     }
 
     private void writeLog(SagaEvent sagaEvent, SagaTransaction transaction, SagaLogType eventType) {
-        SagaLog sagaLog = new SagaLog().setLogType(eventType)
-                                       .setEventTypeKey(sagaEvent.getTypeKey())
-                                       .setSagaTransaction(transaction);
-        logRepository.save(sagaLog);
-        log.info("Write saga log {}", sagaLog);
+        SagaLog sagaLog = new SagaLog().setLogType(eventType).setEventTypeKey(sagaEvent.getTypeKey()).setSagaTransaction(transaction);
+        if (logRepository.findLogs(eventType, transaction, sagaEvent.getTypeKey()).isEmpty()) {
+            logRepository.save(sagaLog);
+            log.info("Write saga log {}", sagaLog);
+        } else {
+            log.warn("Saga log already exists {}", sagaLog);
+        }
     }
 
     private SagaTransaction getById(String sagaTxKey) {
