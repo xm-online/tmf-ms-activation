@@ -1,5 +1,6 @@
 package com.icthh.xm.tmf.ms.activation.repository;
 
+import static com.icthh.xm.tmf.ms.activation.domain.SagaLogType.EVENT_START;
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
 import static org.junit.Assert.assertEquals;
@@ -21,6 +22,9 @@ public class LogsRepositoryTest extends BaseDaoTest {
     @Autowired
     private SagaLogRepository sagaLogRepository;
 
+    @Autowired
+    private SagaTransactionRepository sagaTransactionRepository;
+
     @Test
     public void finishedLogsTest() {
         List<SagaLog> finishLogs = sagaLogRepository.getFinishLogs("1", asList("STARTED", "STARTED2", "FINISHED", "FINISHED2"));
@@ -39,6 +43,13 @@ public class LogsRepositoryTest extends BaseDaoTest {
         List<SagaLog> finished = sagaLogRepository.getFinishLogs("1", asList("FINISHED"));
         assertEquals(1, finished.size());
         assertEquals(asList(sagaLog("FINISHED", 3L)), finished);
+    }
+
+    @Test
+    public void findLogs() {
+        List<SagaLog> started = sagaLogRepository.findLogs(EVENT_START, sagaTransactionRepository.getOne("1"), "STARTED");
+        assertEquals(1, started.size());
+        assertEquals(asList(sagaLog("STARTED", 1L).setLogType(EVENT_START)), started);
     }
 
     private SagaLog sagaLog(String finished, long id) {

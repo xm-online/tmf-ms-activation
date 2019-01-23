@@ -8,6 +8,8 @@ import java.util.UUID;
 import javax.persistence.Column;
 import javax.persistence.Convert;
 import javax.persistence.Entity;
+import javax.persistence.EnumType;
+import javax.persistence.Enumerated;
 import javax.persistence.Id;
 import javax.persistence.Table;
 import lombok.Data;
@@ -36,6 +38,7 @@ public class SagaEvent implements Serializable {
     @Column(name = "retry_number")
     private int retryNumber = 0;
     @Column(name = "status")
+    @Enumerated(EnumType.STRING)
     private SagaEventType status;
 
     public enum SagaEventType {

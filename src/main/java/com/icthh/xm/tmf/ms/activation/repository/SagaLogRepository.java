@@ -29,4 +29,11 @@ public interface SagaLogRepository extends JpaRepository<SagaLog, Long>, JpaSpec
             return conjunction;
         }));
     }
+
+    List<SagaLog> findByLogTypeAndEventTypeKeyAndSagaTransaction(SagaLogType eventType, String typeKey,
+                                                        SagaTransaction transaction);
+
+    default List<SagaLog> findLogs(SagaLogType eventStart, SagaTransaction transaction, String typeKey) {
+        return findByLogTypeAndEventTypeKeyAndSagaTransaction(eventStart, typeKey, transaction);
+    }
 }

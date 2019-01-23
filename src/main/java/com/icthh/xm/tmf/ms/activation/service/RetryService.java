@@ -55,6 +55,7 @@ public class RetryService {
     }
 
     private void scheduleRetry(SagaEvent sagaEvent) {
+        sagaEvent.setStatus(ON_RETRY);
         SagaEvent savedSagaEvent = sagaEventRepository.save(sagaEvent);
         log.info("Schedule event {} for delay {}", savedSagaEvent, sagaEvent.getBackOff());
         threadPoolTaskScheduler
