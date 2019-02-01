@@ -18,7 +18,7 @@ import org.springframework.stereotype.Service;
 public class SagaTaskExecutor {
 
     @LogicExtensionPoint(value = "Task", resolver = TaskTypeKeyResolver.class)
-    public Map<String, Object> executeTask(SagaTaskSpec task, SagaEvent sagaEvent, SagaTransaction sagaTransaction) {
+    public Map<String, Object> executeTask(SagaTaskSpec task, SagaEvent sagaEvent, SagaTransaction sagaTransaction, Continuation continuation) {
         log.error("Script for task {} not found. Transaction {}.", task, sagaTransaction);
         return Collections.emptyMap();
     }
