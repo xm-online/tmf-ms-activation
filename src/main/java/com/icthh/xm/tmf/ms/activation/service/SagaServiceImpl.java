@@ -98,8 +98,9 @@ public class SagaServiceImpl implements SagaService {
         try {
             StopWatch stopWatch = StopWatch.createStarted();
             log.info("Start execute task by event {} transaction {}", sagaEvent, transaction);
-            Map<String, Object> taskContext = taskExecutor.executeTask(taskSpec, sagaEvent, transaction);
-            if (TRUE.equals(taskSpec.getIsSuspendable())) {
+            Continuation continuation = new Continuation();
+            Map<String, Object> taskContext = taskExecutor.executeTask(taskSpec, sagaEvent, transaction, continuation);
+            if (TRUE.equals(taskSpec.getIsSuspendable()) && !continuation.isContinuationFlag()) {
                 log.info("Task by event {} suspended. Time: {}ms", sagaEvent, transaction, stopWatch.getTime());
                 sagaEventRepository.save(sagaEvent.setStatus(SUSPENDED));
             } else {
