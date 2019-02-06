@@ -11,6 +11,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.icthh.xm.commons.config.client.api.RefreshableConfiguration;
 import com.icthh.xm.commons.config.domain.TenantState;
 import com.icthh.xm.commons.logging.util.MdcUtils;
+import com.icthh.xm.tmf.ms.activation.config.ApplicationProperties;
 import com.icthh.xm.tmf.ms.activation.domain.SagaEvent;
 import java.util.Base64;
 import java.util.Map;
@@ -58,23 +59,23 @@ public class MessagingConfiguration implements RefreshableConfiguration {
     private final Map<String, SubscribableChannel> channels = new ConcurrentHashMap<>();
     private final ObjectMapper objectMapper;
     private final EventHandler eventHandler;
+    private final ApplicationProperties applicationProperties;
 
     @Value("${spring.application.name}")
     private String appName;
-
-    @Value("${application.kafka-concurrency-count}")
-    private int kafkaConcurrencyCount;
 
     @Autowired
     public MessagingConfiguration(BindingServiceProperties bindingServiceProperties,
                                   SubscribableChannelBindingTargetFactory bindingTargetFactory,
                                   BindingService bindingService, KafkaMessageChannelBinder kafkaMessageChannelBinder,
-                                  ObjectMapper objectMapper, EventHandler eventHandler) {
+                                  ObjectMapper objectMapper, EventHandler eventHandler,
+                                  ApplicationProperties applicationProperties) {
         this.bindingServiceProperties = bindingServiceProperties;
         this.bindingTargetFactory = bindingTargetFactory;
         this.bindingService = bindingService;
         this.eventHandler = eventHandler;
         this.objectMapper = objectMapper;
+        this.applicationProperties = applicationProperties;
         kafkaMessageChannelBinder.setExtendedBindingProperties(kafkaExtendedBindingProperties);
     }
 
@@ -107,7 +108,7 @@ public class MessagingConfiguration implements RefreshableConfiguration {
             consumerProperties.setMaxAttempts(Integer.MAX_VALUE);
             consumerProperties.setHeaderMode(HeaderMode.none);
             consumerProperties.setPartitioned(true);
-            consumerProperties.setConcurrency(kafkaConcurrencyCount);
+            consumerProperties.setConcurrency(applicationProperties.getKafkaConcurrencyCount());
 
             BindingProperties bindingProperties = new BindingProperties();
             bindingProperties.setConsumer(consumerProperties);
