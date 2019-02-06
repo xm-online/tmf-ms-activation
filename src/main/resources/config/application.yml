@@ -51,7 +51,7 @@ spring:
                     autoCreateTopics: true
                     autoAddPartitions: true
                     minPartitionCount: 16
-
+            instance-count: 16
     jpa:
         open-in-view: false
         properties:
@@ -164,6 +164,7 @@ application:
     kafka-enabled: true
     kafka-system-topic: system_topic
     kafka-system-queue: system_queue
+    kafka-concurrency-count: 16
     db-schema-suffix:
     tenant-ignored-path-list: /swagger-resources/configuration/ui, /management/health, /oauth/token_key, /h2-console
     lep:
