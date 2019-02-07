@@ -23,6 +23,7 @@ public class ApplicationProperties {
     private String kafkaSystemQueue;
     private boolean timelinesEnabled;
     private String dbSchemaSuffix;
+    private int kafkaConcurrencyCount;
 
     private final Lep lep = new Lep();
     private final Retry retry = new Retry();
