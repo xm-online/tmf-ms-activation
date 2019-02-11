@@ -284,6 +284,7 @@ dependencies {
     compile "com.icthh.xm.commons:xm-commons-ms-web:${xm_commons_version}"
     compile "com.icthh.xm.commons:xm-commons-lep:${xm_commons_version}"
     compile "com.icthh.xm.commons:xm-commons-ms-web:${xm_commons_version}"
+    compile "com.icthh.xm.commons:xm-commons-metric:${xm_commons_version}"
 
     compile 'org.hibernate:hibernate-jpamodelgen'
     annotationProcessor "org.mapstruct:mapstruct-processor:${mapstruct_version}"

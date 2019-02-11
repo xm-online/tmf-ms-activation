@@ -1,5 +1,6 @@
 package com.icthh.xm.tmf.ms.activation.web.rest;
 
+import com.codahale.metrics.annotation.Timed;
 import com.icthh.xm.tmf.ms.activation.domain.SagaTransaction;
 import com.icthh.xm.tmf.ms.activation.service.SagaService;
 import java.util.Map;
@@ -18,11 +19,13 @@ public class SagaTransactionResource {
 
     private final SagaService sagaService;
 
+    @Timed
     @PostMapping("/transaction")
     public ResponseEntity<SagaTransaction> createSagaTransaction(@RequestBody SagaTransaction sagaTransaction) {
         return ResponseEntity.ok(sagaService.createNewSaga(sagaTransaction));
     }
 
+    @Timed
     @PostMapping("/task/{id}/continue")
     public ResponseEntity<SagaTransaction> continueTask(@PathVariable("id") String id, @RequestBody(required = false)
         Map<String, Object> taskContext) {
@@ -30,6 +33,7 @@ public class SagaTransactionResource {
         return ResponseEntity.ok().build();
     }
 
+    @Timed
     @PostMapping("/transaction/{id}/cancel")
     public ResponseEntity<SagaTransaction> cancelSagaTransaction(@PathVariable("id") String id) {
         sagaService.cancelSagaEvent(id);
