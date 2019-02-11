@@ -2,6 +2,7 @@ package com.icthh.xm.tmf.ms.activation.web.rest;
 
 import static org.apache.commons.collections.CollectionUtils.isNotEmpty;
 
+import com.codahale.metrics.annotation.Timed;
 import com.icthh.xm.tmf.ms.activation.api.ServiceApiDelegate;
 import com.icthh.xm.tmf.ms.activation.domain.SagaTransaction;
 import com.icthh.xm.tmf.ms.activation.model.Service;
@@ -19,6 +20,7 @@ public class ServiceApiImpl implements ServiceApiDelegate {
     private static final String MSISDN = "msisdn";
     private final SagaService sagaService;
 
+    @Timed
     @Override
     public ResponseEntity<Service> serviceCreate(Service service) {
 
