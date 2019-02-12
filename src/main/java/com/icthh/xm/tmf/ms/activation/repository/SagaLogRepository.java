@@ -36,4 +36,6 @@ public interface SagaLogRepository extends JpaRepository<SagaLog, Long>, JpaSpec
     default List<SagaLog> findLogs(SagaLogType eventStart, SagaTransaction transaction, String typeKey) {
         return findByLogTypeAndEventTypeKeyAndSagaTransaction(eventStart, typeKey, transaction);
     }
+
+    List<SagaLog> findBySagaTransactionId(String txId);
 }

@@ -6,6 +6,7 @@ import static com.icthh.xm.tmf.ms.activation.domain.SagaTransactionState.CANCELE
 import static com.icthh.xm.tmf.ms.activation.domain.SagaTransactionState.FINISHED;
 import static com.icthh.xm.tmf.ms.activation.domain.SagaTransactionState.NEW;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.time.ZoneOffset.UTC;
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
 import static java.util.Optional.empty;
@@ -30,7 +31,11 @@ import com.icthh.xm.tmf.ms.activation.repository.SagaEventRepository;
 import com.icthh.xm.tmf.ms.activation.repository.SagaLogRepository;
 import com.icthh.xm.tmf.ms.activation.repository.SagaTransactionRepository;
 import com.icthh.xm.tmf.ms.activation.utils.TenantUtils;
-import lombok.SneakyThrows;
+import java.io.IOException;
+import java.time.Clock;
+import java.time.Instant;
+import java.util.List;
+import java.util.UUID;
 import org.apache.commons.io.IOUtils;
 import org.junit.Before;
 import org.junit.Test;
@@ -39,10 +44,6 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.springframework.core.io.ClassPathResource;
-
-import java.io.IOException;
-import java.util.List;
-import java.util.UUID;
 
 @RunWith(MockitoJUnitRunner.class)
 public class SagaServiceTest {
@@ -67,6 +68,8 @@ public class SagaServiceTest {
     @Mock
     private SagaEventRepository sagaEventRepository;
 
+    private Clock clock = Clock.fixed(Instant.now(), UTC);
+
     private List<String> allTasks = asList("FIRST-PARALEL-TASK", "PARALEL-TASK1", "PARALEL-TASK2", "NEXT-JOIN-TASK",
         "SECOND-PARALEL-TASK", "SOME-OTHER-TASK");
 
@@ -75,6 +78,7 @@ public class SagaServiceTest {
         specService = new SagaSpecService(tenantUtils);
         sagaService = new SagaServiceImpl(logRepository, transactionRepository, specService, eventsManager,
             tenantUtils, taskExecutor, retryService, sagaEventRepository);
+        sagaService.setClock(clock);
         specService.onRefresh("/config/tenants/XM/activation/activation-spec.yml", loadFile("spec/activation-spec.yml"));
     }
 
@@ -88,14 +92,16 @@ public class SagaServiceTest {
         String txId = UUID.randomUUID().toString();
         when(transactionRepository.save(refEq(mockTx()))).thenReturn(mockTx().setId(txId));
 
-        sagaService.createNewSaga(new SagaTransaction().setTypeKey(TEST_TYPE_KEY));
+        sagaService.createNewSaga(new SagaTransaction().setTypeKey(TEST_TYPE_KEY).setCreateDate(Instant.now(clock)));
 
         verify(transactionRepository).save(refEq(mockTx()));
         verify(eventsManager).sendEvent(refEq(new SagaEvent().setTenantKey("XM")
             .setTypeKey("FIRST-PARALEL-TASK")
+            .setCreateDate(Instant.now(clock))
             .setTransactionId(txId), "id"));
         verify(eventsManager).sendEvent(refEq(new SagaEvent().setTenantKey("XM")
             .setTypeKey("SECOND-PARALEL-TASK")
+            .setCreateDate(Instant.now(clock))
             .setTransactionId(txId), "id"));
 
         noMoreInteraction();
@@ -231,6 +237,7 @@ public class SagaServiceTest {
         verify(taskExecutor).executeTask(refEq(sagaTaskSpec), refEq(sagaEvent), refEq(mockTx(txId)), refEq(continuation));
         verify(eventsManager).sendEvent(refEq(new SagaEvent().setTenantKey("XM")
             .setTypeKey("SOME-OTHER-TASK")
+            .setCreateDate(Instant.now(clock))
             .setTransactionId(txId), "id"));
 
         verify(logRepository).findLogs(eq(EVENT_END), eq(mockTx(txId, NEW)), eq("NEXT-JOIN-TASK"));
@@ -251,7 +258,7 @@ public class SagaServiceTest {
     }
 
     private SagaLog createLog(String txId, String eventTypeKey, SagaLogType eventStart) {
-        return new SagaLog().setEventTypeKey(eventTypeKey)
+        return new SagaLog().setEventTypeKey(eventTypeKey).setCreateDate(Instant.now(clock))
             .setLogType(eventStart).setSagaTransaction(mockTx(txId));
     }
 
@@ -299,7 +306,8 @@ public class SagaServiceTest {
         when(transactionRepository.findById(txId)).thenReturn(of(mockTx(txId, NEW)));
         when(logRepository.getFinishLogs(eq(txId), eq(asList("SOME-OTHER-TASK")))).thenReturn(emptyList());
         when(logRepository.getFinishLogs(eq(txId), eq(allTasks)))
-            .thenReturn(allTasks.stream().map(key -> new SagaLog().setEventTypeKey(key).setLogType(EVENT_END)).collect(toList()));
+            .thenReturn(allTasks.stream().map(key -> new SagaLog()
+                .setCreateDate(Instant.now(clock)).setEventTypeKey(key).setLogType(EVENT_END)).collect(toList()));
 
         SagaEvent sagaEvent = new SagaEvent().setTenantKey("XM")
             .setTypeKey("SOME-OTHER-TASK")
@@ -323,6 +331,7 @@ public class SagaServiceTest {
     private SagaTransaction mockTx() {
         return new SagaTransaction()
             .setTypeKey(TEST_TYPE_KEY)
+            .setCreateDate(Instant.now(clock))
             .setSagaTransactionState(NEW);
     }
 

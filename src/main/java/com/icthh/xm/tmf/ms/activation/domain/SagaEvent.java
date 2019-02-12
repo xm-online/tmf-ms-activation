@@ -2,6 +2,7 @@ package com.icthh.xm.tmf.ms.activation.domain;
 
 import com.icthh.xm.tmf.ms.activation.repository.converter.MapToStringConverter;
 import java.io.Serializable;
+import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -40,6 +41,9 @@ public class SagaEvent implements Serializable {
     @Column(name = "status")
     @Enumerated(EnumType.STRING)
     private SagaEventType status;
+
+    @Column(name = "create_date")
+    private Instant createDate;
 
     public enum SagaEventType {
         ON_RETRY, SUSPENDED

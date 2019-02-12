@@ -3,6 +3,7 @@ package com.icthh.xm.tmf.ms.activation.domain;
 import static javax.persistence.EnumType.STRING;
 
 import java.io.Serializable;
+import java.time.Instant;
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.Enumerated;
@@ -35,4 +36,6 @@ public class SagaLog implements Serializable {
     @Column(name = "log_type")
     private SagaLogType logType;
 
+    @Column(name = "create_date")
+    private Instant createDate;
 }

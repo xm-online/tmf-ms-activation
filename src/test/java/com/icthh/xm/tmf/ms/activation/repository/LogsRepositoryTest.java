@@ -52,6 +52,8 @@ public class LogsRepositoryTest extends BaseDaoTest {
         assertEquals(asList(sagaLog("STARTED", 1L).setLogType(EVENT_START)), started);
     }
 
+
+
     private SagaLog sagaLog(String finished, long id) {
         return new SagaLog().setEventTypeKey(finished).setLogType(SagaLogType.EVENT_END)
             .setSagaTransaction(new SagaTransaction().setId("1").setTypeKey("A")).setId(id);
