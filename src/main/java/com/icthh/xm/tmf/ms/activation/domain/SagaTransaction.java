@@ -4,6 +4,7 @@ import static javax.persistence.EnumType.STRING;
 
 import com.icthh.xm.tmf.ms.activation.repository.converter.MapToStringConverter;
 import java.io.Serializable;
+import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
 import javax.persistence.Column;
@@ -38,4 +39,6 @@ public class SagaTransaction implements Serializable {
     @Column(name = "saga_transaction_state")
     private SagaTransactionState sagaTransactionState;
 
+    @Column(name = "create_date")
+    private Instant createDate;
 }

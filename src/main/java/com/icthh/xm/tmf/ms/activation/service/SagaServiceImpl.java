@@ -1,5 +1,6 @@
 package com.icthh.xm.tmf.ms.activation.service;
 
+import static com.icthh.xm.tmf.ms.activation.domain.SagaEvent.SagaEventType.ON_RETRY;
 import static com.icthh.xm.tmf.ms.activation.domain.SagaEvent.SagaEventType.SUSPENDED;
 import static com.icthh.xm.tmf.ms.activation.domain.SagaLogType.EVENT_END;
 import static com.icthh.xm.tmf.ms.activation.domain.SagaLogType.EVENT_START;
@@ -28,6 +29,8 @@ import com.icthh.xm.tmf.ms.activation.repository.SagaEventRepository;
 import com.icthh.xm.tmf.ms.activation.repository.SagaLogRepository;
 import com.icthh.xm.tmf.ms.activation.repository.SagaTransactionRepository;
 import com.icthh.xm.tmf.ms.activation.utils.TenantUtils;
+import java.time.Clock;
+import java.time.Instant;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
@@ -41,6 +44,8 @@ import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.apache.commons.lang3.NotImplementedException;
 import org.apache.commons.lang3.time.StopWatch;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 /**
@@ -61,12 +66,14 @@ public class SagaServiceImpl implements SagaService {
     private final SagaTaskExecutor taskExecutor;
     private final RetryService retryService;
     private final SagaEventRepository sagaEventRepository;
+    private Clock clock = Clock.systemUTC();
 
     @Override
     public SagaTransaction createNewSaga(SagaTransaction sagaTransaction) {
         specService.getTransactionSpec(sagaTransaction.getTypeKey());
         sagaTransaction.setId(null);
         sagaTransaction.setSagaTransactionState(NEW);
+        sagaTransaction.setCreateDate(Instant.now(clock));
         SagaTransaction saved = transactionRepository.save(sagaTransaction);
         log.info("Saga transaction created {}", sagaTransaction);
         generateFirstEvents(saved);
@@ -115,8 +122,8 @@ public class SagaServiceImpl implements SagaService {
     @Override
     public void continueTask(String taskId, Map<String, Object> taskContext) {
         SagaEvent sagaEvent = sagaEventRepository.findById(taskId)
-                                                 .orElseThrow(() -> new EntityNotFoundException(
-                                                     "Task with id " + taskId + " not found"));
+                                                 .orElseThrow(
+                                                     () -> entityNotFound("Task with id " + taskId + " not found"));
         Context context = initContext(sagaEvent);
         SagaTransaction transaction = context.getTransaction();
         SagaTransactionSpec transactionSpec = context.getTransactionSpec();
@@ -192,10 +199,38 @@ public class SagaServiceImpl implements SagaService {
     }
 
     @Override
-    public void cancelSagaEvent(String sagaTxKey) {
+    public void cancelSagaTransaction(String sagaTxKey) {
         SagaTransaction sagaTransaction = getById(sagaTxKey);
         sagaTransaction.setSagaTransactionState(CANCELED);
         transactionRepository.save(sagaTransaction);
+    }
+
+    @Override
+    public Page<SagaTransaction> getAllNewTransaction(Pageable pageable) {
+        return transactionRepository.findAllBySagaTransactionState(NEW, pageable);
+    }
+
+    @Override
+    public void retrySagaEvent(String txid, String eventId) {
+        SagaEvent sagaEvent = sagaEventRepository.findById(eventId)
+                                                 .orElseThrow(
+                                                     () -> entityNotFound("Event by id " + eventId + " not found"));
+        retryService.doResend(sagaEvent);
+    }
+
+    @Override
+    public List<SagaEvent> getEventsByTransaction(String txId) {
+        return sagaEventRepository.findByTransactionId(txId);
+    }
+
+    @Override
+    public List<SagaLog> getLogsByTransaction(String txId) {
+        return logRepository.findBySagaTransactionId(txId);
+    }
+
+    @Override
+    public Page<SagaTransaction> getAllTransaction(Pageable pageable) {
+        return transactionRepository.findAll(pageable);
     }
 
     private void generateFirstEvents(SagaTransaction sagaTransaction) {
@@ -210,6 +245,7 @@ public class SagaServiceImpl implements SagaService {
         sagaTaskSpecs.stream()
                      .map(task -> new SagaEvent().setTypeKey(task.getKey())
                                                  .setTenantKey(tenantKey)
+                                                 .setCreateDate(Instant.now(clock))
                                                  .setTaskContext(taskContext)
                                                  .setTransactionId(sagaTransactionId))
                      .forEach(eventsManager::sendEvent);
@@ -252,7 +288,10 @@ public class SagaServiceImpl implements SagaService {
     }
 
     private void writeLog(SagaEvent sagaEvent, SagaTransaction transaction, SagaLogType eventType) {
-        SagaLog sagaLog = new SagaLog().setLogType(eventType).setEventTypeKey(sagaEvent.getTypeKey()).setSagaTransaction(transaction);
+        SagaLog sagaLog = new SagaLog().setLogType(eventType)
+                                       .setCreateDate(Instant.now(clock))
+                                       .setEventTypeKey(sagaEvent.getTypeKey())
+                                       .setSagaTransaction(transaction);
         if (logRepository.findLogs(eventType, transaction, sagaEvent.getTypeKey()).isEmpty()) {
             logRepository.save(sagaLog);
             log.info("Write saga log {}", sagaLog);
@@ -263,8 +302,15 @@ public class SagaServiceImpl implements SagaService {
 
     private SagaTransaction getById(String sagaTxKey) {
         return transactionRepository.findById(sagaTxKey)
-                                    .orElseThrow(() -> new EntityNotFoundException(
-                                        "Transaction by id " + sagaTxKey + " not found"));
+                                    .orElseThrow(() -> entityNotFound("Transaction by id " + sagaTxKey + " not found"));
+    }
+
+    private EntityNotFoundException entityNotFound(String message) {
+        return new EntityNotFoundException(message);
+    }
+
+    public void setClock(Clock clock) {
+        this.clock = clock;
     }
 
     @Data
