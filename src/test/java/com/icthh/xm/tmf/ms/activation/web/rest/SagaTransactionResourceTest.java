@@ -1,20 +1,30 @@
 package com.icthh.xm.tmf.ms.activation.web.rest;
 
+import static com.icthh.xm.tmf.ms.activation.domain.SagaEvent.SagaEventType.ON_RETRY;
+import static com.icthh.xm.tmf.ms.activation.domain.SagaEvent.SagaEventType.SUSPENDED;
+import static com.icthh.xm.tmf.ms.activation.domain.SagaLogType.EVENT_END;
+import static com.icthh.xm.tmf.ms.activation.domain.SagaLogType.EVENT_START;
 import static com.icthh.xm.tmf.ms.activation.domain.SagaTransactionState.NEW;
 import static java.util.Arrays.asList;
+import static org.hamcrest.Matchers.hasItem;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.icthh.xm.commons.i18n.error.web.ExceptionTranslator;
 import com.icthh.xm.commons.i18n.spring.service.LocalizationMessageService;
+import com.icthh.xm.tmf.ms.activation.domain.SagaEvent;
+import com.icthh.xm.tmf.ms.activation.domain.SagaLog;
+import com.icthh.xm.tmf.ms.activation.domain.SagaLogType;
 import com.icthh.xm.tmf.ms.activation.domain.SagaTransaction;
 import com.icthh.xm.tmf.ms.activation.domain.SagaTransactionState;
 import com.icthh.xm.tmf.ms.activation.service.SagaService;
+import java.time.Instant;
 import java.util.List;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
@@ -86,9 +96,61 @@ public class SagaTransactionResourceTest {
         mockMvc.perform(get("/api/internal/transactions?page=1&size=5&sort=id,desc")
                             .contentType(TestUtil.APPLICATION_JSON_UTF8))
                .andDo(print())
+               .andExpect(jsonPath("$.[*].id").value(hasItem("1")))
+               .andExpect(jsonPath("$.[*].id").value(hasItem("2")))
+               .andExpect(jsonPath("$.[*].typeKey").value(hasItem("TK")))
+               .andExpect(jsonPath("$.[*].sagaTransactionState").value(hasItem("NEW")))
                .andExpect(status().isOk());
 
         verify(sagaService).getAllTransaction(eq(pageRequest));
+    }
+
+    @Test
+    @SneakyThrows
+    public void getEventsByTransactions() {
+
+        List<SagaEvent> events = asList(event("1", "TK", ON_RETRY), event("2", "TK", SUSPENDED));
+        when(sagaService.getEventsByTransaction("5")).thenReturn(events);
+
+        mockMvc.perform(get("/api/internal//transactions/{id}/events?page=1&size=5&sort=id,desc", "5")
+                            .contentType(TestUtil.APPLICATION_JSON_UTF8))
+               .andDo(print())
+               .andExpect(jsonPath("$.[*].id").value(hasItem("1")))
+               .andExpect(jsonPath("$.[*].id").value(hasItem("2")))
+               .andExpect(jsonPath("$.[*].typeKey").value(hasItem("TK")))
+               .andExpect(jsonPath("$.[*].status").value(hasItem("ON_RETRY")))
+               .andExpect(jsonPath("$.[*].status").value(hasItem("SUSPENDED")))
+               .andExpect(status().isOk());
+
+        verify(sagaService).getEventsByTransaction(eq("5"));
+    }
+
+    @Test
+    @SneakyThrows
+    public void getLogsByTransactions() {
+
+        List<SagaLog> events = asList(log(1L, "TK", EVENT_START), log(2L, "TK", EVENT_END));
+        when(sagaService.getLogsByTransaction("5")).thenReturn(events);
+
+        mockMvc.perform(get("/api/internal//transactions/{id}/logs?page=1&size=5&sort=id,desc", "5")
+                            .contentType(TestUtil.APPLICATION_JSON_UTF8))
+               .andDo(print())
+               .andExpect(jsonPath("$.[*].id").value(hasItem(1)))
+               .andExpect(jsonPath("$.[*].id").value(hasItem(2)))
+               .andExpect(jsonPath("$.[*].eventTypeKey").value(hasItem("TK")))
+               .andExpect(jsonPath("$.[*].logType").value(hasItem("EVENT_START")))
+               .andExpect(jsonPath("$.[*].logType").value(hasItem("EVENT_END")))
+               .andExpect(status().isOk());
+
+        verify(sagaService).getLogsByTransaction(eq("5"));
+    }
+
+    public SagaLog log(Long id, String typeKey, SagaLogType logType) {
+        return new SagaLog().setId(id).setEventTypeKey(typeKey).setLogType(logType);
+    }
+
+    public SagaEvent event(String id, String typeKey, SagaEvent.SagaEventType sagaEventType) {
+        return new SagaEvent().setId(id).setTypeKey(typeKey).setStatus(sagaEventType);
     }
 
     public SagaTransaction tx(String id, String typeKey, SagaTransactionState sagaTransactionState) {
