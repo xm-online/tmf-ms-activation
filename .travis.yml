@@ -1,0 +1,40 @@
+language: java
+jdk:
+- oraclejdk8
+install: true
+addons:
+  sonarcloud:
+    organization: xm-online
+    token:
+      secure: ECxAG4LwK9L/6oFlYQtX5G4giil7YHRR6xaQfrZsoT54DiUmUOGeoNFOCCfWd0I3BeRZkB32gt+isNccwrEbE9JJb3A23lxg0vFaLdkvabmYc4yuCyIdA2IrBdrknoCHhlGIU1RN1V+kbXb9ZnZU90wNn+ECs4JwIHzPgqVoF3tsso89CQivlZjX/Btlpb5/WfMeXCjUNsArTx4JG6iLYtMfFYBppR8ASbkTRhSq6rXsmrTRT7GJa14OTAZ5uzBM5F4k6QFnJihIcLDH9kPDCpgW4ZLTJbeU6UmQS09FgV4hXbtTcu0YanHkV3zFSgTV9O0AY0oYzqxsyQTMY0cOprBCeDqeZj24ZEDnqZNlR/B9WIVaJvcbDx7vPnMVMBhW/KGZs9uz5WUGYcCBi7mZA7nUAP1jrh8p4ZDeNg9z5VZwktsEAuevRGvJZBqKoDPNAh+o6KTEMr7hNQueTOEDxrrU2XwIWV0rA5iGI5dTEud7gtUnbnL5gAw/TTgAhABMNbf9XYu0qbjKbwH43lxnDOD6vXBfU4gMbqUrssyj5OroENDt+AUO9IXUk65nizl1LX3PAaryuR5lADl/K5gq1xvCq0qzXp/o0+eW+kb9ygUOt9N0RRtjV5BYbV+VqP5DKIizFOZBvLoxeRdHLJdxoEZFwfRPdIyp+TUcNkDsTPk=
+    branches:
+    - master
+script:
+- set -e
+- "./gradlew --no-daemon --refresh-dependencies clean test"
+- "./gradlew -x test -Pprod --no-daemon bootWar"
+- docker login -u $DOCKER_USER -p $DOCKER_PASS
+- export DOCKER_REPO=$(echo  -n $TRAVIS_REPO_SLUG | sed -e 's/^xm-online\//xmonline\//g')
+- export IMAGE_BRANCH=$(echo -n $TRAVIS_BRANCH | sed -e 's/\//-/g')
+- docker build -t $DOCKER_REPO:$IMAGE_BRANCH -t $DOCKER_REPO:$IMAGE_BRANCH-$TRAVIS_BUILD_NUMBER
+  --label commit_id="$TRAVIS_COMMIT" --label commit_message="$TRAVIS_COMMIT_MESSAGE"
+  -f src/main/docker/Dockerfile .
+- docker push $DOCKER_REPO:$IMAGE_BRANCH
+- docker push $DOCKER_REPO:$IMAGE_BRANCH-$TRAVIS_BUILD_NUMBER
+- if [ "$IMAGE_BRANCH" == "master" ]; then docker tag $DOCKER_REPO:$IMAGE_BRANCH $DOCKER_REPO:latest;
+  docker push $DOCKER_REPO:latest; export SONAR_PK=$(echo  -n $TRAVIS_REPO_SLUG |
+  sed -e 's/\//:/g'); ./gradlew -x test --no-daemon sonarqube -Dsonar.projectKey="$SONAR_PK"
+  -Dsonar.projectName="$SONAR_PK" -Dsonar.java.binaries="." -Dsonar.projectVersion="$IMAGE_BRANCH";
+  fi
+cache:
+  directories:
+  - "~/.gradle"
+  - "~/.m2"
+env:
+  global:
+  - secure: mj56ZieRiHkyyC+Siu2ca7ys9fn72+DCy0I5aPE8jFmmyFTrzUINhujV4fyuswty33FzYOFrVE3YW+ktWsHL8/FtC9YQQfC9ags6a2y65xU3qE8OGkOvifJRHldaS4Zv3H28yimYbPrkF2ylZvSFGo8E8bnaGO3skKG/62ea2q9lrWMxvn8sK9p2YJdqnWNWffbM9H29CM5hCbo1fN4F+PqtmQqA9iTv4vZK1GPAIe99M8hzfxj5UqJq7egAgd++9ai9xYJpytKhxXWcfh54Iw9AuNI8bj9cdA04ZFQZPq3zMW79wnP8U111W4u00Kh3cfyO6WwME7XfyIVuM0R3WOyEZL45732u3rLxN/l0a2MMhIkZ8ZDBwa6L+RT2pCqmG8GhrlA/OssAXs0KVtAq8zHzLbsrXQiwrF96FijJboBV0tA9DTXcTbwb6+9kfUk5PhaauZfrKYoBqg7URLkivAXRhybB00ozyGkw7wN4eyJFPb1ETOJxxMlDZLd8mDLTubLW3gu6VpAhORAzsx5y/Fltd3u/SYGt4qT/U15XCu8uKEPVSKjoKl/QzMnHVuhtkBwunTYzpP814PFYwGajoMZt6OxINWQxIokOeJDpEuZYs+y2Mj+VWx+Wr/V7bQbj2q26o0fh5qXoBMphknI9NbV4/OX4XY8PQVYcl8dvvHc=
+  - secure: LqUkUP3vMSmxWpaJj1dXrDf0VMhwbvDHzw+4IdXoc40ROyYd0CsPGQjifqm5bi20o/DrMFZaBD2pm6ff7wFVlexm8wyRHCEc24Qo2qLGTxKe8lREcIO/bQcGCYnvdey+3TUwWccmhYq3KJxceCbuBYqkK/53qwkK5x8Bj/+C5KcaXJnXf6QHWIEeeQNhnPVMBz8QYAHMFCbO8MW2xQWyWDiKlFas+M94lSYXkfGndrz5cVu61DCvLGOT7szEiY7q739XgfrHRWG5EyyK3lIitVcaexhEyCNXLHzysYP2jXZvbaIFC2F3FYeeP4VAX9EXnDKlRYV3xSa9/Ydg8O9A4NTHoy/+nE4ePe00Ji/STqeTex4anmy7y6IgCyw8hWmRX3mKrIm2YXyHdcmjgxnC1rZuFYTOPiewm/TDWmaXqQ87/Vow46Bn5VDn83p+e0CBX864c01ahgC4cae9KstskDSlds9mAat+ble62ic9Se5ciP7eUI0TOdJSqMYy6k75KE2iDDbG8n9qHR7qR/G+u639v2k9OWYx5NZopHLP5lbq88SEwVBcAaaojuS+iP4CcMkBH9auCNOcUVomWDWdrXrmtVMu0Xo0TJDoKOu+ueFRVkA4lCwnEsk7ZLUYPld5OWW8YwQn1f83bywBMfHVY28enD9I5Rwc45NatGO0k+M=
+notifications:
+  slack:
+    rooms:
+      secure: kA/wUEZNnML/PAzG/ISUicfOGvb/lYspRf3MLn7Xg+xwfH0CWaSbE/IB3GZQJOO8WngyBB0Mzs5H9DP23U1KLIpHzJBiAtclw9XbscPpO+fFObTfhyZv9uPHxhLf1rtChSCXQsA7n7MAdNy8j7PY8EvMD3xN2e7LjTH6GqadJk1O6Gss2K6D4N3adfxLwhalriAzImo0I2A+Je1j8Ws3Owi6rW/sMYtZPJBDQIKQpGGYSigvpOd1SPPPCYQDpALlyAgxFr/xMxyGOqlGx5iV3qJ45nUvOfosfx56APOQwluhr1URbVuJgUs2JzzEjhe+lI5w1b/q4X93uKxL2hPNhzuEn/fMSd7pCCzOgz87ztUs2xwmU6a+Bg2DPhfjxvxZ/wy3Ok/gaX37CaWD7ZMPFPvQx6O93KI3V7NagfsJ1Ke6NcodDBeRH1zTGpYUjdpDuc0oP4POlKuWupnuplp0LC6DdSqKrgnp7FCH1MowqHyp+d1f+SDvMVm85zTCLT+MxI/mYqYlW5gywaOE0xXy0fPJpRwqwuc1ZbQQGgvcBXc9H+pMpNtaYYumssynIsED6oNKlWjeRi/mjP9tJhrA6yBkvhisEfBBiycj+xaFKyLVurzd+Kls6HlZjgs5ixT66mNAMOY5hkMkJkZ0BvdHT0ZitLGNsy25w3stRGG0b1U=

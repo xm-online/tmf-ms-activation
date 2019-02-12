@@ -1,11 +1,11 @@
 package com.icthh.xm.tmf.ms.activation.web.rest;
 
+import com.codahale.metrics.annotation.Timed;
 import com.icthh.xm.tmf.ms.activation.domain.SagaEvent;
 import com.icthh.xm.tmf.ms.activation.domain.SagaLog;
 import com.icthh.xm.tmf.ms.activation.domain.SagaTransaction;
 import com.icthh.xm.tmf.ms.activation.service.SagaService;
 import com.icthh.xm.tmf.ms.activation.web.rest.util.PaginationUtil;
-import io.swagger.annotations.ApiParam;
 import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
@@ -28,11 +28,13 @@ public class SagaTransactionResource {
 
     private final SagaService sagaService;
 
+    @Timed
     @PostMapping("/transaction")
     public ResponseEntity<SagaTransaction> createSagaTransaction(@RequestBody SagaTransaction sagaTransaction) {
         return ResponseEntity.ok(sagaService.createNewSaga(sagaTransaction));
     }
 
+    @Timed
     @PostMapping("/task/{id}/continue")
     public ResponseEntity<Void> continueTask(@PathVariable("id") String id, @RequestBody(required = false)
         Map<String, Object> taskContext) {
@@ -40,6 +42,7 @@ public class SagaTransactionResource {
         return ResponseEntity.ok().build();
     }
 
+    @Timed
     @PostMapping("/transaction/{id}/cancel")
     public ResponseEntity<Void> cancelSagaTransaction(@PathVariable("id") String id) {
         sagaService.cancelSagaTransaction(id);

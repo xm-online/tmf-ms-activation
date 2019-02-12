@@ -215,6 +215,7 @@ public class SagaServiceTest {
         when(tenantUtils.getTenantKey()).thenReturn("XM");
         String txId = UUID.randomUUID().toString();
         SagaTaskSpec sagaTaskSpec = sagaTaskSpec();
+        Continuation continuation = new Continuation();
 
         when(transactionRepository.findById(txId)).thenReturn(of(mockTx(txId, NEW)));
         when(logRepository.getFinishLogs(eq(txId), eq(asList("NEXT-JOIN-TASK")))).thenReturn(emptyList());
@@ -233,7 +234,7 @@ public class SagaServiceTest {
         verify(logRepository).getFinishLogs(eq(txId), eq(asList("PARALEL-TASK1", "PARALEL-TASK2")));
         verify(logRepository).findLogs(eq(EVENT_START), eq(mockTx(txId, NEW)), eq("NEXT-JOIN-TASK"));
         verify(logRepository).save(refEq(createLog(txId, "NEXT-JOIN-TASK", EVENT_START)));
-        verify(taskExecutor).executeTask(refEq(sagaTaskSpec), refEq(sagaEvent), refEq(mockTx(txId)));
+        verify(taskExecutor).executeTask(refEq(sagaTaskSpec), refEq(sagaEvent), refEq(mockTx(txId)), refEq(continuation));
         verify(eventsManager).sendEvent(refEq(new SagaEvent().setTenantKey("XM")
             .setTypeKey("SOME-OTHER-TASK")
             .setCreateDate(Instant.now(clock))
@@ -267,6 +268,7 @@ public class SagaServiceTest {
         when(tenantUtils.getTenantKey()).thenReturn("XM");
         String txId = UUID.randomUUID().toString();
         SagaTaskSpec sagaTaskSpec = sagaTaskSpec();
+        Continuation continuation = new Continuation();
 
         when(transactionRepository.findById(txId)).thenReturn(of(mockTx(txId, NEW)));
         when(logRepository.getFinishLogs(eq(txId), eq(asList("NEXT-JOIN-TASK")))).thenReturn(emptyList());
@@ -274,7 +276,7 @@ public class SagaServiceTest {
             .thenReturn(asList(new SagaLog().setEventTypeKey("PARALEL-TASK1").setLogType(EVENT_END),
                 new SagaLog().setEventTypeKey("PARALEL-TASK2").setLogType(EVENT_END)));
         doThrow(new RuntimeException("TEST EXCEPTION")).when(taskExecutor)
-            .executeTask(refEq(sagaTaskSpec), any(), refEq(mockTx(txId)));
+            .executeTask(refEq(sagaTaskSpec), any(), refEq(mockTx(txId)), refEq(continuation));
 
         SagaEvent sagaEvent = new SagaEvent().setTenantKey("XM")
             .setTypeKey("NEXT-JOIN-TASK")
@@ -286,7 +288,7 @@ public class SagaServiceTest {
         verify(logRepository).getFinishLogs(eq(txId), eq(asList("PARALEL-TASK1", "PARALEL-TASK2")));
         verify(logRepository).findLogs(eq(EVENT_START), eq(mockTx(txId, NEW)), eq("NEXT-JOIN-TASK"));
         verify(logRepository).save(refEq(createLog(txId, "NEXT-JOIN-TASK", EVENT_START)));
-        verify(taskExecutor).executeTask(refEq(sagaTaskSpec), refEq(sagaEvent), refEq(mockTx(txId)));
+        verify(taskExecutor).executeTask(refEq(sagaTaskSpec), refEq(sagaEvent), refEq(mockTx(txId)), refEq(continuation));
         verify(retryService).retry(refEq(new SagaEvent().setTenantKey("XM")
             .setTypeKey("NEXT-JOIN-TASK")
             .setTransactionId(txId), "id"), any());
@@ -299,6 +301,7 @@ public class SagaServiceTest {
         when(tenantUtils.getTenantKey()).thenReturn("XM");
         String txId = UUID.randomUUID().toString();
         SagaTaskSpec sagaTaskSpec = sagaTaskSpec().setKey("SOME-OTHER-TASK").setDepends(emptyList()).setNext(emptyList());
+        Continuation continuation = new Continuation();
 
         when(transactionRepository.findById(txId)).thenReturn(of(mockTx(txId, NEW)));
         when(logRepository.getFinishLogs(eq(txId), eq(asList("SOME-OTHER-TASK")))).thenReturn(emptyList());
@@ -315,7 +318,7 @@ public class SagaServiceTest {
         verify(logRepository).getFinishLogs(eq(txId), eq(asList("SOME-OTHER-TASK")));
         verify(logRepository).findLogs(eq(EVENT_START), refEq(mockTx(txId, NEW), "sagaTransactionState"), eq("SOME-OTHER-TASK"));
         verify(logRepository).save(refEq(createLog(txId, "SOME-OTHER-TASK", EVENT_START), "sagaTransaction"));
-        verify(taskExecutor).executeTask(refEq(sagaTaskSpec), refEq(sagaEvent), refEq(mockTx(txId), "sagaTransactionState"));
+        verify(taskExecutor).executeTask(refEq(sagaTaskSpec), refEq(sagaEvent), refEq(mockTx(txId), "sagaTransactionState"), refEq(continuation));
         verify(logRepository).findLogs(eq(EVENT_END), refEq(mockTx(txId, NEW), "sagaTransactionState"), eq("SOME-OTHER-TASK"));
         verify(logRepository).save(refEq(createLog(txId, "SOME-OTHER-TASK", EVENT_END), "sagaTransaction"));
         verify(logRepository).getFinishLogs(eq(txId), eq(allTasks));
