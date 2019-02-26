@@ -101,6 +101,7 @@ public class MessagingConfiguration implements RefreshableConfiguration {
 
             KafkaBindingProperties props = new KafkaBindingProperties();
             props.getConsumer().setAutoCommitOffset(false);
+            props.getConsumer().setAutoCommitOnError(false);
             props.getConsumer().setStartOffset(startOffset);
             kafkaExtendedBindingProperties.getBindings().put(chanelName, props);
 
@@ -139,7 +140,8 @@ public class MessagingConfiguration implements RefreshableConfiguration {
         final StopWatch stopWatch = StopWatch.createStarted();
         String payloadString = (String) message.getPayload();
         payloadString = unwrap(payloadString, "\"");
-        log.info("start processign message for tenant: [{}], base64 body = {}", tenantName, payloadString);
+        log.info("start processign message for tenant: [{}], base64 body = {}, headers = {}", tenantName, payloadString,
+                 message.getHeaders());
         String eventBody = new String(Base64.getDecoder().decode(payloadString), UTF_8);
         log.info("start processign message for tenant: [{}], json body = {}", tenantName, eventBody);
 
