@@ -71,10 +71,11 @@ spring:
             enabled: false
     thymeleaf:
         mode: HTML
+
     kafka:
         bootstrap-servers: localhost:9092
         consumer:
-            group-id: entity
+            group-id: activation
             key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
             value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
         listener:
@@ -84,6 +85,7 @@ spring:
             value-serializer: com.icthh.xm.tmf.ms.activation.events.bindings.RoutingSerializer
         properties:
             reconnect.backoff.ms: 1000
+            partition.assignment.strategy: org.apache.kafka.clients.consumer.RangeAssignor
         admin:
             fail-fast: true
 

@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cloud.stream.binding.BinderAwareChannelResolver;
+import org.springframework.kafka.support.KafkaHeaders;
 import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.stereotype.Component;
 
@@ -21,7 +22,7 @@ public class KafkaEventsSender implements EventsSender {
         log.info("Send saga event: {}", sagaEvent);
         channelResolver
             .resolveDestination(MessagingConfiguration.buildChanelName(sagaEvent.getTenantKey().toUpperCase()))
-            .send(MessageBuilder.withPayload(sagaEvent).build());
+            .send(MessageBuilder.withPayload(sagaEvent).setHeader(KafkaHeaders.MESSAGE_KEY, sagaEvent.getId()).build());
     }
 
     @Override
