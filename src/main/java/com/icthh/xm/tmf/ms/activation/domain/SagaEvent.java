@@ -40,12 +40,12 @@ public class SagaEvent implements Serializable {
     private int retryNumber = 0;
     @Column(name = "status")
     @Enumerated(EnumType.STRING)
-    private SagaEventType status;
+    private SagaEventStatus status;
 
     @Column(name = "create_date")
     private Instant createDate;
 
-    public enum SagaEventType {
+    public enum SagaEventStatus {
         ON_RETRY, SUSPENDED, WAIT_DEPENDS_TASK
     }
 }

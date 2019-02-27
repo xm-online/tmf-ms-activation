@@ -1,6 +1,6 @@
 package com.icthh.xm.tmf.ms.activation.service;
 
-import static com.icthh.xm.tmf.ms.activation.domain.SagaEvent.SagaEventType.SUSPENDED;
+import static com.icthh.xm.tmf.ms.activation.domain.SagaEvent.SagaEventStatus.SUSPENDED;
 import static com.icthh.xm.tmf.ms.activation.domain.SagaLogType.EVENT_END;
 import static com.icthh.xm.tmf.ms.activation.domain.SagaLogType.EVENT_START;
 import static com.icthh.xm.tmf.ms.activation.domain.SagaTransactionState.CANCELED;

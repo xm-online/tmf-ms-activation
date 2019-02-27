@@ -1,16 +1,14 @@
 package com.icthh.xm.tmf.ms.activation.service;
 
-import static com.icthh.xm.tmf.ms.activation.domain.SagaEvent.SagaEventType.ON_RETRY;
-import static com.icthh.xm.tmf.ms.activation.domain.SagaEvent.SagaEventType.WAIT_DEPENDS_TASK;
+import static com.icthh.xm.tmf.ms.activation.domain.SagaEvent.SagaEventStatus.ON_RETRY;
+import static com.icthh.xm.tmf.ms.activation.domain.SagaEvent.SagaEventStatus.WAIT_DEPENDS_TASK;
 
 import com.icthh.xm.tmf.ms.activation.domain.SagaEvent;
-import com.icthh.xm.tmf.ms.activation.domain.SagaEvent.SagaEventType;
 import com.icthh.xm.tmf.ms.activation.domain.spec.SagaTaskSpec;
 import com.icthh.xm.tmf.ms.activation.events.EventsSender;
 import com.icthh.xm.tmf.ms.activation.repository.SagaEventRepository;
 import com.icthh.xm.tmf.ms.activation.utils.TenantUtils;
 import java.time.Instant;
-import java.util.List;
 import java.util.Optional;
 import javax.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
@@ -57,8 +55,8 @@ public class RetryService {
         scheduleRetry(sagaEvent, ON_RETRY);
     }
 
-    private void scheduleRetry(SagaEvent sagaEvent, SagaEventType onRetry) {
-        sagaEvent.setStatus(onRetry);
+    private void scheduleRetry(SagaEvent sagaEvent, SagaEvent.SagaEventStatus eventStatus) {
+        sagaEvent.setStatus(eventStatus);
         SagaEvent savedSagaEvent = sagaEventRepository.save(sagaEvent);
         log.info("Schedule event {} for delay {}", savedSagaEvent, sagaEvent.getBackOff());
         threadPoolTaskScheduler

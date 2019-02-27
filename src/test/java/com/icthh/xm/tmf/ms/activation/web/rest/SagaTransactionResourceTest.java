@@ -1,7 +1,7 @@
 package com.icthh.xm.tmf.ms.activation.web.rest;
 
-import static com.icthh.xm.tmf.ms.activation.domain.SagaEvent.SagaEventType.ON_RETRY;
-import static com.icthh.xm.tmf.ms.activation.domain.SagaEvent.SagaEventType.SUSPENDED;
+import static com.icthh.xm.tmf.ms.activation.domain.SagaEvent.SagaEventStatus.ON_RETRY;
+import static com.icthh.xm.tmf.ms.activation.domain.SagaEvent.SagaEventStatus.SUSPENDED;
 import static com.icthh.xm.tmf.ms.activation.domain.SagaLogType.EVENT_END;
 import static com.icthh.xm.tmf.ms.activation.domain.SagaLogType.EVENT_START;
 import static com.icthh.xm.tmf.ms.activation.domain.SagaTransactionState.NEW;
@@ -24,7 +24,6 @@ import com.icthh.xm.tmf.ms.activation.domain.SagaLogType;
 import com.icthh.xm.tmf.ms.activation.domain.SagaTransaction;
 import com.icthh.xm.tmf.ms.activation.domain.SagaTransactionState;
 import com.icthh.xm.tmf.ms.activation.service.SagaService;
-import java.time.Instant;
 import java.util.List;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
@@ -149,7 +148,7 @@ public class SagaTransactionResourceTest {
         return new SagaLog().setId(id).setEventTypeKey(typeKey).setLogType(logType);
     }
 
-    public SagaEvent event(String id, String typeKey, SagaEvent.SagaEventType sagaEventType) {
+    public SagaEvent event(String id, String typeKey, SagaEvent.SagaEventStatus sagaEventType) {
         return new SagaEvent().setId(id).setTypeKey(typeKey).setStatus(sagaEventType);
     }
 
