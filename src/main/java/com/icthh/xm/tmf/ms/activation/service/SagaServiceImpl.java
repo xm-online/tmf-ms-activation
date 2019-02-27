@@ -1,6 +1,5 @@
 package com.icthh.xm.tmf.ms.activation.service;
 
-import static com.icthh.xm.tmf.ms.activation.domain.SagaEvent.SagaEventType.ON_RETRY;
 import static com.icthh.xm.tmf.ms.activation.domain.SagaEvent.SagaEventType.SUSPENDED;
 import static com.icthh.xm.tmf.ms.activation.domain.SagaLogType.EVENT_END;
 import static com.icthh.xm.tmf.ms.activation.domain.SagaLogType.EVENT_START;
@@ -172,7 +171,7 @@ public class SagaServiceImpl implements SagaService {
         if (!notFinishedTasks.isEmpty()) {
             log.warn("Task will not execute. Depends tasks {} not finished. Transaction id {}.", notFinishedTasks,
                      txId);
-            retry(sagaEvent, context);
+            retryService.retryForWaitDependsTask(sagaEvent, context.getTaskSpec());
             return false;
         }
         return true;
@@ -259,10 +258,6 @@ public class SagaServiceImpl implements SagaService {
             transactionRepository.save(transaction.setSagaTransactionState(FINISHED));
             taskExecutor.onFinish(transaction);
         }
-    }
-
-    private void retry(SagaEvent sagaEvent, Context context) {
-        retryService.retry(sagaEvent, context.getTaskSpec());
     }
 
     private void failHandler(SagaTransaction transaction, SagaEvent sagaEvent, SagaTaskSpec taskSpec) {

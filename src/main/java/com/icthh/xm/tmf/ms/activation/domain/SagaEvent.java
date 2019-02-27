@@ -46,6 +46,6 @@ public class SagaEvent implements Serializable {
     private Instant createDate;
 
     public enum SagaEventType {
-        ON_RETRY, SUSPENDED
+        ON_RETRY, SUSPENDED, WAIT_DEPENDS_TASK
     }
 }
