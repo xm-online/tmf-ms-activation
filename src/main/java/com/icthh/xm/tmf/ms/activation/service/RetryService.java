@@ -65,7 +65,7 @@ public class RetryService {
             .schedule(() -> doResend(savedSagaEvent), Instant.now().plusSeconds(sagaEvent.getBackOff()));
     }
 
-    public void doResend(SagaEvent sagaEvent, SagaEventType onRetry) {
+    public void doResend(SagaEvent sagaEvent) {
         tenantUtils.doInTenantContext(() -> {
             try {
                 log.info("Retry event {}. Send into broker.", sagaEvent);
