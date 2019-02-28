@@ -54,7 +54,7 @@ spring:
             # The maximum number of deployed instances of the application.
             # If we use the default or value less than real count of instances,
             # several instances won't have access to the Kafka at the same time
-            instance-count: 1
+            instance-count: 16
     jpa:
         open-in-view: false
         properties:
@@ -174,7 +174,7 @@ application:
     # Shows how many messages the consumer can process at the same time.
     # The number of created partitions in the Kafka same topic is equal to
     # application.kafka-concurrency-count * spring.cloud.stream.instance-count
-    kafka-concurrency-count: 1
+    kafka-concurrency-count: 16
     db-schema-suffix:
     tenant-ignored-path-list: /swagger-resources/configuration/ui, /management/health, /oauth/token_key, /h2-console
     lep:
