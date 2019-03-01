@@ -203,7 +203,7 @@ public class SagaServiceTest {
         verify(transactionRepository).findById(eq(txId));
         verify(logRepository).getFinishLogs(eq(txId), eq(asList("NEXT-JOIN-TASK")));
         verify(logRepository).getFinishLogs(eq(txId), eq(asList("PARALEL-TASK1", "PARALEL-TASK2")));
-        verify(retryService).retry(refEq(new SagaEvent().setTenantKey("XM")
+        verify(retryService).retryForWaitDependsTask(refEq(new SagaEvent().setTenantKey("XM")
             .setTypeKey("NEXT-JOIN-TASK")
             .setTransactionId(txId), "id"), any());
 

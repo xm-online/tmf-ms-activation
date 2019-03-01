@@ -5,6 +5,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.commons.lang3.StringUtils.unwrap;
 import static org.apache.commons.lang3.StringUtils.upperCase;
 import static org.springframework.cloud.stream.binder.kafka.properties.KafkaConsumerProperties.StartOffset.earliest;
+import static org.springframework.kafka.support.KafkaHeaders.ACKNOWLEDGMENT;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -14,6 +15,7 @@ import com.icthh.xm.commons.logging.util.MdcUtils;
 import com.icthh.xm.tmf.ms.activation.config.ApplicationProperties;
 import com.icthh.xm.tmf.ms.activation.domain.SagaEvent;
 import java.util.Base64;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -38,8 +40,8 @@ import org.springframework.cloud.stream.config.BindingServiceProperties;
 import org.springframework.context.annotation.Import;
 import org.springframework.integration.config.EnableIntegration;
 import org.springframework.kafka.support.Acknowledgment;
-import org.springframework.kafka.support.KafkaHeaders;
 import org.springframework.messaging.Message;
+import org.springframework.messaging.MessageHeaders;
 import org.springframework.messaging.SubscribableChannel;
 import org.springframework.stereotype.Component;
 
@@ -140,14 +142,18 @@ public class MessagingConfiguration implements RefreshableConfiguration {
         final StopWatch stopWatch = StopWatch.createStarted();
         String payloadString = (String) message.getPayload();
         payloadString = unwrap(payloadString, "\"");
+        MessageHeaders headers = message.getHeaders();
+        Map<String, Object> headersForLog = new HashMap<>();
+        headersForLog.putAll(headers);
+        headersForLog.remove(ACKNOWLEDGMENT);
         log.info("start processign message for tenant: [{}], base64 body = {}, headers = {}", tenantName, payloadString,
-                 message.getHeaders());
+                 headersForLog);
         String eventBody = new String(Base64.getDecoder().decode(payloadString), UTF_8);
         log.info("start processign message for tenant: [{}], json body = {}", tenantName, eventBody);
 
         eventHandler.onEvent(mapToEvent(eventBody), tenantName);
 
-        message.getHeaders().get(KafkaHeaders.ACKNOWLEDGMENT, Acknowledgment.class).acknowledge();
+        headers.get(ACKNOWLEDGMENT, Acknowledgment.class).acknowledge();
         log.info("stop processign message for tenant: [{}], time = {}", tenantName, stopWatch.getTime());
     }
 
