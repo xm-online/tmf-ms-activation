@@ -42,7 +42,6 @@ public class RepositoryTest extends BaseDaoTest {
         Page<SagaTransaction> page = sagaTransactionRepository.findAllBySagaTransactionState(NEW, PageRequest.of(0, 2));
         assertEquals(4, page.getTotalElements());
         assertEquals(2, page.getTotalPages());
-
         assertEquals(asList(tx("1", "A", NEW, "2019-03-04T11:53:31Z"), tx("3", "A", NEW, "2019-03-04T11:49:57Z")), page.getContent());
     }
 
