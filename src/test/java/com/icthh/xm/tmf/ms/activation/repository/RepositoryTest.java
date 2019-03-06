@@ -12,6 +12,9 @@ import com.icthh.xm.tmf.ms.activation.domain.SagaLogType;
 import com.icthh.xm.tmf.ms.activation.domain.SagaTransaction;
 import com.icthh.xm.tmf.ms.activation.domain.SagaTransactionState;
 import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.Assert;
 import org.junit.Test;
@@ -42,7 +45,7 @@ public class RepositoryTest extends BaseDaoTest {
         Page<SagaTransaction> page = sagaTransactionRepository.findAllBySagaTransactionState(NEW, PageRequest.of(0, 2));
         assertEquals(4, page.getTotalElements());
         assertEquals(2, page.getTotalPages());
-        assertEquals(asList(tx("1", "A", NEW, "2019-03-04T11:53:31Z"), tx("3", "A", NEW, "2019-03-04T11:49:57Z")), page.getContent());
+        assertEquals(asList(tx("1", "A", NEW, "2019-03-04T13:53:31"), tx("3", "A", NEW, "2019-03-04T13:49:57")), page.getContent());
     }
 
     @Test
@@ -50,7 +53,7 @@ public class RepositoryTest extends BaseDaoTest {
         Page<SagaTransaction> page = sagaTransactionRepository.findAll(PageRequest.of(0, 2));
         assertEquals(5, page.getTotalElements());
         assertEquals(3, page.getTotalPages());
-        assertEquals(asList(tx("1", "A", NEW, "2019-03-04T11:53:31Z"), tx("2", "A", CANCELED, "2019-03-04T11:49:00Z")), page.getContent());
+        assertEquals(asList(tx("1", "A", NEW, "2019-03-04T13:53:31"), tx("2", "A", CANCELED, "2019-03-04T13:49:00")), page.getContent());
     }
 
     @Test
@@ -60,11 +63,16 @@ public class RepositoryTest extends BaseDaoTest {
 
     @Test
     public void testCountOldTransaction() {
-        assertEquals(2, sagaTransactionRepository.countByCreateDateBeforeAndSagaTransactionState(Instant.parse("2019-03-04T11:50:00Z"), NEW));
+        assertEquals(2, sagaTransactionRepository.countByCreateDateBeforeAndSagaTransactionState(moveToSystemTime("2019-03-04T13:50:00"), NEW));
     }
 
     public SagaTransaction tx(String id, String typeKey, SagaTransactionState sagaTransactionState, String date) {
         return new SagaTransaction().setId(id).setTypeKey(typeKey).setSagaTransactionState(sagaTransactionState)
-            .setCreateDate(Instant.parse(date));
+            .setCreateDate(moveToSystemTime(date));
+    }
+
+    private Instant moveToSystemTime(String date) {
+        return LocalDateTime.parse(date).toInstant(
+            ZoneId.systemDefault().getRules().getOffset(LocalDateTime.parse(date)));
     }
 }
