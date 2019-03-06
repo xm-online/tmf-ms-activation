@@ -25,6 +25,8 @@ public class ApplicationProperties {
     private String dbSchemaSuffix;
     private int kafkaConcurrencyCount;
 
+    private long expectedTransactionCompletionTimeSeconds;
+
     private final Lep lep = new Lep();
     private final Retry retry = new Retry();
 
