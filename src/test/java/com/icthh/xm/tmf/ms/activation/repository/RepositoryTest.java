@@ -11,6 +11,7 @@ import com.icthh.xm.tmf.ms.activation.domain.SagaLog;
 import com.icthh.xm.tmf.ms.activation.domain.SagaLogType;
 import com.icthh.xm.tmf.ms.activation.domain.SagaTransaction;
 import com.icthh.xm.tmf.ms.activation.domain.SagaTransactionState;
+import java.time.Instant;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.Assert;
 import org.junit.Test;
@@ -41,7 +42,8 @@ public class RepositoryTest extends BaseDaoTest {
         Page<SagaTransaction> page = sagaTransactionRepository.findAllBySagaTransactionState(NEW, PageRequest.of(0, 2));
         assertEquals(4, page.getTotalElements());
         assertEquals(2, page.getTotalPages());
-        assertEquals(asList(tx("1", "A", NEW), tx("3", "A", NEW)), page.getContent());
+
+        assertEquals(asList(tx("1", "A", NEW, "2019-03-04T11:53:31Z"), tx("3", "A", NEW, "2019-03-04T11:49:57Z")), page.getContent());
     }
 
     @Test
@@ -49,7 +51,7 @@ public class RepositoryTest extends BaseDaoTest {
         Page<SagaTransaction> page = sagaTransactionRepository.findAll(PageRequest.of(0, 2));
         assertEquals(5, page.getTotalElements());
         assertEquals(3, page.getTotalPages());
-        assertEquals(asList(tx("1", "A", NEW), tx("2", "A", CANCELED)), page.getContent());
+        assertEquals(asList(tx("1", "A", NEW, "2019-03-04T11:53:31Z"), tx("2", "A", CANCELED, "2019-03-04T11:49:00Z")), page.getContent());
     }
 
     @Test
@@ -57,7 +59,13 @@ public class RepositoryTest extends BaseDaoTest {
         assertEquals(5, logRepository.findBySagaTransactionId("1").size());
     }
 
-    public SagaTransaction tx(String id, String typeKey, SagaTransactionState sagaTransactionState) {
-        return new SagaTransaction().setId(id).setTypeKey(typeKey).setSagaTransactionState(sagaTransactionState);
+    @Test
+    public void testCountOldTransaction() {
+        assertEquals(2, sagaTransactionRepository.countByCreateDateBeforeAndSagaTransactionState(Instant.parse("2019-03-04T11:50:00Z"), NEW));
+    }
+
+    public SagaTransaction tx(String id, String typeKey, SagaTransactionState sagaTransactionState, String date) {
+        return new SagaTransaction().setId(id).setTypeKey(typeKey).setSagaTransactionState(sagaTransactionState)
+            .setCreateDate(Instant.parse(date));
     }
 }
