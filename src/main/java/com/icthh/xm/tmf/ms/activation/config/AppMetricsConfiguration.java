@@ -26,7 +26,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
-@RequiredArgsConstructor
 @EnableMetrics(proxyTargetClass = true)
 @RequiredArgsConstructor
 public class AppMetricsConfiguration extends MetricsConfigurerAdapter {
@@ -37,6 +36,7 @@ public class AppMetricsConfiguration extends MetricsConfigurerAdapter {
     private final SagaEventRepository sagaEventRepository;
     private final MetricRegistry metricRegistry;
     private final ApplicationProperties applicationProperties;
+    private final KafkaOffsetsMetric kafkaOffsetsMetric;
     private HikariDataSource hikariDataSource;
 
     @Autowired(required = false)
