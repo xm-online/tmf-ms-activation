@@ -47,7 +47,6 @@ public class KafkaOffsetsMetric implements MetricSet {
     @Value("${spring.kafka.consumer.group-id}")
     private String group;
 
-    private final CommonConfigRepository commonConfigRepo;
     private final TenantListRepository tenantListRepository;
     private final KafkaBinderConfigurationProperties binderConfigurationProperties;
     private final ApplicationProperties applicationProperties;
@@ -138,9 +137,6 @@ public class KafkaOffsetsMetric implements MetricSet {
     @Override
     public Map<String, Metric> getMetrics() {
         Map<String, Metric> stringMetricMap = new HashMap<>();
-        Map<String, Configuration> config = commonConfigRepo.getConfig(null, asList(TENANTS_LIST_CONFIG_KEY));
-        tenantListRepository.onInit(TENANTS_LIST_CONFIG_KEY, config.get(TENANTS_LIST_CONFIG_KEY).getContent());
-
         tenantListRepository.getTenants().forEach(tenantName -> {
             String topic = TOPIC_PREFIX + tenantName.toUpperCase();
             stringMetricMap.put(METRIC_NAME + topic, (Gauge<Offsets>) () -> calculateConsumerOffsetsOnTopic(topic, group));
