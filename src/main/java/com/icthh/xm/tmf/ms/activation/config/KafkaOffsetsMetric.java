@@ -44,15 +44,13 @@ public class KafkaOffsetsMetric implements MetricSet {
     private final String METRIC_NAME = "kafka.offsets.";
     private final String TOPIC_PREFIX = "saga-events-";
 
-    @Setter
-    private int timeout = 10;
-
     @Value("${spring.kafka.consumer.group-id}")
     private String group;
 
     private final CommonConfigRepository commonConfigRepo;
     private final TenantListRepository tenantListRepository;
     private final KafkaBinderConfigurationProperties binderConfigurationProperties;
+    private final ApplicationProperties applicationProperties;
 
     private ConsumerFactory<?, ?> defaultConsumerFactory;
     private Consumer<?, ?> consumer;
@@ -107,7 +105,7 @@ public class KafkaOffsetsMetric implements MetricSet {
             return new Offsets(totalEndOffset - totalCurrentOffset, totalCurrentOffset, totalEndOffset);
         });
         try {
-            return future.get(this.timeout, TimeUnit.SECONDS);
+            return future.get(applicationProperties.getKafkaOffsetsMetricTimeout(), TimeUnit.SECONDS);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             return new Offsets(Long.MIN_VALUE, Long.MIN_VALUE, Long.MIN_VALUE);
