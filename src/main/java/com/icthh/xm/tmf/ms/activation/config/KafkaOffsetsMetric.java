@@ -136,12 +136,12 @@ public class KafkaOffsetsMetric implements MetricSet {
 
     @Override
     public Map<String, Metric> getMetrics() {
-        Map<String, Metric> stringMetricMap = new HashMap<>();
+        Map<String, Metric> metrics = new HashMap<>();
         tenantListRepository.getTenants().forEach(tenantName -> {
             String topic = TOPIC_PREFIX + tenantName.toUpperCase();
-            stringMetricMap.put(METRIC_NAME + topic, (Gauge<Offsets>) () -> calculateConsumerOffsetsOnTopic(topic, group));
+            metrics.put(METRIC_NAME + topic, (Gauge<Offsets>) () -> calculateConsumerOffsetsOnTopic(topic, group));
         });
 
-        return stringMetricMap;
+        return metrics;
     }
 }
