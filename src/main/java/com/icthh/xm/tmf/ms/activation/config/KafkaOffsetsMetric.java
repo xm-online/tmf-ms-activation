@@ -66,7 +66,7 @@ public class KafkaOffsetsMetric implements MetricSet {
         private final long totalEndOffset;
     }
 
-    private Offsets calculateConsumerLagOnTopic(String topic, String group) {
+    private Offsets calculateConsumerOffsetsOnTopic(String topic, String group) {
         ExecutorService exec = Executors.newSingleThreadExecutor();
         Future<Offsets> future = exec.submit(() -> {
 
@@ -145,7 +145,7 @@ public class KafkaOffsetsMetric implements MetricSet {
 
         tenantListRepository.getTenants().forEach(tenantName -> {
             String topic = TOPIC_PREFIX + tenantName.toUpperCase();
-            stringMetricMap.put(METRIC_NAME + topic, (Gauge<Offsets>) () -> calculateConsumerLagOnTopic(topic, group));
+            stringMetricMap.put(METRIC_NAME + topic, (Gauge<Offsets>) () -> calculateConsumerOffsetsOnTopic(topic, group));
         });
 
         return stringMetricMap;
