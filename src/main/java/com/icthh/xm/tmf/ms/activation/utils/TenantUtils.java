@@ -38,6 +38,17 @@ public class TenantUtils {
         }
     }
 
+    @SneakyThrows
+    public <R> R doInTenantContext(TaskWithResult<R> task, String tenant) {
+        try {
+            init(tenant);
+            return task.doWork();
+        } finally {
+            destroy();
+        }
+    }
+
+
     private void init(String tenantKey) {
         TenantContextUtils.setTenant(tenantContextHolder, tenantKey);
 
@@ -56,4 +67,7 @@ public class TenantUtils {
         void doWork() throws Exception;
     }
 
+    public interface TaskWithResult<R> {
+        R doWork() throws Exception;
+    }
 }
