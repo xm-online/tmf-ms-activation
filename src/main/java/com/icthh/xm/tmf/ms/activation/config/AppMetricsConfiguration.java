@@ -78,12 +78,14 @@ public class AppMetricsConfiguration extends MetricsConfigurerAdapter {
             metrics.put("transactions.wait." + tenant, inTenant(this::getWaitTransactionsCount, tenant));
             metrics.put("transactions.all." + tenant, inTenant(sagaTransactionRepository::count, tenant));
             metrics.put("tasks.onretry." + tenant, inTenant(() -> sagaEventRepository.countByStatus(ON_RETRY), tenant));
-            metrics.put("tasks.suspended." + tenant, inTenant(() -> {
-                Instant date = now().minusSeconds(applicationProperties.getExpectedTransactionCompletionTimeSeconds());
-                return sagaEventRepository.countByStatusAndCreateDateBefore(SUSPENDED, date);
-            }, tenant));
+            metrics.put("tasks.suspended." + tenant, inTenant(this::getCountSuspendedTasks, tenant));
         });
         metricRegistry.register("com.icthh.xm.tmf.ms.activation", (MetricSet) () -> metrics);
+    }
+
+    private Long getCountSuspendedTasks() {
+        Instant date = now().minusSeconds(applicationProperties.getExpectedTransactionCompletionTimeSeconds());
+        return sagaEventRepository.countByStatusAndCreateDateBefore(SUSPENDED, date);
     }
 
     private long getWaitTransactionsCount() {
