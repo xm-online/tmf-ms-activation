@@ -9,14 +9,17 @@ import com.codahale.metrics.Gauge;
 import com.codahale.metrics.Metric;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.MetricSet;
+import com.icthh.xm.commons.config.client.repository.TenantListRepository;
 import com.icthh.xm.tmf.ms.activation.repository.SagaEventRepository;
 import com.icthh.xm.tmf.ms.activation.repository.SagaTransactionRepository;
+import com.icthh.xm.tmf.ms.activation.utils.TenantUtils;
 import com.ryantenney.metrics.spring.config.annotation.EnableMetrics;
 import com.ryantenney.metrics.spring.config.annotation.MetricsConfigurerAdapter;
 import com.zaxxer.hikari.HikariDataSource;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.Supplier;
 import javax.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,16 +38,23 @@ public class AppMetricsConfiguration extends MetricsConfigurerAdapter {
     private final MetricRegistry metricRegistry;
     private final ApplicationProperties applicationProperties;
     private final KafkaOffsetsMetric kafkaOffsetsMetric;
+    private final TenantListRepository tenantListRepository;
+    private final TenantUtils tenantUtils;
+
     private HikariDataSource hikariDataSource;
 
     public AppMetricsConfiguration(@Lazy SagaTransactionRepository sagaTransactionRepository,
-        @Lazy SagaEventRepository sagaEventRepository, MetricRegistry metricRegistry,
-        ApplicationProperties applicationProperties, KafkaOffsetsMetric kafkaOffsetsMetric) {
+                                   @Lazy SagaEventRepository sagaEventRepository, MetricRegistry metricRegistry,
+                                   TenantListRepository tenantListRepository,
+                                   ApplicationProperties applicationProperties, KafkaOffsetsMetric kafkaOffsetsMetric,
+                                   TenantUtils tenantUtils) {
         this.sagaTransactionRepository = sagaTransactionRepository;
         this.sagaEventRepository = sagaEventRepository;
         this.metricRegistry = metricRegistry;
         this.applicationProperties = applicationProperties;
         this.kafkaOffsetsMetric = kafkaOffsetsMetric;
+        this.tenantListRepository = tenantListRepository;
+        this.tenantUtils = tenantUtils;
     }
 
     @Autowired(required = false)
@@ -64,21 +74,26 @@ public class AppMetricsConfiguration extends MetricsConfigurerAdapter {
         }
 
         Map<String, Metric> metrics = new HashMap<>();
-        metrics.put("transactions.wait", createWailtTransactionMetric());
-        metrics.put("transactions.all", (Gauge) sagaTransactionRepository::count);
-        metrics.put("tasks.onretry", (Gauge) () -> sagaEventRepository.countByStatus(ON_RETRY));
-        metrics.put("tasks.suspended", (Gauge) () -> {
-            Instant date = now().minusSeconds(applicationProperties.getExpectedTransactionCompletionTimeSeconds());
-            return sagaEventRepository.countByStatusAndCreateDateBefore(SUSPENDED, date);
+        tenantListRepository.getTenants().stream().map(String::toUpperCase).forEach(tenant -> {
+            metrics.put("transactions.wait." + tenant, inTenant(this::getWaitTransactionsCount, tenant));
+            metrics.put("transactions.all." + tenant, inTenant(sagaTransactionRepository::count, tenant));
+            metrics.put("tasks.onretry." + tenant, inTenant(() -> sagaEventRepository.countByStatus(ON_RETRY), tenant));
+            metrics.put("tasks.suspended." + tenant, inTenant(this::getCountSuspendedTasks, tenant));
         });
-
         metricRegistry.register("com.icthh.xm.tmf.ms.activation", (MetricSet) () -> metrics);
     }
 
-    private Gauge createWailtTransactionMetric() {
-        return () -> {
-            Instant date = now().minusSeconds(applicationProperties.getExpectedTransactionCompletionTimeSeconds());
-            return sagaTransactionRepository.countByCreateDateBeforeAndSagaTransactionState(date, NEW);
-        };
+    private Long getCountSuspendedTasks() {
+        Instant date = now().minusSeconds(applicationProperties.getExpectedTransactionCompletionTimeSeconds());
+        return sagaEventRepository.countByStatusAndCreateDateBefore(SUSPENDED, date);
+    }
+
+    private long getWaitTransactionsCount() {
+        Instant date = now().minusSeconds(applicationProperties.getExpectedTransactionCompletionTimeSeconds());
+        return sagaTransactionRepository.countByCreateDateBeforeAndSagaTransactionState(date, NEW);
+    }
+
+    private Gauge inTenant(Supplier<Long> metricSupplier, String tenant) {
+        return () -> tenantUtils.doInTenantContext(metricSupplier::get, tenant);
     }
 }
