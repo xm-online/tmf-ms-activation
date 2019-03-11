@@ -1,6 +1,5 @@
 package com.icthh.xm.tmf.ms.activation.config;
 
-import static com.google.common.collect.ImmutableBiMap.of;
 import static com.icthh.xm.tmf.ms.activation.domain.SagaEvent.SagaEventStatus.ON_RETRY;
 import static com.icthh.xm.tmf.ms.activation.domain.SagaEvent.SagaEventStatus.SUSPENDED;
 import static com.icthh.xm.tmf.ms.activation.domain.SagaTransactionState.NEW;
@@ -35,15 +34,17 @@ public class AppMetricsConfiguration extends MetricsConfigurerAdapter {
     private final SagaEventRepository sagaEventRepository;
     private final MetricRegistry metricRegistry;
     private final ApplicationProperties applicationProperties;
+    private final KafkaOffsetsMetric kafkaOffsetsMetric;
     private HikariDataSource hikariDataSource;
 
     public AppMetricsConfiguration(@Lazy SagaTransactionRepository sagaTransactionRepository,
-                                   @Lazy SagaEventRepository sagaEventRepository, MetricRegistry metricRegistry,
-                                   ApplicationProperties applicationProperties) {
+        @Lazy SagaEventRepository sagaEventRepository, MetricRegistry metricRegistry,
+        ApplicationProperties applicationProperties, KafkaOffsetsMetric kafkaOffsetsMetric) {
         this.sagaTransactionRepository = sagaTransactionRepository;
         this.sagaEventRepository = sagaEventRepository;
         this.metricRegistry = metricRegistry;
         this.applicationProperties = applicationProperties;
+        this.kafkaOffsetsMetric = kafkaOffsetsMetric;
     }
 
     @Autowired(required = false)
@@ -53,6 +54,8 @@ public class AppMetricsConfiguration extends MetricsConfigurerAdapter {
 
     @PostConstruct
     public void init() {
+        metricRegistry.register("spring.cloud.stream.binder", kafkaOffsetsMetric);
+
         if (hikariDataSource != null) {
             log.debug("Monitoring the datasource");
             // remove the factory created by HikariDataSourceMetricsPostProcessor until JHipster migrate to Micrometer

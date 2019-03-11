@@ -24,7 +24,7 @@ public class ApplicationProperties {
     private boolean timelinesEnabled;
     private String dbSchemaSuffix;
     private int kafkaConcurrencyCount;
-
+    private int kafkaOffsetsMetricTimeout;
     private long expectedTransactionCompletionTimeSeconds;
 
     private final Lep lep = new Lep();
