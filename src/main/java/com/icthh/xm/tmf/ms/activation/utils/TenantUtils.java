@@ -20,13 +20,9 @@ import org.springframework.stereotype.Component;
 public class TenantUtils {
 
     private final TenantContextHolder tenantContextHolder;
-    private final XmAuthenticationContextHolder authContextHolder;
-    private final LepManager lepManager;
 
     public String getTenantKey() {
-        return tenantContextHolder.getContext().getTenantKey()
-            .orElseThrow(() -> new BusinessException("tenant.not.found", "Tenant not exists."))
-            .getValue();
+        return TenantContextUtils.getRequiredTenantKeyValue(tenantContextHolder);
     }
 
     public void doInTenantContext(Task task, String tenant) {
