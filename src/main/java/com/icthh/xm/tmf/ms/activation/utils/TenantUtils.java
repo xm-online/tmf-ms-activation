@@ -2,6 +2,7 @@ package com.icthh.xm.tmf.ms.activation.utils;
 
 import static com.icthh.xm.commons.lep.XmLepConstants.THREAD_CONTEXT_KEY_AUTH_CONTEXT;
 import static com.icthh.xm.commons.lep.XmLepConstants.THREAD_CONTEXT_KEY_TENANT_CONTEXT;
+import static com.icthh.xm.commons.tenant.TenantContextUtils.buildTenant;
 
 import com.icthh.xm.commons.exceptions.BusinessException;
 import com.icthh.xm.commons.security.XmAuthenticationContextHolder;
@@ -28,39 +29,22 @@ public class TenantUtils {
             .getValue();
     }
 
-    @SneakyThrows
     public void doInTenantContext(Task task, String tenant) {
-        try {
-            init(tenant);
-            task.doWork();
-        } finally {
-            destroy();
-        }
+        tenantContextHolder.getPrivilegedContext().execute(buildTenant(tenant), () -> doWork(task));
+    }
+
+    public <R> R doInTenantContext(TaskWithResult<R> task, String tenant) {
+        return tenantContextHolder.getPrivilegedContext().execute(buildTenant(tenant), () -> doWork(task));
     }
 
     @SneakyThrows
-    public <R> R doInTenantContext(TaskWithResult<R> task, String tenant) {
-        try {
-            init(tenant);
-            return task.doWork();
-        } finally {
-            destroy();
-        }
+    private void doWork(Task task) {
+        task.doWork();
     }
 
-
-    private void init(String tenantKey) {
-        TenantContextUtils.setTenant(tenantContextHolder, tenantKey);
-
-        lepManager.beginThreadContext(threadContext -> {
-            threadContext.setValue(THREAD_CONTEXT_KEY_TENANT_CONTEXT, tenantContextHolder.getContext());
-            threadContext.setValue(THREAD_CONTEXT_KEY_AUTH_CONTEXT, authContextHolder.getContext());
-        });
-    }
-
-    private void destroy() {
-        lepManager.endThreadContext();
-        tenantContextHolder.getPrivilegedContext().destroyCurrentContext();
+    @SneakyThrows
+    private <R> R doWork(TaskWithResult<R>  task) {
+        return task.doWork();
     }
 
     public interface Task {
