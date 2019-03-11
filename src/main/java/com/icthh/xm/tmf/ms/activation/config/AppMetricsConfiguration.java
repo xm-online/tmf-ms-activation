@@ -19,15 +19,14 @@ import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
 import javax.annotation.PostConstruct;
-import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Lazy;
 
 @Configuration
 @EnableMetrics(proxyTargetClass = true)
-@RequiredArgsConstructor
 public class AppMetricsConfiguration extends MetricsConfigurerAdapter {
 
     private final Logger log = LoggerFactory.getLogger(AppMetricsConfiguration.class);
@@ -37,6 +36,15 @@ public class AppMetricsConfiguration extends MetricsConfigurerAdapter {
     private final MetricRegistry metricRegistry;
     private final ApplicationProperties applicationProperties;
     private HikariDataSource hikariDataSource;
+
+    public AppMetricsConfiguration(@Lazy SagaTransactionRepository sagaTransactionRepository,
+                                   @Lazy SagaEventRepository sagaEventRepository, MetricRegistry metricRegistry,
+                                   ApplicationProperties applicationProperties) {
+        this.sagaTransactionRepository = sagaTransactionRepository;
+        this.sagaEventRepository = sagaEventRepository;
+        this.metricRegistry = metricRegistry;
+        this.applicationProperties = applicationProperties;
+    }
 
     @Autowired(required = false)
     public void setHikariDataSource(HikariDataSource hikariDataSource) {

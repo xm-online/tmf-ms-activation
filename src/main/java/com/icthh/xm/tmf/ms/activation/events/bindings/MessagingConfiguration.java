@@ -14,6 +14,8 @@ import com.icthh.xm.commons.config.domain.TenantState;
 import com.icthh.xm.commons.logging.util.MdcUtils;
 import com.icthh.xm.tmf.ms.activation.config.ApplicationProperties;
 import com.icthh.xm.tmf.ms.activation.domain.SagaEvent;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.binder.MeterBinder;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
@@ -25,18 +27,25 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.time.StopWatch;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.actuate.health.CompositeHealthIndicator;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.cloud.stream.annotation.EnableBinding;
 import org.springframework.cloud.stream.binder.ConsumerProperties;
 import org.springframework.cloud.stream.binder.HeaderMode;
+import org.springframework.cloud.stream.binder.kafka.KafkaBinderHealthIndicator;
+import org.springframework.cloud.stream.binder.kafka.KafkaBinderMetrics;
 import org.springframework.cloud.stream.binder.kafka.KafkaMessageChannelBinder;
 import org.springframework.cloud.stream.binder.kafka.config.KafkaBinderConfiguration;
+import org.springframework.cloud.stream.binder.kafka.properties.KafkaBinderConfigurationProperties;
 import org.springframework.cloud.stream.binder.kafka.properties.KafkaBindingProperties;
 import org.springframework.cloud.stream.binder.kafka.properties.KafkaConsumerProperties.StartOffset;
 import org.springframework.cloud.stream.binder.kafka.properties.KafkaExtendedBindingProperties;
 import org.springframework.cloud.stream.binding.BindingService;
 import org.springframework.cloud.stream.binding.SubscribableChannelBindingTargetFactory;
+import org.springframework.cloud.stream.config.BindersHealthIndicatorAutoConfiguration;
 import org.springframework.cloud.stream.config.BindingProperties;
 import org.springframework.cloud.stream.config.BindingServiceProperties;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.integration.config.EnableIntegration;
 import org.springframework.kafka.support.Acknowledgment;
@@ -50,10 +59,11 @@ import org.springframework.stereotype.Component;
 @EnableBinding
 @EnableIntegration
 @RequiredArgsConstructor
-@Import(KafkaBinderConfiguration.class)
+@Import({KafkaBinderConfiguration.class})
 public class MessagingConfiguration implements RefreshableConfiguration {
 
     public static final String SAGA_EVENTS_PREFIX = "saga-events-";
+    private static final String KAFKA = "kafka";
     private final BindingServiceProperties bindingServiceProperties;
     private final SubscribableChannelBindingTargetFactory bindingTargetFactory;
     private final BindingService bindingService;
@@ -61,6 +71,8 @@ public class MessagingConfiguration implements RefreshableConfiguration {
     private final Map<String, SubscribableChannel> channels = new ConcurrentHashMap<>();
     private final ObjectMapper objectMapper;
     private final EventHandler eventHandler;
+    private CompositeHealthIndicator bindersHealthIndicator;
+    private KafkaBinderHealthIndicator kafkaBinderHealthIndicator;
     private final ApplicationProperties applicationProperties;
 
     @Value("${spring.application.name}")
@@ -71,13 +83,18 @@ public class MessagingConfiguration implements RefreshableConfiguration {
                                   SubscribableChannelBindingTargetFactory bindingTargetFactory,
                                   BindingService bindingService, KafkaMessageChannelBinder kafkaMessageChannelBinder,
                                   ObjectMapper objectMapper, EventHandler eventHandler,
+                                  CompositeHealthIndicator bindersHealthIndicator,
+                                  KafkaBinderHealthIndicator kafkaBinderHealthIndicator,
                                   ApplicationProperties applicationProperties) {
         this.bindingServiceProperties = bindingServiceProperties;
         this.bindingTargetFactory = bindingTargetFactory;
         this.bindingService = bindingService;
         this.eventHandler = eventHandler;
         this.objectMapper = objectMapper;
+        this.bindersHealthIndicator = bindersHealthIndicator;
+        this.kafkaBinderHealthIndicator = kafkaBinderHealthIndicator;
         this.applicationProperties = applicationProperties;
+
         kafkaMessageChannelBinder.setExtendedBindingProperties(kafkaExtendedBindingProperties);
     }
 
@@ -121,6 +138,8 @@ public class MessagingConfiguration implements RefreshableConfiguration {
 
             SubscribableChannel channel = bindingTargetFactory.createInput(chanelName);
             bindingService.bindConsumer(channel, chanelName);
+
+            bindersHealthIndicator.addHealthIndicator(KAFKA, kafkaBinderHealthIndicator);
 
             channels.put(chanelName, channel);
 
