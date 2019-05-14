@@ -115,3 +115,8 @@ application:
     kafka-system-queue: system_queue
     lep:
         tenant-script-storage: XM_MS_CONFIG
+    kafkaEventSender:
+      retry:
+        max-attempts: 10
+        delay: 100 #in milliseconds
+        multiplier: 2
