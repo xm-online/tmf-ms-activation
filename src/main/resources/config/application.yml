@@ -186,3 +186,8 @@ application:
         max-attempts: 3
         delay: 1000 #in milliseconds
         multiplier: 2
+    kafkaEventSender:
+        retry:
+            max-attempts: 10
+            delay: 100 #in milliseconds
+            multiplier: 2

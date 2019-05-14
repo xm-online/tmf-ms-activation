@@ -29,6 +29,7 @@ public class ApplicationProperties {
 
     private final Lep lep = new Lep();
     private final Retry retry = new Retry();
+    private final KafkaEventSender kafkaEventSender = new KafkaEventSender();
 
     private List<String> tenantIgnoredPathList = Collections.emptyList();
 
@@ -40,6 +41,12 @@ public class ApplicationProperties {
     }
 
     private int retryThreadCount;
+
+    @Getter
+    @Setter
+    private static class KafkaEventSender {
+        private Retry retry;
+    }
 
     @Getter
     @Setter
