@@ -191,3 +191,4 @@ application:
             max-attempts: 10
             delay: 100 #in milliseconds
             multiplier: 2
+            
