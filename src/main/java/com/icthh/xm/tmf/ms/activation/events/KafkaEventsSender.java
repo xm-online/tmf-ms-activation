@@ -34,7 +34,7 @@ public class KafkaEventsSender implements EventsSender {
             log.warn("Cannot send saga event: {}", sagaEvent);
             throw new BusinessException("Cannot send saga event: " + sagaEvent);
         }
-        log.info("Send saga event: {}", sagaEvent);
+        log.info("Saga event successfully sent: {}", sagaEvent);
     }
 
     @Override
