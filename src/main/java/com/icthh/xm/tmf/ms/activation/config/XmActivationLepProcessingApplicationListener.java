@@ -8,6 +8,7 @@ import com.icthh.xm.lep.api.ScopedContext;
 import java.util.HashMap;
 import java.util.Map;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 
@@ -23,13 +24,16 @@ public class XmActivationLepProcessingApplicationListener extends SpringLepProce
     private final TenantConfigService tenantConfigService;
     private final RestTemplate restTemplate;
     private final CommonsService commonsService;
+    private final ApplicationContext applicationContext;
 
     public XmActivationLepProcessingApplicationListener(TenantConfigService tenantConfigService,
                                                         @Qualifier("loadBalancedRestTemplate") RestTemplate restTemplate,
-                                                        CommonsService commonsService) {
+                                                        CommonsService commonsService,
+                                                        ApplicationContext applicationContext) {
         this.tenantConfigService = tenantConfigService;
         this.restTemplate = restTemplate;
         this.commonsService = commonsService;
+        this.applicationContext = applicationContext;
     }
 
     @Override
@@ -43,5 +47,6 @@ public class XmActivationLepProcessingApplicationListener extends SpringLepProce
         Map<String, Object> templates = new HashMap<>();
         templates.put(BINDING_SUB_KEY_TEMPLATE_REST, restTemplate);
         executionContext.setValue(BINDING_KEY_TEMPLATES, templates);
+        executionContext.setValue("applicationContext", applicationContext);
     }
 }
