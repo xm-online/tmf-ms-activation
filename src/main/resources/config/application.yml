@@ -78,12 +78,19 @@ spring:
             group-id: activation
             key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
             value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+            properties:
+                session.timeout.ms: 30000
+                heartbeat.interval.ms: 3000
+                request.timeout.ms: 31000
+                max.poll.interval.ms: 300000
+            max-poll-records: 1
         listener:
             concurrency: 16
             ack-mode: manual_immediate
         producer:
             key-serializer: org.apache.kafka.common.serialization.StringSerializer
             value-serializer: com.icthh.xm.tmf.ms.activation.events.bindings.RoutingSerializer
+            batch-size: 0
         properties:
             reconnect.backoff.ms: 1000
             partition.assignment.strategy: org.apache.kafka.clients.consumer.RangeAssignor
