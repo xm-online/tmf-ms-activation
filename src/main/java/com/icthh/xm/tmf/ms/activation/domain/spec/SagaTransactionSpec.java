@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
 import static java.util.stream.Collectors.toList;
@@ -35,7 +36,7 @@ public class SagaTransactionSpec {
         if (tasks == null ){
             tasks = new ArrayList<>();
         }
-        return tasks;
+        return tasks.stream().map(task -> task.clone()).collect(Collectors.toList());
     }
 
     public List<SagaTaskSpec> getFirstTasks() {
