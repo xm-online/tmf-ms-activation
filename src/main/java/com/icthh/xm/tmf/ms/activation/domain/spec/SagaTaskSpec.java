@@ -42,10 +42,10 @@ public class SagaTaskSpec {
     }
 
     public void applyAsDefaultTransactionConfig(SagaTransactionSpec tx) {
-        setIfNull(this::getRetryPolicy, this::setRetryPolicy, tx.getRetryPolicy());
-        setIfNull(this::getBackOff, this::setBackOff, tx.getBackOff());
-        setIfNull(this::getMaxBackOff, this::setMaxBackOff, tx.getMaxBackOff());
-        setIfNull(this::getRetryCount, this::setRetryCount, tx.getRetryCount());
+        setIfNull(tx::getRetryPolicy, this::setRetryPolicy, this.getRetryPolicy());
+        setIfNull(tx::getBackOff, this::setBackOff, this.getBackOff());
+        setIfNull(tx::getMaxBackOff, this::setMaxBackOff, this.getMaxBackOff());
+        setIfNull(tx::getRetryCount, this::setRetryCount, this.getRetryCount());
     }
 
     private static <T> void setIfNull(Supplier<T> getter, Consumer<T> setter, T value) {
