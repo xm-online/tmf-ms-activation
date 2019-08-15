@@ -51,6 +51,8 @@ public class SagaTaskSpec {
     private static <T> void setIfNull(Supplier<T> getter, Consumer<T> setter, T value) {
         if (getter.get() == null) {
             setter.accept(value);
+        } else {
+            setter.accept(getter.get());
         }
     }
 }
