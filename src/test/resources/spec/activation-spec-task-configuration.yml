@@ -1,0 +1,9 @@
+---
+transactions:
+  - key: TEST-TYPE-KEY
+    retryPolicy: RETRY
+    retryCount: -2
+    tasks:
+      - key: TASK-1
+        retryCount: -1
+        maxBackOff: 30

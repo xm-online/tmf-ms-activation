@@ -5,6 +5,7 @@ import static com.icthh.xm.tmf.ms.activation.domain.SagaLogType.EVENT_START;
 import static com.icthh.xm.tmf.ms.activation.domain.SagaTransactionState.CANCELED;
 import static com.icthh.xm.tmf.ms.activation.domain.SagaTransactionState.FINISHED;
 import static com.icthh.xm.tmf.ms.activation.domain.SagaTransactionState.NEW;
+import static com.icthh.xm.tmf.ms.activation.domain.spec.RetryPolicy.RETRY;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.time.ZoneOffset.UTC;
 import static java.util.Arrays.asList;
@@ -12,6 +13,7 @@ import static java.util.Collections.emptyList;
 import static java.util.Optional.empty;
 import static java.util.Optional.of;
 import static java.util.stream.Collectors.toList;
+import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.refEq;
@@ -26,6 +28,7 @@ import com.icthh.xm.tmf.ms.activation.domain.SagaTransaction;
 import com.icthh.xm.tmf.ms.activation.domain.SagaTransactionState;
 import com.icthh.xm.tmf.ms.activation.domain.spec.RetryPolicy;
 import com.icthh.xm.tmf.ms.activation.domain.spec.SagaTaskSpec;
+import com.icthh.xm.tmf.ms.activation.domain.spec.SagaTransactionSpec;
 import com.icthh.xm.tmf.ms.activation.events.EventsSender;
 import com.icthh.xm.tmf.ms.activation.repository.SagaEventRepository;
 import com.icthh.xm.tmf.ms.activation.repository.SagaLogRepository;
@@ -72,6 +75,11 @@ public class SagaServiceTest {
 
     private List<String> allTasks = asList("FIRST-PARALEL-TASK", "PARALEL-TASK1", "PARALEL-TASK2", "NEXT-JOIN-TASK",
         "SECOND-PARALEL-TASK", "SOME-OTHER-TASK");
+
+    private static final RetryPolicy RETRY_POLICY_FROM_TRANSACTION = RETRY;
+    private static final Integer DEFAULT_TRANSACTION_BACK_OFF = 5;
+    private static final Long RETRY_COUNT_FROM_TASK = -1L;
+    private static final Integer MAX_BACK_OFF_FROM_TASK = 30;
 
     @Before
     public void before() throws IOException {
@@ -253,7 +261,7 @@ public class SagaServiceTest {
                 .setDepends(asList("PARALEL-TASK1", "PARALEL-TASK2"))
                 .setKey("NEXT-JOIN-TASK")
                 .setRetryCount(-1L)
-                .setRetryPolicy(RetryPolicy.RETRY)
+                .setRetryPolicy(RETRY)
                 .setNext(asList("SOME-OTHER-TASK"));
     }
 
@@ -326,6 +334,19 @@ public class SagaServiceTest {
         verify(taskExecutor).onFinish(refEq(mockTx(txId, FINISHED)));
 
         noMoreInteraction();
+    }
+
+    @Test
+    public void setConfigurationFromTransaction() throws IOException{
+        specService.onRefresh("/config/tenants/XM/activation/activation-spec.yml", loadFile("spec/activation-spec-task-configuration.yml"));
+        when(tenantUtils.getTenantKey()).thenReturn("XM");
+
+        SagaTransactionSpec transactionSpecWithConfiguration = specService.getTransactionSpec("TEST-TYPE-KEY");
+        SagaTaskSpec task = transactionSpecWithConfiguration.getTask("TASK-1");
+        assertEquals(RETRY_POLICY_FROM_TRANSACTION, task.getRetryPolicy());
+        assertEquals(RETRY_COUNT_FROM_TASK, task.getRetryCount());
+        assertEquals(DEFAULT_TRANSACTION_BACK_OFF, task.getBackOff());
+        assertEquals(MAX_BACK_OFF_FROM_TASK, task.getMaxBackOff());
     }
 
     private SagaTransaction mockTx() {

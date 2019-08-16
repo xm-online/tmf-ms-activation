@@ -12,6 +12,7 @@ import java.util.Set;
 import java.util.function.Predicate;
 
 import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
+import static com.icthh.xm.tmf.ms.activation.domain.spec.RetryPolicy.RETRY;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toSet;
 
@@ -21,7 +22,7 @@ import static java.util.stream.Collectors.toSet;
 public class SagaTransactionSpec {
 
     private String key;
-    private RetryPolicy retryPolicy;
+    private RetryPolicy retryPolicy = RETRY;
     private Long retryCount = -1L;
     private Integer backOff = 5;
     private Integer maxBackOff = 30;
