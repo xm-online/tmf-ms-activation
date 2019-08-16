@@ -6,6 +6,7 @@ import static com.icthh.xm.tmf.ms.activation.domain.spec.RetryPolicy.RETRY;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.icthh.xm.tmf.ms.activation.domain.SagaTransaction;
 import lombok.Data;
+import lombok.SneakyThrows;
 import lombok.experimental.Accessors;
 import lombok.extern.slf4j.Slf4j;
 
@@ -59,14 +60,10 @@ public class SagaTaskSpec implements Cloneable {
     }
 
     @Override
+    @SneakyThrows
     public SagaTaskSpec clone() {
         SagaTaskSpec cloned = null;
-        try {
-            cloned = (SagaTaskSpec) super.clone();
-        } catch (CloneNotSupportedException e) {
-            // ignore, just log: superClass is java.lang.Object
-            log.error("{} should implement {}", super.getClass().getCanonicalName(), Cloneable.class.getCanonicalName());
-        }
+        cloned = (SagaTaskSpec) super.clone();
         cloned.next = next == null ? Collections.EMPTY_LIST : next.stream().collect(Collectors.toList());
         cloned.depends = depends == null ? Collections.EMPTY_LIST : depends.stream().collect(Collectors.toList());
         return cloned;
