@@ -7,16 +7,20 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.icthh.xm.tmf.ms.activation.domain.SagaTransaction;
 import lombok.Data;
 import lombok.experimental.Accessors;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
+@Slf4j
 @Data
 @JsonInclude(NON_NULL)
 @Accessors(chain = true)
-public class SagaTaskSpec {
+public class SagaTaskSpec implements Cloneable {
 
     private String key;
     private RetryPolicy retryPolicy = RETRY;
@@ -52,5 +56,19 @@ public class SagaTaskSpec {
         if (getter.get() == null) {
             setter.accept(value);
         }
+    }
+
+    @Override
+    public SagaTaskSpec clone() {
+        SagaTaskSpec cloned = null;
+        try {
+            cloned = (SagaTaskSpec) super.clone();
+        } catch (CloneNotSupportedException e) {
+            // ignore, just log: superClass is java.lang.Object
+            log.error("{} should implement {}", super.getClass().getCanonicalName(), Cloneable.class.getCanonicalName());
+        }
+        cloned.next = next == null ? Collections.EMPTY_LIST : next.stream().collect(Collectors.toList());
+        cloned.depends = depends == null ? Collections.EMPTY_LIST : depends.stream().collect(Collectors.toList());
+        return cloned;
     }
 }
