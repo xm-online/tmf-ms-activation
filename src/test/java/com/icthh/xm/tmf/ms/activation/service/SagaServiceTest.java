@@ -5,6 +5,7 @@ import static com.icthh.xm.tmf.ms.activation.domain.SagaLogType.EVENT_START;
 import static com.icthh.xm.tmf.ms.activation.domain.SagaTransactionState.CANCELED;
 import static com.icthh.xm.tmf.ms.activation.domain.SagaTransactionState.FINISHED;
 import static com.icthh.xm.tmf.ms.activation.domain.SagaTransactionState.NEW;
+import static com.icthh.xm.tmf.ms.activation.domain.spec.RetryPolicy.RETRY;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.time.ZoneOffset.UTC;
 import static java.util.Arrays.asList;
@@ -74,6 +75,11 @@ public class SagaServiceTest {
 
     private List<String> allTasks = asList("FIRST-PARALEL-TASK", "PARALEL-TASK1", "PARALEL-TASK2", "NEXT-JOIN-TASK",
         "SECOND-PARALEL-TASK", "SOME-OTHER-TASK");
+
+    private static final RetryPolicy RETRY_POLICY_FROM_TRANSACTION = RETRY;
+    private static final Integer DEFAULT_TRANSACTION_BACK_OFF = 5;
+    private static final Long RETRY_COUNT_FROM_TASK = -1L;
+    private static final Integer MAX_BACK_OFF_FROM_TASK = 30;
 
     @Before
     public void before() throws IOException {
@@ -255,7 +261,7 @@ public class SagaServiceTest {
                 .setDepends(asList("PARALEL-TASK1", "PARALEL-TASK2"))
                 .setKey("NEXT-JOIN-TASK")
                 .setRetryCount(-1L)
-                .setRetryPolicy(RetryPolicy.RETRY)
+                .setRetryPolicy(RETRY)
                 .setNext(asList("SOME-OTHER-TASK"));
     }
 
@@ -336,25 +342,11 @@ public class SagaServiceTest {
         when(tenantUtils.getTenantKey()).thenReturn("XM");
 
         SagaTransactionSpec transactionSpecWithConfiguration = specService.getTransactionSpec("TEST-TYPE-KEY");
-        SagaTaskSpec taskWithConfiguration = transactionSpecWithConfiguration.getTask("TASK-1");
-        assertEquals(RetryPolicy.RETRY, taskWithConfiguration.getRetryPolicy());
-        assertEquals(Long.valueOf(-2L), taskWithConfiguration.getRetryCount());
-        assertEquals(Integer.valueOf(6), taskWithConfiguration.getBackOff());
-        assertEquals(Integer.valueOf(31), taskWithConfiguration.getMaxBackOff());
-
-        SagaTransactionSpec transactionSpecWithoutConfiguration = specService.getTransactionSpec("TEST-TYPE-KEY-WITHOUT-CONFIGURATION");
-        SagaTaskSpec taskWithDefaultConfiguration = transactionSpecWithoutConfiguration.getTask("TASK-2");
-        assertEquals(RetryPolicy.RETRY, taskWithDefaultConfiguration.getRetryPolicy());
-        assertEquals(Long.valueOf(-1L), taskWithDefaultConfiguration.getRetryCount());
-        assertEquals(Integer.valueOf(5), taskWithDefaultConfiguration.getBackOff());
-        assertEquals(Integer.valueOf(30), taskWithDefaultConfiguration.getMaxBackOff());
-
-        SagaTransactionSpec transactionSpec = specService.getTransactionSpec("TEST-TYPE-KEY-NOT-FULL-CONFIGURATION");
-        SagaTaskSpec taskSpec = transactionSpec.getTask("TASK-3");
-        assertEquals(RetryPolicy.ROLLBACK, taskSpec.getRetryPolicy());
-        assertEquals(Long.valueOf(-1L), taskSpec.getRetryCount());
-        assertEquals(Integer.valueOf(8), taskSpec.getBackOff());
-        assertEquals(Integer.valueOf(30), taskSpec.getMaxBackOff());
+        SagaTaskSpec task = transactionSpecWithConfiguration.getTask("TASK-1");
+        assertEquals(RETRY_POLICY_FROM_TRANSACTION, task.getRetryPolicy());
+        assertEquals(RETRY_COUNT_FROM_TASK, task.getRetryCount());
+        assertEquals(DEFAULT_TRANSACTION_BACK_OFF, task.getBackOff());
+        assertEquals(MAX_BACK_OFF_FROM_TASK, task.getMaxBackOff());
     }
 
     private SagaTransaction mockTx() {

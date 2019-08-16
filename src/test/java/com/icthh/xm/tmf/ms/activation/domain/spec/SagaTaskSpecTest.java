@@ -33,10 +33,6 @@ public class SagaTaskSpecTest {
     @Test
     public void setTransactionConfigByDefault() {
         SagaTransactionSpec transactionSpec = new SagaTransactionSpec();
-        transactionSpec.setMaxBackOff(null);
-        transactionSpec.setBackOff(null);
-        transactionSpec.setRetryCount(null);
-        transactionSpec.setRetryPolicy(null);
         SagaTaskSpec sagaTaskSpec = new SagaTaskSpec();
         sagaTaskSpec.applyAsDefaultTransactionConfig(transactionSpec);
         assertEquals(DEFAULT_MAX_BACK_OFF, sagaTaskSpec.getMaxBackOff());
@@ -49,8 +45,6 @@ public class SagaTaskSpecTest {
     public void setBackOffAndRetryCountByDefault() {
         SagaTransactionSpec transactionSpec = new SagaTransactionSpec();
         transactionSpec.setMaxBackOff(TEN_INT);
-        transactionSpec.setBackOff(null);
-        transactionSpec.setRetryCount(null);
         transactionSpec.setRetryPolicy(ROLLBACK_RETRY_POLICY);
         SagaTaskSpec sagaTaskSpec = new SagaTaskSpec();
         sagaTaskSpec.applyAsDefaultTransactionConfig(transactionSpec);

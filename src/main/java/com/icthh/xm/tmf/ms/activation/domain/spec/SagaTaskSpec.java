@@ -1,10 +1,8 @@
 package com.icthh.xm.tmf.ms.activation.domain.spec;
 
 import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
-import static com.icthh.xm.tmf.ms.activation.domain.spec.RetryPolicy.RETRY;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
-import com.icthh.xm.tmf.ms.activation.domain.SagaTransaction;
 import lombok.Data;
 import lombok.experimental.Accessors;
 
@@ -19,10 +17,10 @@ import java.util.function.Supplier;
 public class SagaTaskSpec {
 
     private String key;
-    private RetryPolicy retryPolicy = RETRY;
-    private Long retryCount = -1l;
-    private Integer backOff = 5;
-    private Integer maxBackOff = 30;
+    private RetryPolicy retryPolicy;
+    private Long retryCount;
+    private Integer backOff;
+    private Integer maxBackOff;
     private List<String> next;
     private List<String> depends;
     private Boolean isSuspendable;
@@ -42,17 +40,15 @@ public class SagaTaskSpec {
     }
 
     public void applyAsDefaultTransactionConfig(SagaTransactionSpec tx) {
-        setIfNull(tx::getRetryPolicy, this::setRetryPolicy, this.getRetryPolicy());
-        setIfNull(tx::getBackOff, this::setBackOff, this.getBackOff());
-        setIfNull(tx::getMaxBackOff, this::setMaxBackOff, this.getMaxBackOff());
-        setIfNull(tx::getRetryCount, this::setRetryCount, this.getRetryCount());
+        setIfNull(this::getRetryPolicy, this::setRetryPolicy, tx.getRetryPolicy());
+        setIfNull(this::getBackOff, this::setBackOff, tx.getBackOff());
+        setIfNull(this::getMaxBackOff, this::setMaxBackOff, tx.getMaxBackOff());
+        setIfNull(this::getRetryCount, this::setRetryCount, tx.getRetryCount());
     }
 
     private static <T> void setIfNull(Supplier<T> getter, Consumer<T> setter, T value) {
         if (getter.get() == null) {
             setter.accept(value);
-        } else {
-            setter.accept(getter.get());
         }
     }
 }

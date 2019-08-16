@@ -3,25 +3,7 @@ transactions:
   - key: TEST-TYPE-KEY
     retryPolicy: RETRY
     retryCount: -2
-    backOff: 6
-    maxBackOff: 31
     tasks:
       - key: TASK-1
-        retryPolicy: RETRY
         retryCount: -1
-        backOff: 5
         maxBackOff: 30
-  - key: TEST-TYPE-KEY-WITHOUT-CONFIGURATION
-    tasks:
-      - key: TASK-2
-        retryPolicy: RETRY
-        retryCount: -3
-        backOff: 10
-        maxBackOff: 25
-  - key: TEST-TYPE-KEY-NOT-FULL-CONFIGURATION
-    retryPolicy: ROLLBACK
-    backOff: 8
-    tasks:
-      - key: TASK-3
-        retryCount: -5
-        maxBackOff: 28
