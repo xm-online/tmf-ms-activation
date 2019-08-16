@@ -12,6 +12,7 @@ import static java.util.Collections.emptyList;
 import static java.util.Optional.empty;
 import static java.util.Optional.of;
 import static java.util.stream.Collectors.toList;
+import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.refEq;
@@ -26,6 +27,7 @@ import com.icthh.xm.tmf.ms.activation.domain.SagaTransaction;
 import com.icthh.xm.tmf.ms.activation.domain.SagaTransactionState;
 import com.icthh.xm.tmf.ms.activation.domain.spec.RetryPolicy;
 import com.icthh.xm.tmf.ms.activation.domain.spec.SagaTaskSpec;
+import com.icthh.xm.tmf.ms.activation.domain.spec.SagaTransactionSpec;
 import com.icthh.xm.tmf.ms.activation.events.EventsSender;
 import com.icthh.xm.tmf.ms.activation.repository.SagaEventRepository;
 import com.icthh.xm.tmf.ms.activation.repository.SagaLogRepository;
@@ -326,6 +328,33 @@ public class SagaServiceTest {
         verify(taskExecutor).onFinish(refEq(mockTx(txId, FINISHED)));
 
         noMoreInteraction();
+    }
+
+    @Test
+    public void setConfigurationFromTransaction() throws IOException{
+        specService.onRefresh("/config/tenants/XM/activation/activation-spec.yml", loadFile("spec/activation-spec-task-configuration.yml"));
+        when(tenantUtils.getTenantKey()).thenReturn("XM");
+
+        SagaTransactionSpec transactionSpecWithConfiguration = specService.getTransactionSpec("TEST-TYPE-KEY");
+        SagaTaskSpec taskWithConfiguration = transactionSpecWithConfiguration.getTask("TASK-1");
+        assertEquals(RetryPolicy.RETRY, taskWithConfiguration.getRetryPolicy());
+        assertEquals(Long.valueOf(-2L), taskWithConfiguration.getRetryCount());
+        assertEquals(Integer.valueOf(6), taskWithConfiguration.getBackOff());
+        assertEquals(Integer.valueOf(31), taskWithConfiguration.getMaxBackOff());
+
+        SagaTransactionSpec transactionSpecWithoutConfiguration = specService.getTransactionSpec("TEST-TYPE-KEY-WITHOUT-CONFIGURATION");
+        SagaTaskSpec taskWithDefaultConfiguration = transactionSpecWithoutConfiguration.getTask("TASK-2");
+        assertEquals(RetryPolicy.RETRY, taskWithDefaultConfiguration.getRetryPolicy());
+        assertEquals(Long.valueOf(-1L), taskWithDefaultConfiguration.getRetryCount());
+        assertEquals(Integer.valueOf(5), taskWithDefaultConfiguration.getBackOff());
+        assertEquals(Integer.valueOf(30), taskWithDefaultConfiguration.getMaxBackOff());
+
+        SagaTransactionSpec transactionSpec = specService.getTransactionSpec("TEST-TYPE-KEY-NOT-FULL-CONFIGURATION");
+        SagaTaskSpec taskSpec = transactionSpec.getTask("TASK-3");
+        assertEquals(RetryPolicy.ROLLBACK, taskSpec.getRetryPolicy());
+        assertEquals(Long.valueOf(-1L), taskSpec.getRetryCount());
+        assertEquals(Integer.valueOf(8), taskSpec.getBackOff());
+        assertEquals(Integer.valueOf(30), taskSpec.getMaxBackOff());
     }
 
     private SagaTransaction mockTx() {
