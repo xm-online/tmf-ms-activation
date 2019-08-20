@@ -59,7 +59,7 @@ public class SagaTaskSpecTest {
                 }
                 // do not care about cloned fields
                 if (srcValue == clonedValue) {
-                    Assert.fail(MessageFormat.format("The field {} is not cloned", field.getName()));
+                    Assert.fail(MessageFormat.format("The field {0} is not cloned", field.getName()));
                 }
             }
         }
