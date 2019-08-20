@@ -49,15 +49,17 @@ public class SagaTaskSpecTest {
             ) {
                 // set private fields accessible
                 field.setAccessible(true);
+                Object srcValue = null;
+                Object clonedValue = null;
                 try {
-                    Object srcValue = field.get(source);
-                    Object clonedValue = field.get(cloned);
-                    // do not care about cloned fields
-                    if (srcValue == clonedValue) {
-                        Assert.fail(MessageFormat.format("The field {} is not cloned", field.getName()));
-                    }
+                    srcValue = field.get(source);
+                    clonedValue = field.get(cloned);
                 } catch (Exception e) {
                     Assert.fail(e.getMessage());
+                }
+                // do not care about cloned fields
+                if (srcValue == clonedValue) {
+                    Assert.fail(MessageFormat.format("The field {} is not cloned", field.getName()));
                 }
             }
         }
