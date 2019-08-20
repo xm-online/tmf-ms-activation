@@ -45,6 +45,7 @@ public class SagaTaskSpecTest {
                 && field.getType() != Long.class
                 && field.getType() != Boolean.class
                 && field.getType() != RetryPolicy.class
+                && !field.getName().startsWith("$") // hello, jacoco
             ) {
                 // set private fields accessible
                 field.setAccessible(true);
