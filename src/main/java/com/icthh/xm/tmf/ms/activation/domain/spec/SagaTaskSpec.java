@@ -5,7 +5,9 @@ import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Data;
 import lombok.experimental.Accessors;
+import org.apache.commons.lang3.SerializationUtils;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
@@ -14,7 +16,7 @@ import java.util.function.Supplier;
 @Data
 @JsonInclude(NON_NULL)
 @Accessors(chain = true)
-public class SagaTaskSpec {
+public class SagaTaskSpec implements Serializable {
 
     private String key;
     private RetryPolicy retryPolicy;
@@ -50,5 +52,9 @@ public class SagaTaskSpec {
         if (getter.get() == null) {
             setter.accept(value);
         }
+    }
+
+    public static SagaTaskSpec copy(SagaTaskSpec src){
+        return SerializationUtils.clone(src);
     }
 }

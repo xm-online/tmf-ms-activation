@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
 import static com.icthh.xm.tmf.ms.activation.domain.spec.RetryPolicy.RETRY;
@@ -36,7 +37,7 @@ public class SagaTransactionSpec {
         if (tasks == null ){
             tasks = new ArrayList<>();
         }
-        return tasks;
+        return tasks.stream().map(SagaTaskSpec::copy).collect(Collectors.toList());
     }
 
     public List<SagaTaskSpec> getFirstTasks() {
