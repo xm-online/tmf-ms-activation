@@ -1,27 +1,25 @@
 package com.icthh.xm.tmf.ms.activation.domain.spec;
 
-import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
-import static com.icthh.xm.tmf.ms.activation.domain.spec.RetryPolicy.RETRY;
-
 import com.fasterxml.jackson.annotation.JsonInclude;
-import com.icthh.xm.tmf.ms.activation.domain.SagaTransaction;
 import lombok.Data;
-import lombok.SneakyThrows;
 import lombok.experimental.Accessors;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.SerializationUtils;
 
+import java.io.Serializable;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
+
+import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
+import static com.icthh.xm.tmf.ms.activation.domain.spec.RetryPolicy.RETRY;
 
 @Slf4j
 @Data
 @JsonInclude(NON_NULL)
 @Accessors(chain = true)
-public class SagaTaskSpec implements Cloneable {
+public class SagaTaskSpec implements Serializable {
 
     private String key;
     private RetryPolicy retryPolicy = RETRY;
@@ -59,13 +57,8 @@ public class SagaTaskSpec implements Cloneable {
         }
     }
 
-    @Override
-    @SneakyThrows
-    public SagaTaskSpec clone() {
-        SagaTaskSpec cloned = null;
-        cloned = (SagaTaskSpec) super.clone();
-        cloned.next = next == null ? Collections.EMPTY_LIST : next.stream().collect(Collectors.toList());
-        cloned.depends = depends == null ? Collections.EMPTY_LIST : depends.stream().collect(Collectors.toList());
-        return cloned;
+    public static SagaTaskSpec copy(SagaTaskSpec src){
+        return SerializationUtils.clone(src);
     }
+
 }

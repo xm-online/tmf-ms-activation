@@ -36,7 +36,7 @@ public class SagaTransactionSpec {
         if (tasks == null ){
             tasks = new ArrayList<>();
         }
-        return tasks.stream().map(task -> task.clone()).collect(Collectors.toList());
+        return tasks.stream().map(SagaTaskSpec::copy).collect(Collectors.toList());
     }
 
     public List<SagaTaskSpec> getFirstTasks() {
