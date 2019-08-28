@@ -59,5 +59,4 @@ public class SagaTaskSpec implements Serializable {
     public static SagaTaskSpec copy(SagaTaskSpec src){
         return SerializationUtils.clone(src);
     }
-
 }
