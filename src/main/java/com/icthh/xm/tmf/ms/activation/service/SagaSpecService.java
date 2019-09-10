@@ -10,6 +10,8 @@ import com.icthh.xm.tmf.ms.activation.domain.spec.SagaTransactionSpec;
 import com.icthh.xm.tmf.ms.activation.utils.TenantUtils;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -64,7 +66,11 @@ public class SagaSpecService implements RefreshableConfiguration {
     }
 
     private void updateRetryPolicy(SagaSpec spec) {
-        spec.getTransactions().forEach(tx -> tx.getTasks().forEach(task -> task.applyAsDefaultTransactionConfig(tx)));
+        spec.getTransactions().forEach(tx -> tx.setTasks(
+            tx.getTasks().stream().peek(
+                task -> task.applyAsDefaultTransactionConfig(tx)
+            ).collect(Collectors.toList())
+        ));
     }
 
     private String extractTenant(final String updatedKey) {
