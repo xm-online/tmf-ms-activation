@@ -34,6 +34,7 @@ public class TenantDatabaseService {
      *
      * @param tenantKey - the tenant key
      */
+    @SneakyThrows
     public void create(String tenantKey) {
         final StopWatch stopWatch = createStarted();
         log.info("START - SETUP:CreateTenant:schema tenantKey: {}", tenantKey);
