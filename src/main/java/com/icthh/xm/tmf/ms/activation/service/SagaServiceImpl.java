@@ -16,6 +16,8 @@ import static java.util.Collections.singletonList;
 import static java.util.stream.Collectors.toList;
 
 import com.icthh.xm.commons.exceptions.EntityNotFoundException;
+import com.icthh.xm.commons.lep.LogicExtensionPoint;
+import com.icthh.xm.commons.lep.spring.LepService;
 import com.icthh.xm.commons.logging.aop.IgnoreLogginAspect;
 import com.icthh.xm.tmf.ms.activation.domain.SagaEvent;
 import com.icthh.xm.tmf.ms.activation.domain.SagaLog;
@@ -34,6 +36,7 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiFunction;
 import lombok.AllArgsConstructor;
@@ -46,6 +49,7 @@ import org.apache.commons.lang3.time.StopWatch;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Without transaction! Important!
@@ -53,6 +57,7 @@ import org.springframework.stereotype.Service;
  * For example start log should not rollback if execute task failed.
  */
 @Slf4j
+@LepService(group = "service.saga")
 @Service
 @RequiredArgsConstructor
 public class SagaServiceImpl implements SagaService {
@@ -67,6 +72,7 @@ public class SagaServiceImpl implements SagaService {
     private final SagaEventRepository sagaEventRepository;
     private Clock clock = Clock.systemUTC();
 
+    @LogicExtensionPoint("CreateNewSaga")
     @Override
     public SagaTransaction createNewSaga(SagaTransaction sagaTransaction) {
         specService.getTransactionSpec(sagaTransaction.getTypeKey());
@@ -231,6 +237,12 @@ public class SagaServiceImpl implements SagaService {
     @Override
     public Page<SagaTransaction> getAllTransaction(Pageable pageable) {
         return transactionRepository.findAll(pageable);
+    }
+
+    @Transactional(readOnly = true)
+    @Override
+    public Optional<SagaTransaction> findSagaTransactionById(String id) {
+        return transactionRepository.findOneById(id);
     }
 
     private void generateFirstEvents(SagaTransaction sagaTransaction) {
