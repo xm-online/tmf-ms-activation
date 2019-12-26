@@ -7,6 +7,7 @@ import com.icthh.xm.commons.logging.aop.IgnoreLogginAspect;
 import com.icthh.xm.commons.migration.db.tenant.DropSchemaResolver;
 import com.icthh.xm.commons.migration.db.util.DatabaseUtil;
 import java.sql.Connection;
+import java.sql.SQLException;
 import java.sql.Statement;
 import javax.sql.DataSource;
 import liquibase.integration.spring.SpringLiquibase;
@@ -34,7 +35,7 @@ public class TenantDatabaseService {
      *
      * @param tenantKey - the tenant key
      */
-    public void create(String tenantKey) {
+    public void create(String tenantKey) throws SQLException {
         final StopWatch stopWatch = createStarted();
         log.info("START - SETUP:CreateTenant:schema tenantKey: {}", tenantKey);
         try {
