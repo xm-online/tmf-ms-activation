@@ -41,7 +41,6 @@ group = "com.icthh.xm.tmf.ms.activation"
 version = "0.0.1-SNAPSHOT"
 
 description = ""
-description = ''
 
 bootWar {
     mainClassName = 'com.icthh.xm.tmf.ms.activation.ActivationApp'
