@@ -285,7 +285,7 @@ dependencies {
     }
     implementation "org.springframework.boot:spring-boot-starter-undertow"
     implementation "org.springframework.boot:spring-boot-starter-thymeleaf"
-    implementation "org.zalando:problem-spring-web:0.24.0-RC.0"
+    implementation "org.zalando:problem-spring-web:${zalando_version}"
     implementation "org.springframework.cloud:spring-cloud-starter"
     implementation "org.springframework.cloud:spring-cloud-starter-netflix-ribbon"
     implementation "org.springframework.cloud:spring-cloud-starter-netflix-hystrix"
@@ -310,7 +310,7 @@ dependencies {
     liquibaseRuntime "org.postgresql:postgresql"
     implementation "org.mapstruct:mapstruct:${mapstruct_version}"
 
-    compileOnly "org.projectlombok:lombok:${lombok_version}"
+    compile "org.projectlombok:lombok:${lombok_version}"
     annotationProcessor "org.projectlombok:lombok:${lombok_version}"
 
     //xm dependencies
@@ -327,6 +327,8 @@ dependencies {
     implementation "org.openapitools:jackson-databind-nullable:0.2.0"
 
     implementation 'org.hibernate:hibernate-jpamodelgen'
+    implementation "com.h2database:h2"
+
     annotationProcessor "org.mapstruct:mapstruct-processor:${mapstruct_version}"
     annotationProcessor "org.hibernate:hibernate-jpamodelgen:${hibernate_version}"
     annotationProcessor "org.glassfish.jaxb:jaxb-runtime:${jaxb_runtime_version}"
@@ -352,13 +354,16 @@ dependencies {
     testImplementation "junit:junit"
     testImplementation "org.mockito:mockito-core"
     testImplementation "org.hamcrest:hamcrest-library"
-    testImplementation ("com.github.database-rider:rider-spring:1.9.1") {
+    testImplementation ("com.github.database-rider:rider-spring:${database_rider_version}") {
         exclude module: 'slf4j-api'
         exclude module: 'slf4j-simple'
     }
     testImplementation "org.testcontainers:postgresql:1.6.0"
     testImplementation "com.h2database:h2"
     liquibaseRuntime "com.h2database:h2"
+
+    testCompileOnly "org.projectlombok:lombok:${lombok_version}"
+    testAnnotationProcessor "org.projectlombok:lombok:${lombok_version}"
     
     //jhipster-needle-gradle-dependency - JHipster will add additional dependencies here
 }

@@ -17,6 +17,7 @@ import com.icthh.xm.tmf.ms.activation.domain.SagaEvent;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.binder.MeterBinder;
 import java.util.Base64;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -24,10 +25,12 @@ import java.util.concurrent.ConcurrentHashMap;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.collections.map.UnmodifiableMap;
 import org.apache.commons.lang3.time.StopWatch;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.actuate.health.CompositeHealthIndicator;
+import org.springframework.boot.actuate.health.HealthIndicatorRegistry;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.cloud.stream.annotation.EnableBinding;
 import org.springframework.cloud.stream.binder.ConsumerProperties;
@@ -122,7 +125,8 @@ public class MessagingConfiguration implements RefreshableConfiguration {
             props.getConsumer().setAutoCommitOffset(false);
             props.getConsumer().setAutoCommitOnError(false);
             props.getConsumer().setStartOffset(startOffset);
-            kafkaExtendedBindingProperties.getBindings().put(chanelName, props);
+            System.out.println("Bindings = " + kafkaExtendedBindingProperties.getBindings());
+            kafkaExtendedBindingProperties.setBindings(Collections.singletonMap(chanelName, props));
 
             ConsumerProperties consumerProperties = new ConsumerProperties();
             consumerProperties.setMaxAttempts(Integer.MAX_VALUE);
@@ -134,12 +138,15 @@ public class MessagingConfiguration implements RefreshableConfiguration {
             bindingProperties.setConsumer(consumerProperties);
             bindingProperties.setDestination(chanelName);
             bindingProperties.setGroup(consumerGroup);
-            bindingServiceProperties.getBindings().put(chanelName, bindingProperties);
+            bindingServiceProperties.setBindings(Collections.singletonMap(chanelName, bindingProperties));
 
             SubscribableChannel channel = bindingTargetFactory.createInput(chanelName);
             bindingService.bindConsumer(channel, chanelName);
 
-            bindersHealthIndicator.addHealthIndicator(KAFKA, kafkaBinderHealthIndicator);
+            HealthIndicatorRegistry registry = bindersHealthIndicator.getRegistry();
+            if (registry.get(KAFKA) == null) {
+                bindersHealthIndicator.getRegistry().register(KAFKA, kafkaBinderHealthIndicator);
+            }
 
             channels.put(chanelName, channel);
 
@@ -148,7 +155,7 @@ public class MessagingConfiguration implements RefreshableConfiguration {
                     MdcUtils.putRid(MdcUtils.generateRid() + ":" + tenantName);
                     handleEvent(tenantName, message);
                 } catch (Exception e) {
-                    log.error("error processign event for tenant [{}]", tenantName, e);
+                    log.error("error processing event for tenant [{}]", tenantName, e);
                     throw e;
                 } finally {
                     MdcUtils.removeRid();
