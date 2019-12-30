@@ -125,10 +125,15 @@ public class SagaServiceImpl implements SagaService {
                                                  .orElseThrow(
                                                      () -> entityNotFound("Task with id " + taskId + " not found"));
         Context context = initContext(sagaEvent);
-        SagaTransaction transaction = context.getTransaction();
-        SagaTransactionSpec transactionSpec = context.getTransactionSpec();
-        SagaTaskSpec taskSpec = context.getTaskSpec();
-        continuation(sagaEvent, transaction, transactionSpec, taskSpec, taskContext);
+
+        sagaEvent.getTaskContext().putAll(taskContext);
+
+        continuation(sagaEvent,
+                     context.getTransaction(),
+                     context.getTransactionSpec(),
+                     context.getTaskSpec(),
+                     sagaEvent.getTaskContext());
+
         sagaEventRepository.delete(sagaEvent);
     }
 

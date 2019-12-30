@@ -14,12 +14,11 @@ import static java.util.Optional.empty;
 import static java.util.Optional.of;
 import static java.util.stream.Collectors.toList;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.refEq;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 import com.icthh.xm.tmf.ms.activation.domain.SagaEvent;
 import com.icthh.xm.tmf.ms.activation.domain.SagaLog;
@@ -37,7 +36,9 @@ import com.icthh.xm.tmf.ms.activation.utils.TenantUtils;
 import java.io.IOException;
 import java.time.Clock;
 import java.time.Instant;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.apache.commons.io.IOUtils;
 import org.junit.Before;
@@ -253,6 +254,31 @@ public class SagaServiceTest {
         verify(logRepository).getFinishLogs(eq(txId), eq(allTasks));
 
         noMoreInteraction();
+    }
+
+    @Test
+    public void successRestoreTaskContextFromDb() {
+        String txId = UUID.randomUUID().toString();
+
+        SagaEvent sagaEvent = new SagaEvent();
+        sagaEvent.getTaskContext().put("key-1", "value-1");
+        sagaEvent.setTransactionId(txId);
+        sagaEvent.setTypeKey("SOME-OTHER-TASK");
+
+        when(tenantUtils.getTenantKey())
+            .thenReturn("XM");
+        when(sagaEventRepository.findById(sagaEvent.getId()))
+            .thenReturn(of(sagaEvent));
+        when(transactionRepository.findById(txId))
+            .thenReturn(of(mockTx(txId, NEW)));
+
+        Map<String, Object> taskContext = new HashMap<>();
+        taskContext.put("key-2", "value-2");
+
+        sagaService.continueTask(sagaEvent.getId(),taskContext);
+
+        assertTrue(sagaEvent.getTaskContext().containsKey("key-1"));
+        assertTrue(sagaEvent.getTaskContext().containsKey("key-2"));
     }
 
     private SagaTaskSpec sagaTaskSpec() {
