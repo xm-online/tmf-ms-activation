@@ -6,6 +6,7 @@ import com.icthh.xm.tmf.ms.activation.domain.SagaLog;
 import com.icthh.xm.tmf.ms.activation.domain.SagaTransaction;
 import com.icthh.xm.tmf.ms.activation.service.SagaService;
 import com.icthh.xm.tmf.ms.activation.web.rest.util.PaginationUtil;
+import io.github.jhipster.web.util.ResponseUtil;
 import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
@@ -88,4 +89,11 @@ public class SagaTransactionResource {
     public ResponseEntity<List<SagaLog>> getLogsByTransaction(@PathVariable("id") String id) {
         return ResponseEntity.ok(sagaService.getLogsByTransaction(id));
     }
+
+    @GetMapping("/transactions/{id}")
+    @PreAuthorize("hasPermission({'id': #id}, 'ACTIVATION.TRANSACTION.FIND_ONE')")
+    public ResponseEntity<SagaTransaction> getOneById(@PathVariable("id") String id) {
+        return ResponseUtil.wrapOrNotFound(sagaService.findTransactionById(id));
+    }
+
 }
