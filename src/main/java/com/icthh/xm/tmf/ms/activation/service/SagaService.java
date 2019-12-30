@@ -29,5 +29,5 @@ public interface SagaService {
 
     Page<SagaTransaction> getAllTransaction(Pageable pageable);
 
-    Optional<SagaTransaction> findSagaTransactionById(String id);
+    Optional<SagaTransaction> findTransactionById(String id);
 }

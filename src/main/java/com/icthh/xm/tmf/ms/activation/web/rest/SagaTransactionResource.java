@@ -93,7 +93,7 @@ public class SagaTransactionResource {
     @GetMapping("/transactions/{id}")
     @PreAuthorize("hasPermission({'id': #id}, 'ACTIVATION.TRANSACTION.FIND_ONE')")
     public ResponseEntity<SagaTransaction> getOneById(@PathVariable("id") String id) {
-        return ResponseUtil.wrapOrNotFound(sagaService.findSagaTransactionById(id));
+        return ResponseUtil.wrapOrNotFound(sagaService.findTransactionById(id));
     }
 
 }

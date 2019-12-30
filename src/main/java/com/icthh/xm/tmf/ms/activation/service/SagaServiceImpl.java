@@ -125,6 +125,7 @@ public class SagaServiceImpl implements SagaService {
         }
     }
 
+    @LogicExtensionPoint("ContinueTask")
     @Override
     public void continueTask(String taskId, Map<String, Object> taskContext) {
         SagaEvent sagaEvent = sagaEventRepository.findById(taskId)
@@ -241,7 +242,7 @@ public class SagaServiceImpl implements SagaService {
 
     @Transactional(readOnly = true)
     @Override
-    public Optional<SagaTransaction> findSagaTransactionById(String id) {
+    public Optional<SagaTransaction> findTransactionById(String id) {
         return transactionRepository.findOneById(id);
     }
 
