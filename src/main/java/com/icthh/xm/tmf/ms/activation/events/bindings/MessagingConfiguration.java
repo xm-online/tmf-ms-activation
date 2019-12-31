@@ -14,8 +14,6 @@ import com.icthh.xm.commons.config.domain.TenantState;
 import com.icthh.xm.commons.logging.util.MdcUtils;
 import com.icthh.xm.tmf.ms.activation.config.ApplicationProperties;
 import com.icthh.xm.tmf.ms.activation.domain.SagaEvent;
-import io.micrometer.core.instrument.MeterRegistry;
-import io.micrometer.core.instrument.binder.MeterBinder;
 import java.util.Base64;
 import java.util.Collections;
 import java.util.HashMap;
@@ -25,30 +23,24 @@ import java.util.concurrent.ConcurrentHashMap;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.collections.map.UnmodifiableMap;
 import org.apache.commons.lang3.time.StopWatch;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.actuate.health.CompositeHealthIndicator;
 import org.springframework.boot.actuate.health.HealthIndicatorRegistry;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.cloud.stream.annotation.EnableBinding;
 import org.springframework.cloud.stream.binder.ConsumerProperties;
 import org.springframework.cloud.stream.binder.HeaderMode;
 import org.springframework.cloud.stream.binder.kafka.KafkaBinderHealthIndicator;
-import org.springframework.cloud.stream.binder.kafka.KafkaBinderMetrics;
 import org.springframework.cloud.stream.binder.kafka.KafkaMessageChannelBinder;
 import org.springframework.cloud.stream.binder.kafka.config.KafkaBinderConfiguration;
-import org.springframework.cloud.stream.binder.kafka.properties.KafkaBinderConfigurationProperties;
 import org.springframework.cloud.stream.binder.kafka.properties.KafkaBindingProperties;
 import org.springframework.cloud.stream.binder.kafka.properties.KafkaConsumerProperties.StartOffset;
 import org.springframework.cloud.stream.binder.kafka.properties.KafkaExtendedBindingProperties;
 import org.springframework.cloud.stream.binding.BindingService;
 import org.springframework.cloud.stream.binding.SubscribableChannelBindingTargetFactory;
-import org.springframework.cloud.stream.config.BindersHealthIndicatorAutoConfiguration;
 import org.springframework.cloud.stream.config.BindingProperties;
 import org.springframework.cloud.stream.config.BindingServiceProperties;
-import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.integration.config.EnableIntegration;
 import org.springframework.kafka.support.Acknowledgment;
@@ -168,18 +160,17 @@ public class MessagingConfiguration implements RefreshableConfiguration {
         String payloadString = (String) message.getPayload();
         payloadString = unwrap(payloadString, "\"");
         MessageHeaders headers = message.getHeaders();
-        Map<String, Object> headersForLog = new HashMap<>();
-        headersForLog.putAll(headers);
+        Map<String, Object> headersForLog = new HashMap<>(headers);
         headersForLog.remove(ACKNOWLEDGMENT);
-        log.info("start processign message for tenant: [{}], base64 body = {}, headers = {}", tenantName, payloadString,
+        log.info("start processing message for tenant: [{}], base64 body = {}, headers = {}", tenantName, payloadString,
                  headersForLog);
         String eventBody = new String(Base64.getDecoder().decode(payloadString), UTF_8);
-        log.info("start processign message for tenant: [{}], json body = {}", tenantName, eventBody);
+        log.info("start processing message for tenant: [{}], json body = {}", tenantName, eventBody);
 
         eventHandler.onEvent(mapToEvent(eventBody), tenantName);
 
         headers.get(ACKNOWLEDGMENT, Acknowledgment.class).acknowledge();
-        log.info("stop processign message for tenant: [{}], time = {}", tenantName, stopWatch.getTime());
+        log.info("stop processing message for tenant: [{}], time = {}", tenantName, stopWatch.getTime());
     }
 
     @SneakyThrows
@@ -195,7 +186,7 @@ public class MessagingConfiguration implements RefreshableConfiguration {
             throw new IllegalArgumentException("Wrong config key to update " + key);
         }
 
-        TypeReference<Map<String, Set<TenantState>>> typeRef = new TypeReference<Map<String, Set<TenantState>>>() {};
+        TypeReference<Map<String, Set<TenantState>>> typeRef = new TypeReference<>() {};
         Map<String, Set<TenantState>> tenantsByServiceMap = objectMapper.readValue(config, typeRef);
         Set<TenantState> tenantKeys = tenantsByServiceMap.get(appName);
         tenantKeys.stream().map(TenantState::getName).forEach(this::createChannels);
