@@ -42,16 +42,17 @@ version = "0.0.1-SNAPSHOT"
 
 description = ""
 
-bootWar {
-    mainClassName = 'com.icthh.xm.tmf.ms.activation.ActivationApp'
-}
-
-war {
-
-}
-
 springBoot {
     mainClassName = 'com.icthh.xm.tmf.ms.activation.ActivationApp'
+}
+
+bootWar {
+    mainClassName = 'com.icthh.xm.tmf.ms.activation.ActivationApp'
+    manifest {
+        attributes(
+            "Implementation-Version": archiveVersion
+        )
+    }
 }
 
 sourceCompatibility=11
@@ -363,7 +364,7 @@ dependencies {
 
     testCompileOnly "org.projectlombok:lombok:${lombok_version}"
     testAnnotationProcessor "org.projectlombok:lombok:${lombok_version}"
-    
+
     //jhipster-needle-gradle-dependency - JHipster will add additional dependencies here
 }
 
