@@ -125,7 +125,6 @@ public class MessagingConfiguration implements RefreshableConfiguration {
             props.getConsumer().setAutoCommitOffset(false);
             props.getConsumer().setAutoCommitOnError(false);
             props.getConsumer().setStartOffset(startOffset);
-            System.out.println("Bindings = " + kafkaExtendedBindingProperties.getBindings());
             kafkaExtendedBindingProperties.setBindings(Collections.singletonMap(chanelName, props));
 
             ConsumerProperties consumerProperties = new ConsumerProperties();
