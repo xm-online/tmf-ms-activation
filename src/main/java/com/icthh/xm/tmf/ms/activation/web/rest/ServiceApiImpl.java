@@ -12,12 +12,15 @@ import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
+import org.springframework.web.context.request.RequestContextHolder;
 
 @Component
 @RequiredArgsConstructor
 public class ServiceApiImpl implements ServiceApiDelegate {
 
     private static final String MSISDN = "msisdn";
+    private static final String REQUEST_ATTRIBUTES_KEY = "REQUEST_ATTRIBUTES";
+
     private final SagaService sagaService;
 
     @Timed
@@ -31,6 +34,11 @@ public class ServiceApiImpl implements ServiceApiDelegate {
         if (isNotEmpty(service.getServiceCharacteristic())) {
             service.getServiceCharacteristic().forEach(ch -> params.put(ch.getName(), ch.getValue()));
         }
+
+        //if service processes LEP`s asynchronously, RequestContextHolder will not be able to get request
+        //attributes from thread that will execute LEP
+        params.put(REQUEST_ATTRIBUTES_KEY, RequestContextHolder.getRequestAttributes());
+
         sagaService.createNewSaga(new SagaTransaction().setTypeKey(service.getType()).setContext(params));
         return ResponseEntity.ok(service);
     }
