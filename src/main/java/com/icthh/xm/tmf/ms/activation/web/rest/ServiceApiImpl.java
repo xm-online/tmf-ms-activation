@@ -19,7 +19,7 @@ import org.springframework.web.context.request.RequestContextHolder;
 public class ServiceApiImpl implements ServiceApiDelegate {
 
     private static final String MSISDN = "msisdn";
-    private static final String REQUEST_ATTRIBUTES_KEY = "REQUEST";
+    public static final String REQUEST_ATTRIBUTES_KEY = "REQUEST";
 
     private final SagaService sagaService;
 
