@@ -41,7 +41,7 @@ public class SagaTransactionResource {
     @Timed
     @PreAuthorize("hasPermission({'id': #id}, 'ACTIVATION.TRANSACTION.CONTINUE')")
     @PostMapping("/task/{id}/continue")
-    @PrivilegeDescription("Privilege to continue task")
+    @PrivilegeDescription("Privilege to continue suspended task")
     public ResponseEntity<Void> continueTask(@PathVariable("id") String id, @RequestBody(required = false)
         Map<String, Object> taskContext) {
         sagaService.continueTask(id, taskContext);
@@ -93,7 +93,7 @@ public class SagaTransactionResource {
 
     @GetMapping("/transactions/{id}/logs")
     @PreAuthorize("hasPermission({'id': #id, 'eventId': #eventId}, 'ACTIVATION.TRANSACTION.GET_LOGS')")
-    @PrivilegeDescription("Privilege to get all logs by transaction")
+    @PrivilegeDescription("Privilege to get saga log records")
     public ResponseEntity<List<SagaLog>> getLogsByTransaction(@PathVariable("id") String id) {
         return ResponseEntity.ok(sagaService.getLogsByTransaction(id));
     }

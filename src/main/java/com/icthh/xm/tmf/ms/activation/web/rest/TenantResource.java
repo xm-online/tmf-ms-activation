@@ -22,7 +22,7 @@ public class TenantResource implements TenantsApiDelegate {
 
     @Override
     @PreAuthorize("hasPermission({'tenant':#tenant}, 'ACTIVATION.TENANT.CREATE')")
-    @PrivilegeDescription("Privilege to add a new activation tenant")
+    @PrivilegeDescription("Privilege to add a new tenant on activation micro-service")
     public ResponseEntity<Void> addTenant(Tenant tenant) {
         tenantService.createTenant(tenant.getTenantKey());
         return ResponseEntity.ok().build();
@@ -30,7 +30,7 @@ public class TenantResource implements TenantsApiDelegate {
 
     @Override
     @PreAuthorize("hasPermission({'tenantKey':#tenantKey}, 'ACTIVATION.TENANT.DELETE')")
-    @PrivilegeDescription("Privilege to delete activation tenant")
+    @PrivilegeDescription("Privilege to delete tenant on activation micro-service")
     public ResponseEntity<Void> deleteTenant(String tenantKey) {
         tenantService.deleteTenant(tenantKey);
         return ResponseEntity.ok().build();
@@ -38,21 +38,21 @@ public class TenantResource implements TenantsApiDelegate {
 
     @Override
     @PostAuthorize("hasPermission(null, 'ACTIVATION.TENANT.GET_LIST')")
-    @PrivilegeDescription("Privilege to get all activation tenants")
+    @PrivilegeDescription("Privilege to get all tenants on activation micro-service")
     public ResponseEntity<List<Tenant>> getAllTenantInfo() {
         throw new UnsupportedOperationException();
     }
 
     @Override
     @PostAuthorize("hasPermission({'returnObject': returnObject.body}, 'ACTIVATION.TENANT.GET_LIST.ITEM')")
-    @PrivilegeDescription("Privilege to get activation tenant")
+    @PrivilegeDescription("Privilege to get tenant by id on activation micro-service")
     public ResponseEntity<Tenant> getTenant(String s) {
         throw new UnsupportedOperationException();
     }
 
     @Override
     @PreAuthorize("hasPermission({'tenant':#tenant, 'state':#state}, 'ACTIVATION.TENANT.UPDATE')")
-    @PrivilegeDescription("Privilege to update activation tenant")
+    @PrivilegeDescription("Privilege to update tenant on activation micro-service")
     public ResponseEntity<Void> manageTenant(String tenant, String state) {
         tenantService.manageTenant(tenant, state);
         return ResponseEntity.ok().build();
