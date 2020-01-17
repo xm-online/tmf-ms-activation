@@ -240,6 +240,7 @@ repositories {
 
 dependencies {
     // import JHipster dependencies BOM
+    compile "com.icthh.xm.commons:xm-commons-mail:${xm_commons_version}"
     implementation platform("io.github.jhipster:jhipster-dependencies:${jhipster_dependencies_version}" )
 
     // Use ", version: jhipster_dependencies_version, changing: true" if you want
