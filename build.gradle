@@ -38,7 +38,7 @@ plugins {
 defaultTasks 'bootRun'
 
 group = "com.icthh.xm.tmf.ms.activation"
-version = "0.0.1-SNAPSHOT"
+version = "2.0.0"
 
 description = ""
 
