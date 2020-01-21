@@ -24,14 +24,9 @@ import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
-import org.springframework.web.context.request.ServletRequestAttributes;
 
-import javax.servlet.http.HttpServletRequest;
-
-import static com.icthh.xm.tmf.ms.activation.web.rest.ServiceApiImpl.REQUEST_ATTRIBUTES_KEY;
 import static java.util.Arrays.asList;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
 import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 
@@ -97,14 +92,7 @@ public class ServiceApiControllerTest {
 
         SagaTransaction sagaTransaction = sagaTransactionCaptor.getValue();
 
-        ServletRequestAttributes requestAttributes =
-            (ServletRequestAttributes) sagaTransaction.getContext().get(REQUEST_ATTRIBUTES_KEY);
-        assertNotNull(requestAttributes);
-
-        HttpServletRequest request = requestAttributes.getRequest();
-        assertNotNull(request);
-
-        assertEquals(SDP_PROFILE, request.getHeader(PROFILE_HEADER));
-        assertEquals(SMS_CHANNEL, request.getHeader(CHANNEL_ID_HEADER));
+        assertEquals(SDP_PROFILE, sagaTransaction.getContext().get(PROFILE_HEADER));
+        assertEquals(SMS_CHANNEL, sagaTransaction.getContext().get(CHANNEL_ID_HEADER));
     }
 } 
