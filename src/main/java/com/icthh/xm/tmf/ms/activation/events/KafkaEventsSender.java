@@ -1,5 +1,7 @@
 package com.icthh.xm.tmf.ms.activation.events;
 
+import static com.icthh.xm.tmf.ms.activation.config.KafkaDestinationConfiguration.PARTITION_KEY;
+
 import com.icthh.xm.commons.exceptions.BusinessException;
 import com.icthh.xm.tmf.ms.activation.domain.SagaEvent;
 import com.icthh.xm.tmf.ms.activation.events.bindings.MessagingConfiguration;
@@ -28,7 +30,10 @@ public class KafkaEventsSender implements EventsSender {
     public void sendEvent(SagaEvent sagaEvent) {
         boolean result = channelResolver
             .resolveDestination(MessagingConfiguration.buildChanelName(sagaEvent.getTenantKey().toUpperCase()))
-            .send(MessageBuilder.withPayload(sagaEvent).setHeader(KafkaHeaders.MESSAGE_KEY, sagaEvent.getId()).build());
+            .send(MessageBuilder.withPayload(sagaEvent)
+                                .setHeader(KafkaHeaders.MESSAGE_KEY, sagaEvent.getId())
+                                .setHeader(PARTITION_KEY, sagaEvent.getTransactionId())
+                                .build());
 
         if (!result) {
             log.warn("Cannot send saga event: {}", sagaEvent);

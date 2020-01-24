@@ -19,6 +19,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -84,6 +85,13 @@ public class SagaTransactionResource {
         return new ResponseEntity<>(page.getContent(), headers, HttpStatus.OK);
     }
 
+    @GetMapping("/transactions/{key}")
+    @PreAuthorize("hasPermission({'key': #key}, 'ACTIVATION.TRANSACTION.GET_BY_KEY')")
+    @PrivilegeDescription("Privilege to get transaction by key")
+    public ResponseEntity<SagaTransaction> getTransactionByKey(@PathVariable("key") String key) {
+        return ResponseEntity.ok(sagaService.findByKey(key));
+    }
+
     @GetMapping("/transactions/{id}/events")
     @PreAuthorize("hasPermission({'id': #id, 'eventId': #eventId}, 'ACTIVATION.TRANSACTION.GET_EVENTS')")
     @PrivilegeDescription("Privilege to get all events by transaction")
@@ -91,10 +99,27 @@ public class SagaTransactionResource {
         return ResponseEntity.ok(sagaService.getEventsByTransaction(id));
     }
 
+    @PutMapping("/transactions/events/{eventId}/context")
+    @PreAuthorize("hasPermission({'eventId': #eventId}, 'ACTIVATION.TRANSACTION.EVENTS.UPDATE_CONTEXT')")
+    @PrivilegeDescription("Privilege to update saga event context")
+    public void updateContext(@PathVariable("eventId") String eventId,
+                                                         @RequestBody Map<String, Object> context) {
+        sagaService.updateEventContext(eventId, context);
+    }
+
     @GetMapping("/transactions/{id}/logs")
     @PreAuthorize("hasPermission({'id': #id, 'eventId': #eventId}, 'ACTIVATION.TRANSACTION.GET_LOGS')")
     @PrivilegeDescription("Privilege to get saga log records")
     public ResponseEntity<List<SagaLog>> getLogsByTransaction(@PathVariable("id") String id) {
         return ResponseEntity.ok(sagaService.getLogsByTransaction(id));
+    }
+
+    @Timed
+    @PostMapping("/transaction/events/inqueue/resend")
+    @PreAuthorize("hasPermission(null, 'ACTIVATION.TRANSACTION.IN_QUEUE_RESEND')")
+    @PrivilegeDescription("Privilege to resend all events in state IN_QUEUE")
+    public ResponseEntity<Void> resendAllInQueueEvents() {
+        sagaService.resendAllEventsInQueue();
+        return ResponseEntity.ok().build();
     }
 }

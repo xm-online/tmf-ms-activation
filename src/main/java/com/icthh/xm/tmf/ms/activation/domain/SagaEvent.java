@@ -1,5 +1,8 @@
 package com.icthh.xm.tmf.ms.activation.domain;
 
+import static com.icthh.xm.tmf.ms.activation.domain.SagaEvent.SagaEventStatus.IN_QUEUE;
+import static com.icthh.xm.tmf.ms.activation.domain.SagaEvent.SagaEventStatus.SUSPENDED;
+
 import com.icthh.xm.tmf.ms.activation.repository.converter.MapToStringConverter;
 import java.io.Serializable;
 import java.time.Instant;
@@ -45,7 +48,19 @@ public class SagaEvent implements Serializable {
     @Column(name = "create_date")
     private Instant createDate;
 
+    public boolean isInQueue() {
+        return IN_QUEUE == status;
+    }
+
+    public void markAsInQueue() {
+        this.status = IN_QUEUE;
+    }
+
+    public boolean isSuspended() {
+        return SUSPENDED == status;
+    }
+
     public enum SagaEventStatus {
-        ON_RETRY, SUSPENDED, WAIT_DEPENDS_TASK
+        ON_RETRY, SUSPENDED, WAIT_DEPENDS_TASK, IN_QUEUE
     }
 }

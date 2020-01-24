@@ -18,6 +18,7 @@ import org.springframework.stereotype.Component;
 public class ServiceApiImpl implements ServiceApiDelegate {
 
     private static final String MSISDN = "msisdn";
+    private static final String KEY = "key";
     private final SagaService sagaService;
 
     @Timed
@@ -31,7 +32,10 @@ public class ServiceApiImpl implements ServiceApiDelegate {
         if (isNotEmpty(service.getServiceCharacteristic())) {
             service.getServiceCharacteristic().forEach(ch -> params.put(ch.getName(), ch.getValue()));
         }
-        sagaService.createNewSaga(new SagaTransaction().setTypeKey(service.getType()).setContext(params));
+        Object key = params.get(KEY);
+        sagaService.createNewSaga(new SagaTransaction().setTypeKey(service.getType())
+                                                       .setContext(params)
+                                                       .setKey(key != null ? key.toString() : null));
         return ResponseEntity.ok(service);
     }
 }
