@@ -110,6 +110,11 @@ public class DatabaseConfiguration {
     }
 
     @Bean
+    public Hibernate5Module hibernate5Module() {
+        return new Hibernate5Module();
+    }
+
+    @Bean
     public JpaVendorAdapter jpaVendorAdapter() {
         return new HibernateJpaVendorAdapter();
     }
