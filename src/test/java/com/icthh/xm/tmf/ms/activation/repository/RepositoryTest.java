@@ -67,7 +67,7 @@ public class RepositoryTest extends BaseDaoTest {
     }
 
     public SagaTransaction tx(String id, String typeKey, SagaTransactionState sagaTransactionState, String date) {
-        return new SagaTransaction().setId(id).setTypeKey(typeKey).setSagaTransactionState(sagaTransactionState)
+        return new SagaTransaction().setId(id).setKey(id).setTypeKey(typeKey).setSagaTransactionState(sagaTransactionState)
             .setCreateDate(moveToSystemTime(date));
     }
 

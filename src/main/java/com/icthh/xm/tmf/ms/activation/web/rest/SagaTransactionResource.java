@@ -102,8 +102,7 @@ public class SagaTransactionResource {
     @PutMapping("/transactions/events/{eventId}/context")
     @PreAuthorize("hasPermission({'eventId': #eventId}, 'ACTIVATION.TRANSACTION.EVENTS.UPDATE_CONTEXT')")
     @PrivilegeDescription("Privilege to update saga event context")
-    public void updateContext(@PathVariable("eventId") String eventId,
-                                                         @RequestBody Map<String, Object> context) {
+    public void updateContext(@PathVariable("eventId") String eventId, @RequestBody Map<String, Object> context) {
         sagaService.updateEventContext(eventId, context);
     }
 

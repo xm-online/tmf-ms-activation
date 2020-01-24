@@ -7,7 +7,6 @@ import java.io.Serializable;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.UUID;
 import javax.persistence.Column;
 import javax.persistence.Convert;
 import javax.persistence.Entity;
@@ -44,10 +43,4 @@ public class SagaTransaction implements Serializable {
 
     @Column(name = "create_date")
     private Instant createDate;
-
-    public SagaTransaction setContext(Map<String, Object> context) {
-        this.context = context;
-        return this;
-    }
-
 }

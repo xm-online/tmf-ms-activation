@@ -9,11 +9,11 @@ import com.github.database.rider.core.api.dataset.DataSet;
 import com.icthh.xm.tmf.ms.activation.domain.SagaLog;
 import com.icthh.xm.tmf.ms.activation.domain.SagaLogType;
 import com.icthh.xm.tmf.ms.activation.domain.SagaTransaction;
+import java.util.List;
+import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-
-import java.util.List;
 
 @Slf4j
 @DataSet(value = "init-logs.xml")
@@ -28,7 +28,7 @@ public class LogsRepositoryTest extends BaseDaoTest {
     @Test
     public void finishedLogsTest() {
         List<SagaLog> finishLogs = sagaLogRepository.getFinishLogs("1", asList("STARTED", "STARTED2", "FINISHED", "FINISHED2"));
-        assertEquals(asList(sagaLog("FINISHED", 3L), sagaLog("FINISHED2", 5L)), finishLogs);
+        assertEquals(asList(sagaLog("FINISHED", 3L, "1"), sagaLog("FINISHED2", 5L, "1")), finishLogs);
     }
 
     @Test
@@ -42,21 +42,21 @@ public class LogsRepositoryTest extends BaseDaoTest {
     public void oneLogIfNotFinished() {
         List<SagaLog> finished = sagaLogRepository.getFinishLogs("1", asList("FINISHED"));
         assertEquals(1, finished.size());
-        assertEquals(asList(sagaLog("FINISHED", 3L)), finished);
+        assertEquals(asList(sagaLog("FINISHED", 3L, "1")), finished);
     }
 
     @Test
     public void findLogs() {
         List<SagaLog> started = sagaLogRepository.findLogs(EVENT_START, sagaTransactionRepository.getOne("1"), "STARTED");
         assertEquals(1, started.size());
-        assertEquals(asList(sagaLog("STARTED", 1L).setLogType(EVENT_START)), started);
+        assertEquals(asList(sagaLog("STARTED", 1L, "1").setLogType(EVENT_START)), started);
     }
 
 
 
-    private SagaLog sagaLog(String finished, long id) {
+    private SagaLog sagaLog(String finished, long id, String key) {
         return new SagaLog().setEventTypeKey(finished).setLogType(SagaLogType.EVENT_END)
-            .setSagaTransaction(new SagaTransaction().setId("1").setTypeKey("A")).setId(id);
+            .setSagaTransaction(new SagaTransaction().setId("1").setTypeKey("A").setKey(key)).setId(id);
     }
 
 }

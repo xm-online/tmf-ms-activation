@@ -12,7 +12,7 @@ import org.springframework.context.annotation.Configuration;
 
 @Configuration
 @RequiredArgsConstructor
-public class KafkaDestinationConfiguration {
+public class KafkaPartitionConfiguration {
 
     public static final String PARTITION_KEY = "partitionKey";
     private static final String TASKS_PARTITION_KEY_EXTRACTOR_STRATEGY = "tasksPartitionKeyExtractorStrategy";

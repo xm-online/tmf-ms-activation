@@ -1,6 +1,6 @@
 package com.icthh.xm.tmf.ms.activation.events;
 
-import static com.icthh.xm.tmf.ms.activation.config.KafkaDestinationConfiguration.PARTITION_KEY;
+import static com.icthh.xm.tmf.ms.activation.config.KafkaPartitionConfiguration.PARTITION_KEY;
 
 import com.icthh.xm.commons.exceptions.BusinessException;
 import com.icthh.xm.tmf.ms.activation.domain.SagaEvent;

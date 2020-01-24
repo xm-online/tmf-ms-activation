@@ -21,7 +21,7 @@
     </changeSet>
 
     <changeSet id="20200123143902" author="ssenko">
-        <addNotNullConstraint tableName="saga_transaction"  columnName="key" />
+        <addNotNullConstraint tableName="saga_transaction"  columnName="key" columnDataType="varchar(255)" />
     </changeSet>
 
     <changeSet id="20200123143903" author="ssenko">
