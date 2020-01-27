@@ -99,6 +99,13 @@ public class SagaTransactionResource {
         return ResponseEntity.ok(sagaService.getEventsByTransaction(id));
     }
 
+    @PutMapping("/transactions/{id}/context")
+    @PreAuthorize("hasPermission({'id': #id}, 'ACTIVATION.TRANSACTION.EVENTS.UPDATE_CONTEXT')")
+    @PrivilegeDescription("Privilege to update saga transaction context")
+    public void updateTransactionContext(@PathVariable("id") String id, @RequestBody Map<String, Object> context) {
+        sagaService.updateTransactionContext(id, context);
+    }
+
     @PutMapping("/transactions/events/{eventId}/context")
     @PreAuthorize("hasPermission({'eventId': #eventId}, 'ACTIVATION.TRANSACTION.EVENTS.UPDATE_CONTEXT')")
     @PrivilegeDescription("Privilege to update saga event context")

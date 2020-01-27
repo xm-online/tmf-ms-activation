@@ -19,6 +19,7 @@ import static java.util.stream.Collectors.toList;
 import static org.apache.commons.lang3.StringUtils.isEmpty;
 
 import com.icthh.xm.commons.exceptions.EntityNotFoundException;
+import com.icthh.xm.commons.lep.spring.LepService;
 import com.icthh.xm.commons.logging.aop.IgnoreLogginAspect;
 import com.icthh.xm.tmf.ms.activation.domain.SagaEvent;
 import com.icthh.xm.tmf.ms.activation.domain.SagaLog;
@@ -58,6 +59,7 @@ import org.springframework.stereotype.Service;
  * For example start log should not rollback if execute task failed.
  */
 @Slf4j
+@LepService(group = "service.saga")
 @Service
 @RequiredArgsConstructor
 public class SagaServiceImpl implements SagaService {
@@ -112,12 +114,13 @@ public class SagaServiceImpl implements SagaService {
             }
         }
 
-        /** This check avoid duplication executing event.
+        /**
+         This check avoid duplication executing event.
          As example after resend events marked as in queue {@link #resendAllEventsInQueue()}
          This check valid in multi node environment, because transaction id used as partition key in kafka.
          Case with cluster rebalance known and acceptable.
          */
-        if (isTaskExecuting(sagaEvent)) {
+        if (TRUE.equals(executingTask.putIfAbsent(sagaEvent.getId(), true))) {
             log.warn("Message {} already executing", sagaEvent);
             return;
         }
@@ -152,10 +155,6 @@ public class SagaServiceImpl implements SagaService {
             log.error("Error execute task.", e);
             failHandler(transaction, sagaEvent, taskSpec);
         }
-    }
-
-    private boolean isTaskExecuting(SagaEvent sagaEvent) {
-        return TRUE.equals(executingTask.putIfAbsent(sagaEvent.getId(), true));
     }
 
     @Override
@@ -305,6 +304,14 @@ public class SagaServiceImpl implements SagaService {
         sagaEventRepository.findById(eventId)
                            .map(it -> it.setTaskContext(context))
                            .ifPresentOrElse(sagaEventRepository::save, () -> eventNotFound(eventId));
+    }
+
+    @Override
+    public void updateTransactionContext(String txId, Map<String, Object> context) {
+        transactionRepository.findById(txId)
+                           .map(it -> it.setContext(context))
+                           .ifPresentOrElse(transactionRepository::save,
+                                            () -> entityNotFound("Transaction with id " + txId + " not found"));
     }
 
     private void eventNotFound(String eventId) {

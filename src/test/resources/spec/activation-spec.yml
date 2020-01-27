@@ -23,3 +23,9 @@ transactions:
     - SOME-OTHER-TASK
   - key: SECOND-PARALEL-TASK
   - key: SOME-OTHER-TASK
+- key: TASK-AND-TASK-WITH-SUSPEND-TX
+  retryPolicy: RETRY
+  tasks:
+    - key: SIMPLE-TASK
+    - key: SUSPEND-TASK
+      isSuspendable: true

@@ -38,4 +38,6 @@ public interface SagaService {
 
     void updateEventContext(String eventId, Map<String, Object> context);
 
+    void updateTransactionContext(String id, Map<String, Object> context);
+
 }
