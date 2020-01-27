@@ -7,16 +7,14 @@ import static org.junit.Assert.assertEquals;
 
 import com.github.database.rider.core.api.dataset.DataSet;
 import com.icthh.xm.tmf.ms.activation.domain.SagaEvent;
-import com.icthh.xm.tmf.ms.activation.domain.SagaLog;
-import com.icthh.xm.tmf.ms.activation.domain.SagaLogType;
 import com.icthh.xm.tmf.ms.activation.domain.SagaTransaction;
 import com.icthh.xm.tmf.ms.activation.domain.SagaTransactionState;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.time.ZoneOffset;
+import java.util.UUID;
+import javax.persistence.PersistenceException;
 import lombok.extern.slf4j.Slf4j;
-import org.junit.Assert;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;

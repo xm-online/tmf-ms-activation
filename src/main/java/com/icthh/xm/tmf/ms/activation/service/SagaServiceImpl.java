@@ -19,6 +19,7 @@ import static java.util.stream.Collectors.toList;
 import static org.apache.commons.lang3.StringUtils.isEmpty;
 
 import com.icthh.xm.commons.exceptions.EntityNotFoundException;
+import com.icthh.xm.commons.lep.LogicExtensionPoint;
 import com.icthh.xm.commons.lep.spring.LepService;
 import com.icthh.xm.commons.logging.aop.IgnoreLogginAspect;
 import com.icthh.xm.tmf.ms.activation.domain.SagaEvent;
@@ -52,6 +53,7 @@ import org.apache.commons.lang3.time.StopWatch;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Without transaction! Important!
@@ -157,6 +159,7 @@ public class SagaServiceImpl implements SagaService {
         }
     }
 
+    @LogicExtensionPoint("ContinueTask")
     @Override
     public void continueTask(String taskId, Map<String, Object> taskContext) {
         SagaEvent sagaEvent = sagaEventRepository.findById(taskId)
@@ -299,14 +302,18 @@ public class SagaServiceImpl implements SagaService {
             () -> entityNotFound("Transaction with key " + key + " not found"));
     }
 
+    @LogicExtensionPoint("UpdateTaskContext")
     @Override
+    @Transactional
     public void updateEventContext(String eventId, Map<String, Object> context) {
         sagaEventRepository.findById(eventId)
                            .map(it -> it.setTaskContext(context))
                            .ifPresentOrElse(sagaEventRepository::save, () -> eventNotFound(eventId));
     }
 
+    @LogicExtensionPoint("UpdateTransactionContext")
     @Override
+    @Transactional
     public void updateTransactionContext(String txId, Map<String, Object> context) {
         transactionRepository.findById(txId)
                            .map(it -> it.setContext(context))

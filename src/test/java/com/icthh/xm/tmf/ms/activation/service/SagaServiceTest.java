@@ -56,6 +56,7 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.springframework.core.io.ClassPathResource;
+import org.testcontainers.shaded.org.apache.commons.lang.mutable.MutableBoolean;
 
 @RunWith(MockitoJUnitRunner.class)
 public class SagaServiceTest {
@@ -456,7 +457,6 @@ public class SagaServiceTest {
         when(logRepository.getFinishLogs(eq(txId), eq(asList(eventTypeKey)))).thenReturn(emptyList());
         when(taskExecutor.executeTask(taskSpec, sagaEvent, transaction, continuation)).thenReturn(emptyMap());
         when(sagaEventRepository.findById(sagaEvent.getId())).thenReturn(Optional.of(sagaEvent));
-        when(sagaEventRepository.existsById(sagaEvent.getId())).thenReturn(true);
 
         sagaService.onSagaEvent(sagaEvent);
         sagaService.onSagaEvent(sagaEvent);
@@ -475,7 +475,63 @@ public class SagaServiceTest {
     @Test
     @SneakyThrows
     public void testTransactionDeduplication() {
+        String key = UUID.randomUUID().toString();
+        String txTypeKey = "TASK-AND-TASK-WITH-SUSPEND-TX";
+        SagaTransaction tx1 = mockTx(UUID.randomUUID().toString(), NEW).setTypeKey(txTypeKey).setKey(key);
+        SagaTransaction tx2 = mockTx(UUID.randomUUID().toString(), NEW).setTypeKey(txTypeKey).setKey(key);
+        int countTransactionWillStarted = 1;
 
+        when(tenantUtils.getTenantKey()).thenReturn("XM");
+
+        MutableBoolean isSaved = new MutableBoolean(false);
+        when(transactionRepository.findByKey(key)).then(mock -> {
+            if (isSaved.booleanValue()) {
+                return of(tx1);
+            } else {
+                return empty();
+            }
+        });
+        when(transactionRepository.save(tx1)).then(mock -> {
+            isSaved.setValue(true);
+            return tx1;
+        });
+
+        sagaService.createNewSaga(tx1);
+        sagaService.createNewSaga(tx2);
+
+        verify(transactionRepository, times(2)).findByKey(eq(key));
+        verify(transactionRepository, times(countTransactionWillStarted)).save(refEq(tx1));
+        verify(sagaEventRepository, times(2)).save(any());
+        verify(eventsManager, times(2)).sendEvent(any());
+
+        noMoreInteraction();
+    }
+
+    @Test
+    @SneakyThrows
+    public void testTransactionCreationWhereKeyIsNull() {
+        String txTypeKey = "TASK-AND-TASK-WITH-SUSPEND-TX";
+        SagaTransaction tx1 = mockTx(UUID.randomUUID().toString(), NEW).setTypeKey(txTypeKey);
+        SagaTransaction tx2 = mockTx(UUID.randomUUID().toString(), NEW).setTypeKey(txTypeKey);
+
+        when(tenantUtils.getTenantKey()).thenReturn("XM");
+
+        when(transactionRepository.findByKey(tx1.getKey())).thenReturn(empty());
+        when(transactionRepository.findByKey(tx2.getKey())).thenReturn(empty());
+        when(transactionRepository.save(tx1)).thenReturn(tx1);
+        when(transactionRepository.save(tx2)).thenReturn(tx2);
+
+        sagaService.createNewSaga(tx1);
+        sagaService.createNewSaga(tx2);
+
+        verify(transactionRepository).findByKey(eq(tx1.getKey()));
+        verify(transactionRepository).findByKey(eq(tx2.getKey()));
+        verify(transactionRepository).save(refEq(tx1));
+        verify(transactionRepository).save(refEq(tx2));
+        verify(sagaEventRepository, times(4)).save(any());
+        verify(eventsManager, times(4)).sendEvent(any());
+
+        noMoreInteraction();
     }
 
     private SagaTransaction mockTx() {
