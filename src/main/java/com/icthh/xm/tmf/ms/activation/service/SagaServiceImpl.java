@@ -199,7 +199,7 @@ public class SagaServiceImpl implements SagaService {
     private boolean isTransactionExists(SagaEvent sagaEvent, Context context) {
         if (context == null) {
             log.error("Transaction with id {} not found.", sagaEvent.getTransactionId());
-            //eventsManager.resendEvent(sagaEvent);
+            eventsManager.resendEvent(sagaEvent);
             return false;
         }
         return true;
