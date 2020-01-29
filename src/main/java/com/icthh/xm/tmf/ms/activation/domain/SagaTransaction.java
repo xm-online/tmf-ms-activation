@@ -29,6 +29,8 @@ public class SagaTransaction implements Serializable {
     @GeneratedValue(generator = "uuid")
     @GenericGenerator(name = "uuid", strategy = "uuid2")
     private String id;
+    @Column(name = "key")
+    private String key;
     @NotNull
     @Column(name = "type_key")
     private String typeKey;

@@ -1,5 +1,6 @@
 package com.icthh.xm.tmf.ms.activation.service;
 
+import static com.icthh.xm.tmf.ms.activation.domain.SagaEvent.SagaEventStatus.IN_QUEUE;
 import static com.icthh.xm.tmf.ms.activation.domain.SagaEvent.SagaEventStatus.SUSPENDED;
 import static com.icthh.xm.tmf.ms.activation.domain.SagaLogType.EVENT_END;
 import static com.icthh.xm.tmf.ms.activation.domain.SagaLogType.EVENT_START;
@@ -8,14 +9,18 @@ import static com.icthh.xm.tmf.ms.activation.domain.SagaTransactionState.FINISHE
 import static com.icthh.xm.tmf.ms.activation.domain.SagaTransactionState.NEW;
 import static com.icthh.xm.tmf.ms.activation.domain.spec.RetryPolicy.RETRY;
 import static com.icthh.xm.tmf.ms.activation.domain.spec.RetryPolicy.ROLLBACK;
+import static java.lang.Boolean.FALSE;
 import static java.lang.Boolean.TRUE;
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonList;
 import static java.util.stream.Collectors.toList;
+import static org.apache.commons.lang3.StringUtils.isEmpty;
 
 import com.icthh.xm.commons.exceptions.EntityNotFoundException;
+import com.icthh.xm.commons.lep.LogicExtensionPoint;
+import com.icthh.xm.commons.lep.spring.LepService;
 import com.icthh.xm.commons.logging.aop.IgnoreLogginAspect;
 import com.icthh.xm.tmf.ms.activation.domain.SagaEvent;
 import com.icthh.xm.tmf.ms.activation.domain.SagaLog;
@@ -34,18 +39,21 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiFunction;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import lombok.val;
 import org.apache.commons.lang3.NotImplementedException;
 import org.apache.commons.lang3.time.StopWatch;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Without transaction! Important!
@@ -53,6 +61,7 @@ import org.springframework.stereotype.Service;
  * For example start log should not rollback if execute task failed.
  */
 @Slf4j
+@LepService(group = "service.saga")
 @Service
 @RequiredArgsConstructor
 public class SagaServiceImpl implements SagaService {
@@ -66,10 +75,21 @@ public class SagaServiceImpl implements SagaService {
     private final RetryService retryService;
     private final SagaEventRepository sagaEventRepository;
     private Clock clock = Clock.systemUTC();
+    private Map<String, Boolean> executingTask = new ConcurrentHashMap<>();
 
     @Override
     public SagaTransaction createNewSaga(SagaTransaction sagaTransaction) {
-        specService.getTransactionSpec(sagaTransaction.getTypeKey());
+        if (isEmpty(sagaTransaction.getKey())) {
+            sagaTransaction.setKey(UUID.randomUUID().toString());
+        }
+
+        Optional<SagaTransaction> existsTransaction = transactionRepository.findByKey(sagaTransaction.getKey());
+        if (existsTransaction.isPresent()) {
+            log.warn("Saga transaction with key {} already created", sagaTransaction.getKey());
+            return existsTransaction.get();
+        }
+
+        specService.getTransactionSpec(sagaTransaction.getTypeKey()); // check type key is exists in specification
         sagaTransaction.setId(null);
         sagaTransaction.setSagaTransactionState(NEW);
         sagaTransaction.setCreateDate(Instant.now(clock));
@@ -87,14 +107,33 @@ public class SagaServiceImpl implements SagaService {
         List<BiFunction<SagaEvent, Context, Boolean>> preconditions = asList(this::isTransactionExists,
                                                                              this::isTransactionInCorrectState,
                                                                              this::isCurrentTaskNotFinished,
-                                                                             this::isAllDependsTaskFinished);
+                                                                             this::isAllDependsTaskFinished,
+                                                                             this::isTaskNotSuspended);
 
-        for (val precondition : preconditions) {
+        for (var precondition : preconditions) {
             if (!precondition.apply(sagaEvent, context)) {
                 return;
             }
         }
 
+        /**
+         This check avoid duplication executing event.
+         As example after resend events marked as in queue {@link #resendEventsByStateInQueue()}
+         This check valid in multi node environment, because transaction id used as partition key in kafka.
+         Case with cluster rebalance known and acceptable.
+         */
+        if (TRUE.equals(executingTask.putIfAbsent(sagaEvent.getId(), true))) {
+            log.warn("Message already executing: {}", sagaEvent);
+            return;
+        }
+        try {
+            doTask(sagaEvent, context);
+        } finally {
+            executingTask.remove(sagaEvent.getId());
+        }
+    }
+
+    private void doTask(SagaEvent sagaEvent, Context context) {
         SagaTransaction transaction = context.getTransaction();
         SagaTransactionSpec transactionSpec = context.getTransactionSpec();
         SagaTaskSpec taskSpec = context.getTaskSpec();
@@ -107,11 +146,12 @@ public class SagaServiceImpl implements SagaService {
             Continuation continuation = new Continuation();
             Map<String, Object> taskContext = taskExecutor.executeTask(taskSpec, sagaEvent, transaction, continuation);
             if (TRUE.equals(taskSpec.getIsSuspendable()) && !continuation.isContinuationFlag()) {
-                log.info("Task by event {} suspended. Time: {}ms", sagaEvent, transaction, stopWatch.getTime());
+                log.info("Task by event {} suspended. Transaction: {}. Time: {}ms", sagaEvent, transaction, stopWatch.getTime());
                 sagaEventRepository.save(sagaEvent.setStatus(SUSPENDED));
             } else {
-                log.info("Finish execute task by event {}. Time: {}ms", sagaEvent, transaction, stopWatch.getTime());
+                log.info("Finish execute task by event {}. Transaction: {}. Time: {}ms", sagaEvent, transaction, stopWatch.getTime());
                 continuation(sagaEvent, transaction, transactionSpec, taskSpec, taskContext);
+                deleteSagaEvent(sagaEvent);
             }
         } catch (Exception e) {
             log.error("Error execute task.", e);
@@ -119,6 +159,7 @@ public class SagaServiceImpl implements SagaService {
         }
     }
 
+    @LogicExtensionPoint("ContinueTask")
     @Override
     public void continueTask(String taskId, Map<String, Object> taskContext) {
         SagaEvent sagaEvent = sagaEventRepository.findById(taskId)
@@ -129,7 +170,16 @@ public class SagaServiceImpl implements SagaService {
         SagaTransactionSpec transactionSpec = context.getTransactionSpec();
         SagaTaskSpec taskSpec = context.getTaskSpec();
         continuation(sagaEvent, transaction, transactionSpec, taskSpec, taskContext);
-        sagaEventRepository.delete(sagaEvent);
+        deleteSagaEvent(sagaEvent);
+    }
+
+    private void deleteSagaEvent(SagaEvent sagaEvent) {
+        if (sagaEventRepository.existsById(sagaEvent.getId())) {
+            log.info("Delete saga event by id {}", sagaEvent.getId());
+            sagaEventRepository.deleteById(sagaEvent.getId());
+        } else {
+            log.warn("Saga event with id {} not present in db", sagaEvent.getId());
+        }
     }
 
     private void continuation(SagaEvent sagaEvent, SagaTransaction transaction, SagaTransactionSpec transactionSpec,
@@ -175,6 +225,11 @@ public class SagaServiceImpl implements SagaService {
             return false;
         }
         return true;
+    }
+
+    private boolean isTaskNotSuspended(SagaEvent sagaEvent, Context context) {
+        var isTaskSuspended = sagaEventRepository.findById(sagaEvent.getId()).map(SagaEvent::isSuspended).orElse(FALSE);
+        return !isTaskSuspended;
     }
 
     private boolean isCurrentTaskNotFinished(SagaEvent sagaEvent, Context context) {
@@ -233,6 +288,43 @@ public class SagaServiceImpl implements SagaService {
         return transactionRepository.findAll(pageable);
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void resendEventsByStateInQueue() {
+        sagaEventRepository.findByStatus(IN_QUEUE).forEach(retryService::doResend);
+    }
+
+    @Override
+    public SagaTransaction getByKey(String key) {
+        return transactionRepository.findByKey(key).orElseThrow(
+            () -> entityNotFound("Transaction with key " + key + " not found"));
+    }
+
+    @LogicExtensionPoint("UpdateTaskContext")
+    @Override
+    @Transactional
+    public void updateEventContext(String eventId, Map<String, Object> context) {
+        sagaEventRepository.findById(eventId)
+                           .map(it -> it.setTaskContext(context))
+                           .ifPresentOrElse(sagaEventRepository::save, () -> eventNotFound(eventId));
+    }
+
+    @LogicExtensionPoint("UpdateTransactionContext")
+    @Override
+    @Transactional
+    public void updateTransactionContext(String txId, Map<String, Object> context) {
+        transactionRepository.findById(txId)
+                           .map(it -> it.setContext(context))
+                           .ifPresentOrElse(transactionRepository::save,
+                                            () -> entityNotFound("Transaction with id " + txId + " not found"));
+    }
+
+    private void eventNotFound(String eventId) {
+        log.warn("Event with id {} not found. No context will be updated.", eventId);
+    }
+
     private void generateFirstEvents(SagaTransaction sagaTransaction) {
         SagaTransactionSpec spec = specService.getTransactionSpec(sagaTransaction.getTypeKey());
         generateEvents(sagaTransaction.getId(), spec.getFirstTasks(), emptyMap());
@@ -248,6 +340,8 @@ public class SagaServiceImpl implements SagaService {
                                                  .setCreateDate(Instant.now(clock))
                                                  .setTaskContext(taskContext)
                                                  .setTransactionId(sagaTransactionId))
+                     .peek(SagaEvent::markAsInQueue)
+                     .map(sagaEventRepository::save)
                      .forEach(eventsManager::sendEvent);
     }
 
