@@ -118,12 +118,12 @@ public class SagaServiceImpl implements SagaService {
 
         /**
          This check avoid duplication executing event.
-         As example after resend events marked as in queue {@link #resendAllEventsInQueue()}
+         As example after resend events marked as in queue {@link #resendEventsByStateInQueue()}
          This check valid in multi node environment, because transaction id used as partition key in kafka.
          Case with cluster rebalance known and acceptable.
          */
         if (TRUE.equals(executingTask.putIfAbsent(sagaEvent.getId(), true))) {
-            log.warn("Message {} already executing", sagaEvent);
+            log.warn("Message already executing: {}", sagaEvent);
             return;
         }
         try {
@@ -199,7 +199,7 @@ public class SagaServiceImpl implements SagaService {
     private boolean isTransactionExists(SagaEvent sagaEvent, Context context) {
         if (context == null) {
             log.error("Transaction with id {} not found.", sagaEvent.getTransactionId());
-            eventsManager.resendEvent(sagaEvent);
+            //eventsManager.resendEvent(sagaEvent);
             return false;
         }
         return true;
@@ -292,12 +292,12 @@ public class SagaServiceImpl implements SagaService {
      * {@inheritDoc}
      */
     @Override
-    public void resendAllEventsInQueue() {
+    public void resendEventsByStateInQueue() {
         sagaEventRepository.findByStatus(IN_QUEUE).forEach(retryService::doResend);
     }
 
     @Override
-    public SagaTransaction findByKey(String key) {
+    public SagaTransaction getByKey(String key) {
         return transactionRepository.findByKey(key).orElseThrow(
             () -> entityNotFound("Transaction with key " + key + " not found"));
     }

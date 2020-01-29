@@ -32,9 +32,9 @@ public interface SagaService {
      * This method restore activation process in a low probability сase when kafka lost events.
      * For example after disk problem, like all disk was full etc.
      */
-    void resendAllEventsInQueue();
+    void resendEventsByStateInQueue();
 
-    SagaTransaction findByKey(String key);
+    SagaTransaction getByKey(String key);
 
     void updateEventContext(String eventId, Map<String, Object> context);
 

@@ -89,7 +89,7 @@ public class SagaTransactionResource {
     @PreAuthorize("hasPermission({'key': #key}, 'ACTIVATION.TRANSACTION.GET_BY_KEY')")
     @PrivilegeDescription("Privilege to get transaction by key")
     public ResponseEntity<SagaTransaction> getTransactionByKey(@PathVariable("key") String key) {
-        return ResponseEntity.ok(sagaService.findByKey(key));
+        return ResponseEntity.ok(sagaService.getByKey(key));
     }
 
     @GetMapping("/transactions/{id}/events")
@@ -125,7 +125,7 @@ public class SagaTransactionResource {
     @PreAuthorize("hasPermission(null, 'ACTIVATION.TRANSACTION.IN_QUEUE_RESEND')")
     @PrivilegeDescription("Privilege to resend all events in state IN_QUEUE")
     public ResponseEntity<Void> resendAllInQueueEvents() {
-        sagaService.resendAllEventsInQueue();
+        sagaService.resendEventsByStateInQueue();
         return ResponseEntity.ok().build();
     }
 }
