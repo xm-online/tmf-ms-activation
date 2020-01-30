@@ -244,6 +244,7 @@ dependencies {
 
     // Use ", version: jhipster_dependencies_version, changing: true" if you want
     // to use a SNAPSHOT release instead of a stable release
+    implementation "com.icthh.xm.commons:xm-commons-mail:${xm_commons_version}"
     implementation group: "io.github.jhipster", name: "jhipster-framework"
     implementation "io.dropwizard.metrics:metrics-core"
     implementation "io.dropwizard.metrics:metrics-json"

@@ -15,4 +15,6 @@ public interface SagaTransactionRepository extends JpaRepository<SagaTransaction
     long countByCreateDateBeforeAndSagaTransactionState(Instant date, SagaTransactionState state);
 
     Optional<SagaTransaction> findByKey(String key);
+
+    Optional<SagaTransaction> findOneById(String id);
 }

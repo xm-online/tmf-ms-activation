@@ -77,6 +77,7 @@ public class SagaServiceImpl implements SagaService {
     private Clock clock = Clock.systemUTC();
     private Map<String, Boolean> executingTask = new ConcurrentHashMap<>();
 
+    @LogicExtensionPoint("CreateNewSaga")
     @Override
     public SagaTransaction createNewSaga(SagaTransaction sagaTransaction) {
         if (isEmpty(sagaTransaction.getKey())) {
@@ -166,10 +167,15 @@ public class SagaServiceImpl implements SagaService {
                                                  .orElseThrow(
                                                      () -> entityNotFound("Task with id " + taskId + " not found"));
         Context context = initContext(sagaEvent);
-        SagaTransaction transaction = context.getTransaction();
-        SagaTransactionSpec transactionSpec = context.getTransactionSpec();
-        SagaTaskSpec taskSpec = context.getTaskSpec();
-        continuation(sagaEvent, transaction, transactionSpec, taskSpec, taskContext);
+
+        sagaEvent.getTaskContext().putAll(taskContext);
+
+        continuation(sagaEvent,
+                     context.getTransaction(),
+                     context.getTransactionSpec(),
+                     context.getTaskSpec(),
+                     sagaEvent.getTaskContext());
+
         deleteSagaEvent(sagaEvent);
     }
 
@@ -286,6 +292,12 @@ public class SagaServiceImpl implements SagaService {
     @Override
     public Page<SagaTransaction> getAllTransaction(Pageable pageable) {
         return transactionRepository.findAll(pageable);
+    }
+
+    @Transactional(readOnly = true)
+    @Override
+    public Optional<SagaTransaction> findTransactionById(String id) {
+        return transactionRepository.findOneById(id);
     }
 
     /**
