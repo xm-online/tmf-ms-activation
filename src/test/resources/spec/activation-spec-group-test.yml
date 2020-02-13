@@ -1,0 +1,29 @@
+---
+transactions:
+- key: TEST-WITHOUT-GROUP
+  tasks:
+  - key: TASK
+- key: TEST-WITH-EMPTY-GROUP
+  group: /
+  tasks:
+    - key: TASK
+- key: TEST-WITH-FOLDER
+  group: folder
+  tasks:
+    - key: TASK
+- key: TEST-WITH-FOLDER-STARTS-FROM-SLASH
+  group: /folder
+  tasks:
+    - key: TASK
+- key: TEST-WITH-FOLDER-END-SLASH
+  group: folder/
+  tasks:
+    - key: TASK
+- key: TEST-WITH-COMPLEX-PATH
+  group: folder/subfolder/subsubfolder
+  tasks:
+    - key: TASK
+- key: TEST-WITH-COMPLEX-PATH-START-END-SLASH
+  group: /folder/subfolder/subsubfolder/
+  tasks:
+    - key: TASK

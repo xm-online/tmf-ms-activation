@@ -1,5 +1,8 @@
 package com.icthh.xm.tmf.ms.activation.config;
 
+import static org.mockito.Mockito.mock;
+
+import javax.annotation.PostConstruct;
 import org.springframework.cloud.client.loadbalancer.RestTemplateCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -18,18 +21,25 @@ public class SecurityBeanOverrideConfiguration {
     @Bean
     @Primary
     public TokenStore tokenStore() {
-        return null;
+        return mock(TokenStore.class);
     }
 
     @Bean
     @Primary
     public JwtAccessTokenConverter jwtAccessTokenConverter() {
-        return null;
+        return mock(JwtAccessTokenConverter.class);
     }
 
     @Bean
     @Primary
     public RestTemplate loadBalancedRestTemplate(RestTemplateCustomizer customizer) {
-        return null;
+        return mock(RestTemplate.class);
     }
+
+    @PostConstruct
+    public void postConstruct(){
+        // Need system error to see when contect is recreated during dunning test from gradle
+        System.err.println(" ===================== SecurityBeanOverrideConfiguration inited !!! =======================");
+    }
+
 }

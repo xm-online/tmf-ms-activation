@@ -3,7 +3,7 @@
     "promptValues": {
       "packageName": "com.icthh.xm.tmf.ms.activation"
     },
-    "jhipsterVersion": "5.3.4",
+    "jhipsterVersion": "6.5.1",
     "applicationType": "microservice",
     "baseName": "activation",
     "packageName": "com.icthh.xm.tmf.ms.activation",
@@ -21,14 +21,19 @@
     "serviceDiscoveryType": "consul",
     "buildTool": "gradle",
     "enableSwaggerCodegen": false,
-    "jwtSecretKey": "NDc1OTMzMjMzMzA1MmViMGQ0YTk5MzU0NzU5ODFjOThhNDFlNTE2ZDRmZTBlMDVjYWY4ODc3YTkwMTZiZDgyZjFmZmNjMjI3YWVjNjY5MDgwZTc2NTEwNThmZDdlNmRjZDgwZWNmYzk3ZmFjY2FmOWUzMzgyZDYxZGQ2NGY2MDI=",
-    "enableTranslation": false,
+    "jwtSecretKey": "Njc2MmM1NmFhOGUzNGM2NTBkOGQ1ZWZmZmE1NjA0YTllOTUxNjRiNzEwMDQ5NTFlMjFlMTdhODc4ZWFiYWZjNjgzZDA1NDU2OTZjMDBhZTQ4MzdmNmNjNTYxODMyOGRkN2M0ZjA0YjQ3ZmZlYTlmM2RlYjQ5NDBjY2NjNTI2MjM=",
+    "embeddableLaunchScript": false,
     "testFrameworks": [
       "gatling",
       "cucumber"
     ],
     "jhiPrefix": "jhi",
+    "entitySuffix": "",
+    "dtoSuffix": "DTO",
+    "otherModules": [],
+    "enableTranslation": false,
     "clientPackageManager": "npm",
+    "blueprints": [],
     "skipClient": true,
     "skipUserManagement": true
   }

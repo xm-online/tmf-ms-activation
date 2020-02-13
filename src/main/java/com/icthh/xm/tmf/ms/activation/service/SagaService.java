@@ -30,4 +30,17 @@ public interface SagaService {
     Page<SagaTransaction> getAllTransaction(Pageable pageable);
 
     Optional<SagaTransaction> findTransactionById(String id);
+
+    /**
+     * This method restore activation process in a low probability сase when kafka lost events.
+     * For example after disk problem, like all disk was full etc.
+     */
+    void resendEventsByStateInQueue();
+
+    SagaTransaction getByKey(String key);
+
+    void updateEventContext(String eventId, Map<String, Object> context);
+
+    void updateTransactionContext(String id, Map<String, Object> context);
+
 }

@@ -23,6 +23,7 @@ import static java.util.stream.Collectors.toSet;
 public class SagaTransactionSpec {
 
     private String key;
+    private String group;
     private RetryPolicy retryPolicy = RETRY;
     private Long retryCount = -1L;
     private Integer backOff = 5;

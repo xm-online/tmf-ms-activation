@@ -16,10 +16,12 @@ import liquibase.integration.spring.MultiTenantSpringLiquibase;
 import liquibase.integration.spring.SpringLiquibase;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.h2.tools.Server;
 import org.hibernate.MultiTenancyStrategy;
 import org.hibernate.context.spi.CurrentTenantIdentifierResolver;
 import org.hibernate.engine.jdbc.connections.spi.MultiTenantConnectionProvider;
 import org.springframework.boot.autoconfigure.liquibase.LiquibaseProperties;
+import org.springframework.boot.autoconfigure.orm.jpa.JpaProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.DependsOn;
@@ -47,6 +49,7 @@ public class DatabaseConfiguration {
 
     private final Environment env;
     private final TenantListRepository tenantListRepository;
+    private final JpaProperties jpaProperties;
     private final SchemaResolver schemaResolver;
 
     /**
@@ -59,7 +62,7 @@ public class DatabaseConfiguration {
     @Profile(JHipsterConstants.SPRING_PROFILE_DEVELOPMENT)
     public Object h2TCPServer() throws SQLException {
         log.debug("Starting H2 database");
-        return H2ConfigurationHelper.createServer();
+        return Server.createTcpServer("-tcp", "-tcpAllowOthers");
     }
 
     /**
@@ -123,7 +126,7 @@ public class DatabaseConfiguration {
         DataSource dataSource,
         MultiTenantConnectionProvider multiTenantConnectionProviderImpl,
         CurrentTenantIdentifierResolver currentTenantIdentifierResolverImpl) {
-        Map<String, Object> properties = new HashMap<>();
+        Map<String, Object> properties = new HashMap<>(jpaProperties.getProperties());
         properties.put(MULTI_TENANT, MultiTenancyStrategy.SCHEMA);
         properties.put(MULTI_TENANT_CONNECTION_PROVIDER, multiTenantConnectionProviderImpl);
         properties.put(MULTI_TENANT_IDENTIFIER_RESOLVER, currentTenantIdentifierResolverImpl);

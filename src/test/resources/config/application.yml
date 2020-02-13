@@ -17,6 +17,8 @@
 spring:
     application:
         name: activation
+    main:
+      allow-bean-definition-overriding: true
     datasource:
         type: com.zaxxer.hikari.HikariDataSource
         url: jdbc:h2:mem:activation;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
@@ -36,6 +38,7 @@ spring:
                 physical-strategy: org.springframework.boot.orm.jpa.hibernate.SpringPhysicalNamingStrategy
                 implicit-strategy: org.springframework.boot.orm.jpa.hibernate.SpringImplicitNamingStrategy
         properties:
+            hibernate.model.generator_name_as_sequence_name: false
             hibernate.id.new_generator_mappings: true
             hibernate.connection.provider_disables_autocommit: true
             hibernate.cache.use_second_level_cache: false
@@ -53,7 +56,30 @@ spring:
             enabled: false
     thymeleaf:
         mode: HTML
-
+    kafka:
+        bootstrap-servers: localhost:9092
+        consumer:
+            group-id: activation
+            key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+            value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+            properties:
+                session.timeout.ms: 30000
+                heartbeat.interval.ms: 3000
+                request.timeout.ms: 31000
+                max.poll.interval.ms: 300000
+                max-poll-records: 1
+            listener:
+              concurrency: 16
+              ack-mode: manual_immediate
+        producer:
+            key-serializer: org.apache.kafka.common.serialization.StringSerializer
+            value-serializer: com.icthh.xm.tmf.ms.activation.events.bindings.RoutingSerializer
+            batch-size: 0
+        properties:
+            reconnect.backoff.ms: 1000
+            partition.assignment.strategy: org.apache.kafka.clients.consumer.RangeAssignor
+        admin:
+            fail-fast: true
 
 server:
     port: 10344
@@ -63,41 +89,7 @@ info:
     project:
         version: #project.version#
 
-# ===================================================================
-# JHipster specific properties
-#
-# Full reference is available at: https://www.jhipster.tech/common-application-properties/
-# ===================================================================
 
-jhipster:
-    async:
-        core-pool-size: 1
-        max-pool-size: 50
-        queue-capacity: 10000
-    # To test logstash appender
-    logging:
-        logstash:
-            enabled: true
-            host: localhost
-            port: 5000
-            queue-size: 512
-    security:
-        authentication:
-            jwt:
-                # This token must be encoded using Base64 (you can type `echo 'secret-key'|base64` on your command line)
-                base64-secret: NDc1OTMzMjMzMzA1MmViMGQ0YTk5MzU0NzU5ODFjOThhNDFlNTE2ZDRmZTBlMDVjYWY4ODc3YTkwMTZiZDgyZjFmZmNjMjI3YWVjNjY5MDgwZTc2NTEwNThmZDdlNmRjZDgwZWNmYzk3ZmFjY2FmOWUzMzgyZDYxZGQ2NGY2MDI=
-                # Token is valid 24 hours
-                token-validity-in-seconds: 86400
-        client-authorization:
-            access-token-uri: http://uaa/oauth/token
-            token-service-id: uaa
-            client-id: internal
-            client-secret: internal
-    metrics: # DropWizard Metrics configuration, used by MetricsConfiguration
-        jmx.enabled: true
-        logs: # Reports Dropwizard metrics in the logs
-            enabled: true
-            report-frequency: 60 # in seconds
 xm-config:
     enabled: false
 # ===================================================================
@@ -108,15 +100,28 @@ xm-config:
 # More documentation is available at:
 # https://www.jhipster.tech/common-application-properties/
 # ===================================================================
+management:
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+
+jhipster:
+    async:
+      core-pool-size: 2
+      max-pool-size: 4
 
 # application:
 application:
-    kafka-system-topic: system_topic
-    kafka-system-queue: system_queue
-    lep:
-        tenant-script-storage: XM_MS_CONFIG
-    kafkaEventSender:
-      retry:
-        max-attempts: 10
-        delay: 100 #in milliseconds
-        multiplier: 2
+  kafka-enabled: false
+  kafka-system-topic: system_topic
+  kafka-system-queue: system_queue
+  timelines-enabled: false
+  lep:
+    tenant-script-storage: XM_MS_CONFIG
+  kafkaEventSender:
+    retry:
+      max-attempts: 10
+      delay: 100 #in milliseconds
+      multiplier: 2
+  retryThreadCount: 3

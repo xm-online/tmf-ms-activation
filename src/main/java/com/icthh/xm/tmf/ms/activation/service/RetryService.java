@@ -1,5 +1,6 @@
 package com.icthh.xm.tmf.ms.activation.service;
 
+import static com.google.common.base.Predicates.not;
 import static com.icthh.xm.tmf.ms.activation.domain.SagaEvent.SagaEventStatus.ON_RETRY;
 import static com.icthh.xm.tmf.ms.activation.domain.SagaEvent.SagaEventStatus.WAIT_DEPENDS_TASK;
 
@@ -46,7 +47,7 @@ public class RetryService {
     }
 
     public void retry(SagaEvent sagaEvent, SagaTaskSpec sagaTaskSpec, SagaEvent.SagaEventStatus eventStatus) {
-        int backOff = Math.min(sagaTaskSpec.getMaxBackOff(), sagaEvent.getBackOff() + sagaTaskSpec.getBackOff());
+        long backOff = Math.min(sagaTaskSpec.getMaxBackOff(), sagaEvent.getBackOff() + sagaTaskSpec.getBackOff());
         sagaEvent.setBackOff(backOff);
         sagaEvent.setRetryNumber(sagaEvent.getRetryNumber() + 1);
 
@@ -99,9 +100,11 @@ public class RetryService {
     @Transactional
     public void removeAndSend(SagaEvent sagaEvent) {
         Optional<SagaEvent> actualSagaEvent = sagaEventRepository.findById(sagaEvent.getId());
-        if (actualSagaEvent.isPresent()) {
-            eventsSender.sendEvent(actualSagaEvent.get());
-            sagaEventRepository.delete(actualSagaEvent.get());
+        if (actualSagaEvent.filter(not(SagaEvent::isInQueue)).isPresent()) {
+            SagaEvent event = actualSagaEvent.get();
+            event.markAsInQueue();
+            event = sagaEventRepository.save(event);
+            eventsSender.sendEvent(event);
         } else {
             log.warn("Event not found {}", sagaEvent);
         }
