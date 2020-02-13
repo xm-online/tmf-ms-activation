@@ -38,9 +38,9 @@ public class SagaEvent implements Serializable {
     private Map<String, Object> taskContext = new HashMap<>();
 
     @Column(name = "back_off")
-    private int backOff = 0;
+    private long backOff = 0;
     @Column(name = "retry_number")
-    private int retryNumber = 0;
+    private long retryNumber = 0;
     @Column(name = "status")
     @Enumerated(EnumType.STRING)
     private SagaEventStatus status;

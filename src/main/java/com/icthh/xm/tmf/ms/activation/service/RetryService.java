@@ -47,7 +47,7 @@ public class RetryService {
     }
 
     public void retry(SagaEvent sagaEvent, SagaTaskSpec sagaTaskSpec, SagaEvent.SagaEventStatus eventStatus) {
-        int backOff = Math.min(sagaTaskSpec.getMaxBackOff(), sagaEvent.getBackOff() + sagaTaskSpec.getBackOff());
+        long backOff = Math.min(sagaTaskSpec.getMaxBackOff(), sagaEvent.getBackOff() + sagaTaskSpec.getBackOff());
         sagaEvent.setBackOff(backOff);
         sagaEvent.setRetryNumber(sagaEvent.getRetryNumber() + 1);
 
