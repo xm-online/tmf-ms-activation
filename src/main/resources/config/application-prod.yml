@@ -48,7 +48,7 @@ spring:
             hibernate.connection.provider_disables_autocommit: true
             hibernate.cache.use_second_level_cache: false
             hibernate.cache.use_query_cache: false
-            hibernate.generate_statistics: false
+            hibernate.generate_statistics: falsePREFER_GENERATOR_NAME_AS_DEFAULT_SEQUENCE_NAME
             hibernate.dialect: org.hibernate.dialect.PostgreSQLDialect
     liquibase:
         contexts: prod

@@ -67,6 +67,7 @@ spring:
         open-in-view: false
         properties:
             hibernate.jdbc.time_zone: UTC
+            hibernate.model.generator_name_as_sequence_name: false
         hibernate:
             ddl-auto: none
             naming:
