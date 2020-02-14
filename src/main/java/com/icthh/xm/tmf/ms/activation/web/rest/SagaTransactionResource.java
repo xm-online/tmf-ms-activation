@@ -86,13 +86,6 @@ public class SagaTransactionResource {
         return new ResponseEntity<>(page.getContent(), headers, HttpStatus.OK);
     }
 
-    @GetMapping("/transactions/{key}")
-    @PreAuthorize("hasPermission({'key': #key}, 'ACTIVATION.TRANSACTION.GET_BY_KEY')")
-    @PrivilegeDescription("Privilege to get transaction by key")
-    public ResponseEntity<SagaTransaction> getTransactionByKey(@PathVariable("key") String key) {
-        return ResponseEntity.ok(sagaService.getByKey(key));
-    }
-
     @GetMapping("/transactions/{id}/events")
     @PreAuthorize("hasPermission({'id': #id, 'eventId': #eventId}, 'ACTIVATION.TRANSACTION.GET_EVENTS')")
     @PrivilegeDescription("Privilege to get all events by transaction")
@@ -136,4 +129,10 @@ public class SagaTransactionResource {
         return ResponseUtil.wrapOrNotFound(sagaService.findTransactionById(id));
     }
 
+    @GetMapping("/transactions/key/{key}")
+    @PreAuthorize("hasPermission({'key': #key}, 'ACTIVATION.TRANSACTION.GET_BY_KEY')")
+    @PrivilegeDescription("Privilege to get transaction by key")
+    public ResponseEntity<SagaTransaction> getTransactionByKey(@PathVariable("key") String key) {
+        return ResponseEntity.ok(sagaService.getByKey(key));
+    }
 }
