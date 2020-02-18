@@ -8,6 +8,7 @@ import com.icthh.xm.tmf.ms.activation.service.SagaService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
+import org.springframework.web.context.request.RequestAttributes;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
@@ -38,23 +39,31 @@ public class ServiceApiImpl implements ServiceApiDelegate {
             service.getServiceCharacteristic().forEach(ch -> params.put(ch.getName(), ch.getValue()));
         }
 
-        //if service processes LEP`s asynchronously, RequestContextHolder will not be able to get request
-        //attributes from thread that will execute LEP
-        ServletRequestAttributes requestAttributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
-
-        if (requestAttributes != null) {
-            HttpServletRequest request = requestAttributes.getRequest();
-            Enumeration<String> headerNames = request.getHeaderNames();
-            while (headerNames.hasMoreElements()) {
-                String headerName = headerNames.nextElement();
-                params.put(headerName, request.getHeader(headerName));
-            }
-        }
+        addAllHeaders(params);
 
         Object key = params.get(KEY);
         sagaService.createNewSaga(new SagaTransaction().setTypeKey(service.getType())
             .setContext(params)
             .setKey(key != null ? key.toString() : null));
         return ResponseEntity.ok(service);
+    }
+
+    /**
+     * If service processes LEP`s asynchronously, RequestContextHolder will not be able to get request
+     * attributes from thread that executes LEP
+     *
+     * @param params context that will hold extracted headers
+     */
+    private void addAllHeaders(final Map<String, Object> params) {
+
+        RequestAttributes requestAttributes = RequestContextHolder.getRequestAttributes();
+        if (requestAttributes instanceof ServletRequestAttributes) {
+            HttpServletRequest request = ((ServletRequestAttributes) requestAttributes).getRequest();
+            Enumeration<String> headerNames = request.getHeaderNames();
+            while (headerNames.hasMoreElements()) {
+                String headerName = headerNames.nextElement();
+                params.put(headerName, request.getHeader(headerName));
+            }
+        }
     }
 }
