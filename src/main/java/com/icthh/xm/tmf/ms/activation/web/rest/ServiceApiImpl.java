@@ -1,17 +1,23 @@
 package com.icthh.xm.tmf.ms.activation.web.rest;
 
-import static org.apache.commons.collections.CollectionUtils.isNotEmpty;
-
 import com.codahale.metrics.annotation.Timed;
 import com.icthh.xm.tmf.ms.activation.api.ServiceApiDelegate;
 import com.icthh.xm.tmf.ms.activation.domain.SagaTransaction;
 import com.icthh.xm.tmf.ms.activation.model.Service;
 import com.icthh.xm.tmf.ms.activation.service.SagaService;
-import java.util.HashMap;
-import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
+import org.springframework.web.context.request.RequestAttributes;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
+
+import javax.servlet.http.HttpServletRequest;
+import java.util.Enumeration;
+import java.util.HashMap;
+import java.util.Map;
+
+import static org.apache.commons.collections.CollectionUtils.isNotEmpty;
 
 @Component
 @RequiredArgsConstructor
@@ -32,10 +38,32 @@ public class ServiceApiImpl implements ServiceApiDelegate {
         if (isNotEmpty(service.getServiceCharacteristic())) {
             service.getServiceCharacteristic().forEach(ch -> params.put(ch.getName(), ch.getValue()));
         }
+
+        addAllHeaders(params);
+
         Object key = params.get(KEY);
         sagaService.createNewSaga(new SagaTransaction().setTypeKey(service.getType())
-                                                       .setContext(params)
-                                                       .setKey(key != null ? key.toString() : null));
+            .setContext(params)
+            .setKey(key != null ? key.toString() : null));
         return ResponseEntity.ok(service);
+    }
+
+    /**
+     * If service processes LEP`s asynchronously, RequestContextHolder will not be able to get request
+     * attributes from thread that executes LEP
+     *
+     * @param params context that will hold extracted headers
+     */
+    private void addAllHeaders(final Map<String, Object> params) {
+
+        RequestAttributes requestAttributes = RequestContextHolder.getRequestAttributes();
+        if (requestAttributes instanceof ServletRequestAttributes) {
+            HttpServletRequest request = ((ServletRequestAttributes) requestAttributes).getRequest();
+            Enumeration<String> headerNames = request.getHeaderNames();
+            while (headerNames.hasMoreElements()) {
+                String headerName = headerNames.nextElement();
+                params.put(headerName, request.getHeader(headerName));
+            }
+        }
     }
 }
