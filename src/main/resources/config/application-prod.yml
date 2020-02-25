@@ -33,9 +33,9 @@ spring:
             port: 8500
     datasource:
         type: com.zaxxer.hikari.HikariDataSource
-        url: jdbc:postgresql://localhost:5432/activation
-        username: activation
-        password:
+        url: jdbc:postgresql://localhost:5432/xm_activation
+        username: postgres
+        password: postgres
         hikari:
             auto-commit: false
     jpa:
@@ -142,4 +142,6 @@ oauth2:
 # https://www.jhipster.tech/common-application-properties/
 # ===================================================================
 
-# application:
+application:
+    lep:
+      tenant-script-storage: FILE
