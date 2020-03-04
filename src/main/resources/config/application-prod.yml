@@ -15,9 +15,9 @@
 
 logging:
     level:
-        ROOT: INFO
-        com.icthh.xm.tmf.ms.activation: INFO
-        io.github.jhipster: INFO
+      ROOT: INFO
+      io.github.jhipster: INFO
+      com.icthh.xm: WARN
 
 spring:
     devtools:
