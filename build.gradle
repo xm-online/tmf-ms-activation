@@ -45,7 +45,6 @@ description = ""
 springBoot {
     mainClassName = 'com.icthh.xm.tmf.ms.activation.ActivationApp'
 }
-String[] testCategories = ['com.icthh.xm.tmf.ms.activation.AbstractUnitTest']
 
 bootWar {
     mainClassName = 'com.icthh.xm.tmf.ms.activation.ActivationApp'
