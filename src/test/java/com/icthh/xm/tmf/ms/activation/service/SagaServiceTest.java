@@ -1,34 +1,5 @@
 package com.icthh.xm.tmf.ms.activation.service;
 
-import static com.icthh.xm.tmf.ms.activation.domain.SagaEvent.SagaEventStatus.IN_QUEUE;
-import static com.icthh.xm.tmf.ms.activation.domain.SagaEvent.SagaEventStatus.SUSPENDED;
-import static com.icthh.xm.tmf.ms.activation.domain.SagaLogType.EVENT_END;
-import static com.icthh.xm.tmf.ms.activation.domain.SagaLogType.EVENT_START;
-import static com.icthh.xm.tmf.ms.activation.domain.SagaTransactionState.CANCELED;
-import static com.icthh.xm.tmf.ms.activation.domain.SagaTransactionState.FINISHED;
-import static com.icthh.xm.tmf.ms.activation.domain.SagaTransactionState.NEW;
-import static com.icthh.xm.tmf.ms.activation.domain.spec.RetryPolicy.RETRY;
-import static java.nio.charset.StandardCharsets.UTF_8;
-import static java.time.ZoneOffset.UTC;
-import static java.util.Arrays.asList;
-import static java.util.Collections.emptyList;
-import static java.util.Collections.emptyMap;
-import static java.util.Optional.empty;
-import static java.util.Optional.of;
-import static java.util.concurrent.TimeUnit.SECONDS;
-import static java.util.stream.Collectors.toList;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.ArgumentMatchers.refEq;
-import static org.mockito.Mockito.*;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
 import com.icthh.xm.tmf.ms.activation.domain.SagaEvent;
 import com.icthh.xm.tmf.ms.activation.domain.SagaLog;
 import com.icthh.xm.tmf.ms.activation.domain.SagaLogType;
@@ -42,6 +13,19 @@ import com.icthh.xm.tmf.ms.activation.repository.SagaEventRepository;
 import com.icthh.xm.tmf.ms.activation.repository.SagaLogRepository;
 import com.icthh.xm.tmf.ms.activation.repository.SagaTransactionRepository;
 import com.icthh.xm.tmf.ms.activation.utils.TenantUtils;
+import lombok.SneakyThrows;
+import org.apache.commons.io.IOUtils;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
+import org.mockito.Mock;
+import org.mockito.Mockito;
+import org.mockito.junit.MockitoJUnitRunner;
+import org.springframework.core.io.ClassPathResource;
+import org.testcontainers.shaded.org.apache.commons.lang.mutable.MutableBoolean;
+
 import java.io.IOException;
 import java.time.Clock;
 import java.time.Instant;
@@ -51,16 +35,38 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
-import lombok.SneakyThrows;
-import org.apache.commons.io.IOUtils;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.mockito.Mock;
-import org.mockito.Mockito;
-import org.mockito.junit.MockitoJUnitRunner;
-import org.springframework.core.io.ClassPathResource;
-import org.testcontainers.shaded.org.apache.commons.lang.mutable.MutableBoolean;
+
+import static com.icthh.xm.tmf.ms.activation.domain.SagaEvent.SagaEventStatus.IN_QUEUE;
+import static com.icthh.xm.tmf.ms.activation.domain.SagaEvent.SagaEventStatus.SUSPENDED;
+import static com.icthh.xm.tmf.ms.activation.domain.SagaLogType.EVENT_END;
+import static com.icthh.xm.tmf.ms.activation.domain.SagaLogType.EVENT_START;
+import static com.icthh.xm.tmf.ms.activation.domain.SagaLogType.REJECTED_BY_CONDITION;
+import static com.icthh.xm.tmf.ms.activation.domain.SagaTransactionState.CANCELED;
+import static com.icthh.xm.tmf.ms.activation.domain.SagaTransactionState.FINISHED;
+import static com.icthh.xm.tmf.ms.activation.domain.SagaTransactionState.NEW;
+import static com.icthh.xm.tmf.ms.activation.domain.spec.RetryPolicy.RETRY;
+import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.time.ZoneOffset.UTC;
+import static java.util.Arrays.asList;
+import static java.util.Collections.emptyList;
+import static java.util.Collections.emptyMap;
+import static java.util.Optional.empty;
+import static java.util.Optional.of;
+import static java.util.concurrent.TimeUnit.SECONDS;
+import static java.util.stream.Collectors.toList;
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.hasSize;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.refEq;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
 public class SagaServiceTest {
@@ -85,6 +91,8 @@ public class SagaServiceTest {
     private RetryService retryService;
     @Mock
     private SagaEventRepository sagaEventRepository;
+    @Captor
+    private ArgumentCaptor<SagaLog> sagaLogArgumentCaptor;
 
     private Clock clock = Clock.fixed(Instant.now(), UTC);
 
@@ -162,6 +170,61 @@ public class SagaServiceTest {
 
         noMoreInteraction();
     }
+
+    @Test
+    public void testRejectTasksByCondition() {
+        when(tenantUtils.getTenantKey()).thenReturn("XM");
+        String txId = UUID.randomUUID().toString();
+
+        String typeKey = "TASK-WITH-REJECTED-BY-CONDITION-TASKS";
+        String firstTaskKey = "FIRST-TASK";
+
+        SagaTransaction transaction = mockTx(txId, NEW).setTypeKey(typeKey);
+        when(transactionRepository.findById(txId)).thenReturn(of(transaction));
+
+        SagaTransactionSpec transactionSpec = specService.getTransactionSpec(typeKey);
+        SagaTaskSpec firstTaskSpec = transactionSpec.getTask(firstTaskKey);
+
+        SagaEvent sagaEvent = new SagaEvent().setTenantKey("XM")
+            .setTypeKey(firstTaskKey)
+            .setTransactionId(txId);
+
+        when(taskExecutor.executeTask(eq(firstTaskSpec), eq(sagaEvent), eq(transaction), eq(new Continuation())))
+            .thenAnswer(invocationOnMock -> {
+                    SagaTaskSpec taskSpec = invocationOnMock.getArgument(0);
+                    taskSpec.setNext(List.of("NEXT-SECOND-TASK"));
+                    return Map.of();
+                }
+            );
+
+        sagaService.onSagaEvent(sagaEvent);
+
+        verify(transactionRepository).findById(eq(txId));
+        verify(logRepository, times(4)).save(sagaLogArgumentCaptor.capture());
+
+        List<SagaLog> savedLogs = sagaLogArgumentCaptor.getAllValues();
+
+        assertThat(savedLogs, hasSize(4));
+
+        List<SagaLog> started = getByLogType(savedLogs, EVENT_START);
+        assertThat(started, hasSize(1));
+        assertEquals(started.get(0).getEventTypeKey(), firstTaskKey);
+
+        List<SagaLog> finished = getByLogType(savedLogs, EVENT_END);
+        assertThat(finished, hasSize(1));
+        assertEquals(started.get(0).getEventTypeKey(), firstTaskKey);
+
+        List<String> rejectedEventTypes = getByLogType(savedLogs, REJECTED_BY_CONDITION)
+            .stream().map(SagaLog::getEventTypeKey).collect(toList());
+
+        assertThat(rejectedEventTypes, hasSize(2));
+        assertThat(rejectedEventTypes, containsInAnyOrder("NEXT-TASK-REJECTED-1", "NEXT-TASK-REJECTED-2"));
+    }
+
+    private List<SagaLog> getByLogType(List<SagaLog> sagaLogs, SagaLogType logType) {
+        return sagaLogs.stream().filter(task -> task.getLogType().equals(logType)).collect(toList());
+    }
+
 
     @Test
     public void skipEventWhenEventFinishedButNotUpdateTxStateWhenTxHaveNotFinishedTasks() {
@@ -275,19 +338,19 @@ public class SagaServiceTest {
 
     private SagaEvent mockEvent(String txId, String typeKey, String id) {
         return new SagaEvent().setTenantKey("XM")
-                              .setId(id)
-                              .setTypeKey(typeKey)
-                              .setCreateDate(Instant.now(clock))
-                              .setTransactionId(txId);
+            .setId(id)
+            .setTypeKey(typeKey)
+            .setCreateDate(Instant.now(clock))
+            .setTransactionId(txId);
     }
 
     private SagaEvent inQueueEvent(String txId, String typeKey, String id) {
         return new SagaEvent().setTenantKey("XM")
-                              .setId(id)
-                              .setStatus(IN_QUEUE)
-                              .setTypeKey(typeKey)
-                              .setCreateDate(Instant.now(clock))
-                              .setTransactionId(txId);
+            .setId(id)
+            .setStatus(IN_QUEUE)
+            .setTypeKey(typeKey)
+            .setCreateDate(Instant.now(clock))
+            .setTransactionId(txId);
     }
 
     @Test
@@ -309,7 +372,7 @@ public class SagaServiceTest {
         Map<String, Object> taskContext = new HashMap<>();
         taskContext.put("key-2", "value-2");
 
-        sagaService.continueTask(sagaEvent.getId(),taskContext);
+        sagaService.continueTask(sagaEvent.getId(), taskContext);
 
         assertTrue(sagaEvent.getTaskContext().containsKey("key-1"));
         assertTrue(sagaEvent.getTaskContext().containsKey("key-2"));
@@ -317,12 +380,12 @@ public class SagaServiceTest {
 
     private SagaTaskSpec sagaTaskSpec() {
         return new SagaTaskSpec()
-                .setBackOff(5).setMaxBackOff(30)
-                .setDepends(asList("PARALEL-TASK1", "PARALEL-TASK2"))
-                .setKey("NEXT-JOIN-TASK")
-                .setRetryCount(-1L)
-                .setRetryPolicy(RETRY)
-                .setNext(asList("SOME-OTHER-TASK"));
+            .setBackOff(5).setMaxBackOff(30)
+            .setDepends(asList("PARALEL-TASK1", "PARALEL-TASK2"))
+            .setKey("NEXT-JOIN-TASK")
+            .setRetryCount(-1L)
+            .setRetryPolicy(RETRY)
+            .setNext(asList("SOME-OTHER-TASK"));
     }
 
     private SagaLog createLog(String txId, String eventTypeKey, SagaLogType eventStart) {
@@ -409,7 +472,7 @@ public class SagaServiceTest {
     }
 
     @Test
-    public void setConfigurationFromTransaction() throws IOException{
+    public void setConfigurationFromTransaction() throws IOException {
         specService.onRefresh("/config/tenants/XM/activation/activation-spec.yml", loadFile("spec/activation-spec-task-configuration.yml"));
         when(tenantUtils.getTenantKey()).thenReturn("XM");
 
@@ -439,7 +502,10 @@ public class SagaServiceTest {
         when(transactionRepository.findById(txId)).thenReturn(of(transaction));
         when(logRepository.getFinishLogs(eq(txId), eq(asList(eventTypeKey)))).thenReturn(emptyList());
         when(taskExecutor.executeTask(taskSpec, sagaEvent, transaction, continuation))
-            .then(it -> { latch.await(2, SECONDS); return emptyMap();});
+            .then(it -> {
+                latch.await(2, SECONDS);
+                return emptyMap();
+            });
         when(sagaEventRepository.findById(sagaEvent.getId())).thenReturn(Optional.of(sagaEvent));
         when(sagaEventRepository.existsById(sagaEvent.getId())).thenReturn(true);
 
