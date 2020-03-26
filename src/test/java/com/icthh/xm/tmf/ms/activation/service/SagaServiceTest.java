@@ -225,6 +225,34 @@ public class SagaServiceTest {
         return sagaLogs.stream().filter(task -> task.getLogType().equals(logType)).collect(toList());
     }
 
+    @Test
+    public void testTransactionFinishedIfTasksRejectedByCondition() {
+        when(tenantUtils.getTenantKey()).thenReturn("XM");
+        String txId = UUID.randomUUID().toString();
+
+        String typeKey = "TASK-WITH-REJECTED-BY-CONDITION-TASKS";
+        String firstTaskKey = "FIRST-TASK";
+
+        SagaTransaction transaction = mockTx(txId, NEW).setTypeKey(typeKey);
+        when(transactionRepository.findById(txId)).thenReturn(of(transaction));
+
+        SagaEvent sagaEvent = new SagaEvent().setTenantKey("XM")
+            .setTypeKey(firstTaskKey)
+            .setTransactionId(txId);
+
+        when(logRepository.getFinishLogs(eq(txId),
+            eq(asList("FIRST-TASK", "NEXT-SECOND-TASK", "NEXT-TASK-REJECTED-1", "NEXT-TASK-REJECTED-2"))))
+            .thenReturn(asList(
+                new SagaLog().setEventTypeKey("FIRST-TASK").setLogType(EVENT_END),
+                new SagaLog().setEventTypeKey("NEXT-SECOND-TASK").setLogType(EVENT_END),
+                new SagaLog().setEventTypeKey("NEXT-TASK-REJECTED-1").setLogType(REJECTED_BY_CONDITION),
+                new SagaLog().setEventTypeKey("NEXT-TASK-REJECTED-2").setLogType(REJECTED_BY_CONDITION)
+            ));
+
+        sagaService.onSagaEvent(sagaEvent);
+
+        verify(transactionRepository).save(refEq(transaction.setSagaTransactionState(FINISHED)));
+    }
 
     @Test
     public void skipEventWhenEventFinishedButNotUpdateTxStateWhenTxHaveNotFinishedTasks() {
@@ -338,19 +366,19 @@ public class SagaServiceTest {
 
     private SagaEvent mockEvent(String txId, String typeKey, String id) {
         return new SagaEvent().setTenantKey("XM")
-            .setId(id)
-            .setTypeKey(typeKey)
-            .setCreateDate(Instant.now(clock))
-            .setTransactionId(txId);
+                              .setId(id)
+                              .setTypeKey(typeKey)
+                              .setCreateDate(Instant.now(clock))
+                              .setTransactionId(txId);
     }
 
     private SagaEvent inQueueEvent(String txId, String typeKey, String id) {
         return new SagaEvent().setTenantKey("XM")
-            .setId(id)
-            .setStatus(IN_QUEUE)
-            .setTypeKey(typeKey)
-            .setCreateDate(Instant.now(clock))
-            .setTransactionId(txId);
+                              .setId(id)
+                              .setStatus(IN_QUEUE)
+                              .setTypeKey(typeKey)
+                              .setCreateDate(Instant.now(clock))
+                              .setTransactionId(txId);
     }
 
     @Test
