@@ -7,6 +7,7 @@ import com.icthh.xm.tmf.ms.activation.model.Service;
 import com.icthh.xm.tmf.ms.activation.service.SagaService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Component;
 import org.springframework.web.context.request.RequestAttributes;
 import org.springframework.web.context.request.RequestContextHolder;
@@ -28,6 +29,7 @@ public class ServiceApiImpl implements ServiceApiDelegate {
     private final SagaService sagaService;
 
     @Timed
+    @PreAuthorize("hasPermission({'service': #service}, 'ACTIVATION.ACTION.SERVICE')")
     @Override
     public ResponseEntity<Service> serviceCreate(Service service) {
 
