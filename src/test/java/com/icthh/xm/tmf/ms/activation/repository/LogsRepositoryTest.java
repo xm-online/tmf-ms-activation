@@ -1,6 +1,7 @@
 package com.icthh.xm.tmf.ms.activation.repository;
 
 import static com.icthh.xm.tmf.ms.activation.domain.SagaLogType.EVENT_START;
+import static com.icthh.xm.tmf.ms.activation.domain.SagaLogType.REJECTED_BY_CONDITION;
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
 import static org.junit.Assert.assertEquals;
@@ -27,8 +28,9 @@ public class LogsRepositoryTest extends BaseDaoTest {
 
     @Test
     public void finishedLogsTest() {
-        List<SagaLog> finishLogs = sagaLogRepository.getFinishLogs("1", asList("STARTED", "STARTED2", "FINISHED", "FINISHED2"));
-        assertEquals(asList(sagaLog("FINISHED", 3L, "1"), sagaLog("FINISHED2", 5L, "1")), finishLogs);
+        List<SagaLog> finishLogs = sagaLogRepository.getFinishLogs("1", asList("STARTED", "STARTED2", "FINISHED", "FINISHED2", "REJECTED"));
+        assertEquals(asList(sagaLog("FINISHED", 3L, "1"),
+            sagaLog("FINISHED2", 5L, "1"), sagaLog("REJECTED", 6L, "1", REJECTED_BY_CONDITION)), finishLogs);
     }
 
     @Test
@@ -53,9 +55,12 @@ public class LogsRepositoryTest extends BaseDaoTest {
     }
 
 
-
     private SagaLog sagaLog(String finished, long id, String key) {
-        return new SagaLog().setEventTypeKey(finished).setLogType(SagaLogType.EVENT_END)
+        return sagaLog(finished, id, key, SagaLogType.EVENT_END);
+    }
+
+    private SagaLog sagaLog(String finished, long id, String key, SagaLogType sagaLogType) {
+        return new SagaLog().setEventTypeKey(finished).setLogType(sagaLogType)
             .setSagaTransaction(new SagaTransaction().setId("1").setTypeKey("A").setKey(key)).setId(id);
     }
 

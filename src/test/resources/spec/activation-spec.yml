@@ -29,3 +29,13 @@ transactions:
     - key: SIMPLE-TASK
     - key: SUSPEND-TASK
       isSuspendable: true
+- key: TASK-WITH-REJECTED-BY-CONDITION-TASKS
+  tasks:
+    - key: FIRST-TASK
+      next:
+        - NEXT-SECOND-TASK
+        - NEXT-TASK-REJECTED-1
+        - NEXT-TASK-REJECTED-2
+    - key: NEXT-SECOND-TASK
+    - key: NEXT-TASK-REJECTED-1
+    - key: NEXT-TASK-REJECTED-2
