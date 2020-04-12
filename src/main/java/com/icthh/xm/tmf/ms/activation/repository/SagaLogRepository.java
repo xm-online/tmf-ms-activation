@@ -1,6 +1,7 @@
 package com.icthh.xm.tmf.ms.activation.repository;
 
 import static com.icthh.xm.tmf.ms.activation.domain.SagaLogType.EVENT_END;
+import static com.icthh.xm.tmf.ms.activation.domain.SagaLogType.REJECTED_BY_CONDITION;
 import static org.springframework.data.jpa.domain.Specification.where;
 
 import com.icthh.xm.tmf.ms.activation.domain.SagaLog;
@@ -21,7 +22,10 @@ public interface SagaLogRepository extends JpaRepository<SagaLog, Long>, JpaSpec
                     conjunction,
                     cb.and(
                         cb.equal(root.get("eventTypeKey"), key),
-                        cb.equal(root.get("logType"), EVENT_END),
+                        cb.or(
+                            cb.equal(root.get("logType"), EVENT_END),
+                            cb.equal(root.get("logType"), REJECTED_BY_CONDITION)
+                        ),
                         cb.equal(root.get("sagaTransaction").get("id"), sagaTxId)
                     )
                 );

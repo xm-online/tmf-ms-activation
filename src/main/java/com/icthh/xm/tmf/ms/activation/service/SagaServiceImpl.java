@@ -1,23 +1,5 @@
 package com.icthh.xm.tmf.ms.activation.service;
 
-import static com.icthh.xm.tmf.ms.activation.domain.SagaEvent.SagaEventStatus.IN_QUEUE;
-import static com.icthh.xm.tmf.ms.activation.domain.SagaEvent.SagaEventStatus.SUSPENDED;
-import static com.icthh.xm.tmf.ms.activation.domain.SagaLogType.EVENT_END;
-import static com.icthh.xm.tmf.ms.activation.domain.SagaLogType.EVENT_START;
-import static com.icthh.xm.tmf.ms.activation.domain.SagaTransactionState.CANCELED;
-import static com.icthh.xm.tmf.ms.activation.domain.SagaTransactionState.FINISHED;
-import static com.icthh.xm.tmf.ms.activation.domain.SagaTransactionState.NEW;
-import static com.icthh.xm.tmf.ms.activation.domain.spec.RetryPolicy.RETRY;
-import static com.icthh.xm.tmf.ms.activation.domain.spec.RetryPolicy.ROLLBACK;
-import static java.lang.Boolean.FALSE;
-import static java.lang.Boolean.TRUE;
-import static java.util.Arrays.asList;
-import static java.util.Collections.emptyList;
-import static java.util.Collections.emptyMap;
-import static java.util.Collections.singletonList;
-import static java.util.stream.Collectors.toList;
-import static org.apache.commons.lang3.StringUtils.isEmpty;
-
 import com.icthh.xm.commons.exceptions.EntityNotFoundException;
 import com.icthh.xm.commons.lep.LogicExtensionPoint;
 import com.icthh.xm.commons.lep.spring.LepService;
@@ -33,6 +15,17 @@ import com.icthh.xm.tmf.ms.activation.repository.SagaEventRepository;
 import com.icthh.xm.tmf.ms.activation.repository.SagaLogRepository;
 import com.icthh.xm.tmf.ms.activation.repository.SagaTransactionRepository;
 import com.icthh.xm.tmf.ms.activation.utils.TenantUtils;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.NotImplementedException;
+import org.apache.commons.lang3.time.StopWatch;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import java.time.Clock;
 import java.time.Instant;
 import java.util.Collection;
@@ -44,16 +37,25 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiFunction;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.NotImplementedException;
-import org.apache.commons.lang3.time.StopWatch;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
+
+import static com.icthh.xm.tmf.ms.activation.domain.SagaEvent.SagaEventStatus.IN_QUEUE;
+import static com.icthh.xm.tmf.ms.activation.domain.SagaEvent.SagaEventStatus.SUSPENDED;
+import static com.icthh.xm.tmf.ms.activation.domain.SagaLogType.EVENT_END;
+import static com.icthh.xm.tmf.ms.activation.domain.SagaLogType.EVENT_START;
+import static com.icthh.xm.tmf.ms.activation.domain.SagaLogType.REJECTED_BY_CONDITION;
+import static com.icthh.xm.tmf.ms.activation.domain.SagaTransactionState.CANCELED;
+import static com.icthh.xm.tmf.ms.activation.domain.SagaTransactionState.FINISHED;
+import static com.icthh.xm.tmf.ms.activation.domain.SagaTransactionState.NEW;
+import static com.icthh.xm.tmf.ms.activation.domain.spec.RetryPolicy.RETRY;
+import static com.icthh.xm.tmf.ms.activation.domain.spec.RetryPolicy.ROLLBACK;
+import static java.lang.Boolean.FALSE;
+import static java.lang.Boolean.TRUE;
+import static java.util.Arrays.asList;
+import static java.util.Collections.emptyList;
+import static java.util.Collections.emptyMap;
+import static java.util.Collections.singletonList;
+import static java.util.stream.Collectors.toList;
+import static org.apache.commons.lang3.StringUtils.isEmpty;
 
 /**
  * Without transaction! Important!
@@ -145,7 +147,10 @@ public class SagaServiceImpl implements SagaService {
             StopWatch stopWatch = StopWatch.createStarted();
             log.info("Start execute task by event {} transaction {}", sagaEvent, transaction);
             Continuation continuation = new Continuation();
+            Set<String> nextTasks =  new HashSet<>(taskSpec.getNext());
             Map<String, Object> taskContext = taskExecutor.executeTask(taskSpec, sagaEvent, transaction, continuation);
+            nextTasks.removeAll(taskSpec.getNext());
+            markAsRejectedByCondition(nextTasks, transaction);
             if (TRUE.equals(taskSpec.getIsSuspendable()) && !continuation.isContinuationFlag()) {
                 log.info("Task by event {} suspended. Transaction: {}. Time: {}ms", sagaEvent, transaction, stopWatch.getTime());
                 sagaEventRepository.save(sagaEvent.setStatus(SUSPENDED));
@@ -158,6 +163,11 @@ public class SagaServiceImpl implements SagaService {
             log.error("Error execute task.", e);
             failHandler(transaction, sagaEvent, taskSpec);
         }
+    }
+
+    private void markAsRejectedByCondition(Set<String> nextTasks, SagaTransaction sagaTransaction) {
+        nextTasks.forEach(key ->
+            writeLog(new SagaEvent().setTypeKey(key), sagaTransaction, REJECTED_BY_CONDITION));
     }
 
     @LogicExtensionPoint("ContinueTask")
