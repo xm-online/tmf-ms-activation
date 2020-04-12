@@ -15,9 +15,9 @@
 
 logging:
     level:
-      ROOT: INFO
-      io.github.jhipster: INFO
-      com.icthh.xm: WARN
+        ROOT: INFO
+        com.icthh.xm.tmf.ms.activation: INFO
+        io.github.jhipster: INFO
 
 spring:
     devtools:
@@ -33,9 +33,9 @@ spring:
             port: 8500
     datasource:
         type: com.zaxxer.hikari.HikariDataSource
-        url: jdbc:postgresql://localhost:5432/xm_activation
-        username: postgres
-        password: postgres
+        url: jdbc:postgresql://localhost:5432/activation
+        username: activation
+        password:
         hikari:
             auto-commit: false
     jpa:
@@ -142,6 +142,4 @@ oauth2:
 # https://www.jhipster.tech/common-application-properties/
 # ===================================================================
 
-application:
-    lep:
-      tenant-script-storage: FILE
+# application:
