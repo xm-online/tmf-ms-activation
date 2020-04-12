@@ -6,6 +6,7 @@ import com.icthh.xm.commons.lep.commons.CommonsService;
 import com.icthh.xm.commons.lep.spring.SpringLepProcessingApplicationListener;
 import com.icthh.xm.lep.api.ScopedContext;
 import com.icthh.xm.tmf.ms.activation.service.MailService;
+import com.icthh.xm.tmf.ms.activation.service.SagaService;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
@@ -23,23 +24,27 @@ public class XmActivationLepProcessingApplicationListener extends SpringLepProce
     public static final String BINDING_KEY_TEMPLATES = "templates";
     public static final String BINDING_SUB_KEY_TEMPLATE_REST = "rest";
     public static final String BINDING_SUB_KEY_SERVICE_MAIL = "mailService";
+    public static final String BINDING_SUB_KEY_SERVICE_SAGA = "sagaService";
 
     private final TenantConfigService tenantConfigService;
     private final RestTemplate restTemplate;
     private final CommonsService commonsService;
     private final ApplicationContext applicationContext;
     private final MailService mailService;
+    private final SagaService sagaService;
 
     public XmActivationLepProcessingApplicationListener(TenantConfigService tenantConfigService,
                                                         @Qualifier("loadBalancedRestTemplate") RestTemplate restTemplate,
                                                         CommonsService commonsService,
                                                         ApplicationContext applicationContext,
-                                                        MailService mailService) {
+                                                        MailService mailService,
+                                                        SagaService sagaService) {
         this.tenantConfigService = tenantConfigService;
         this.restTemplate = restTemplate;
         this.commonsService = commonsService;
         this.applicationContext = applicationContext;
         this.mailService = mailService;
+        this.sagaService = sagaService;
     }
 
     @Override
@@ -48,6 +53,7 @@ public class XmActivationLepProcessingApplicationListener extends SpringLepProce
         Map<String, Object> services = new HashMap<>();
         services.put(BINDING_SUB_KEY_SERVICE_TENANT_CONFIG_SERVICE, tenantConfigService);
         services.put(BINDING_SUB_KEY_SERVICE_MAIL, mailService);
+        services.put(BINDING_SUB_KEY_SERVICE_SAGA, sagaService);
 
         executionContext.setValue(BINDING_KEY_COMMONS, new CommonsExecutor(commonsService));
         executionContext.setValue(BINDING_KEY_SERVICES, services);

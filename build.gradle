@@ -326,6 +326,7 @@ dependencies {
     implementation "com.icthh.xm.commons:xm-commons-lep:${xm_commons_version}"
     implementation "com.icthh.xm.commons:xm-commons-ms-web:${xm_commons_version}"
     implementation "com.icthh.xm.commons:xm-commons-metric:${xm_commons_version}"
+    implementation "com.icthh.xm.commons:xm-commons-topic:${xm_commons_version}"
     implementation "org.openapitools:jackson-databind-nullable:0.2.0"
 
     implementation 'org.hibernate:hibernate-jpamodelgen'
@@ -406,7 +407,7 @@ task incrementProjectVersion {
         println "old version: " + version
         String [] vTokens = version.tokenize(".")
         String newVersion = "${vTokens[0]}.${vTokens[1]}.${vTokens[2].toInteger() + 1}".toString()
-        println "new version: " + newVersion 
+        println "new version: " + newVersion
         props.setProperty("version", newVersion)
         props.save()
     }
