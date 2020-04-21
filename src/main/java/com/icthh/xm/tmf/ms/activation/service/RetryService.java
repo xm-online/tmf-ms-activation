@@ -44,6 +44,7 @@ public class RetryService {
     public void rescheduleAllEvents() {
         sagaEventRepository.findByStatus(ON_RETRY).forEach(this::doResend);
         sagaEventRepository.findByStatus(WAIT_DEPENDS_TASK).forEach(this::doResend);
+        sagaEventRepository.findByStatus(WAIT_CONDITION).forEach(this::doResend);
     }
 
     public void retry(SagaEvent sagaEvent, SagaTaskSpec sagaTaskSpec, SagaEvent.SagaEventStatus eventStatus) {

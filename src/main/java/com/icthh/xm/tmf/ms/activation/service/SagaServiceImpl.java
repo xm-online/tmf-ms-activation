@@ -14,6 +14,7 @@ import com.icthh.xm.tmf.ms.activation.events.EventsSender;
 import com.icthh.xm.tmf.ms.activation.repository.SagaEventRepository;
 import com.icthh.xm.tmf.ms.activation.repository.SagaLogRepository;
 import com.icthh.xm.tmf.ms.activation.repository.SagaTransactionRepository;
+import com.icthh.xm.tmf.ms.activation.resolver.TransactionTypeKeyResolver;
 import com.icthh.xm.tmf.ms.activation.utils.TenantUtils;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -111,7 +112,9 @@ public class SagaServiceImpl implements SagaService {
                                                                              this::isTransactionInCorrectState,
                                                                              this::isCurrentTaskNotFinished,
                                                                              this::isAllDependsTaskFinished,
-                                                                             this::isTaskNotSuspended);
+            this::iiWaitCOntid
+                                                                             this::isTaskNotSuspended,
+            );
 
         for (var precondition : preconditions) {
             if (!precondition.apply(sagaEvent, context)) {
@@ -229,6 +232,23 @@ public class SagaServiceImpl implements SagaService {
         }
         return true;
     }
+
+    private boolean isWait(SagaEvent sagaEvent, Context context) {
+        SagaTaskSpec taskSpec = context.getTaskSpec();
+        String txId = context.getTxId();
+        Collection<String> notFinishedTasks = //todo call LEP try catch
+        //todo  {getNotFinishedTasks(txId, taskSpec.getDepends());} catch Throwable!!!! {retry checkLep}
+        if (!notFinishedTasks.isEmpty()) {
+            log.warn("Task will not execute. Depends tasks {} not finished. Transaction id {}.", notFinishedTasks,
+                txId);
+            retryService.retry(sagaEvent, context.getTaskSpec(),WAIT_CONDITION);
+            return false;
+        }
+        return true;
+    }
+
+    @LogicExtensionPoint(value = "TaskCondition" , resolver = TransactionTypeKeyResolver.class)
+    private boolean wait
 
     private boolean isAllDependsTaskFinished(SagaEvent sagaEvent, Context context) {
         SagaTaskSpec taskSpec = context.getTaskSpec();

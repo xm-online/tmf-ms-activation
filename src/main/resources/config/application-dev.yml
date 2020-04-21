@@ -39,23 +39,23 @@ spring:
             host: localhost
             port: 8500
     datasource:
-        type: com.zaxxer.hikari.HikariDataSource
-        url: jdbc:h2:mem:activation;DB_CLOSE_DELAY=-1
-        username: activation
-        password:
-    h2:
-        console:
-            enabled: false
+      type: com.zaxxer.hikari.HikariDataSource
+      url: jdbc:postgresql://localhost:5432/xm_activation
+      username: postgres
+      password: postgres
+      hikari:
+        auto-commit: false
     jpa:
-        database-platform: io.github.jhipster.domain.util.FixedH2Dialect
-        database: H2
-        show-sql: true
-        properties:
-            hibernate.id.new_generator_mappings: true
-            hibernate.connection.provider_disables_autocommit: true
-            hibernate.cache.use_second_level_cache: false
-            hibernate.cache.use_query_cache: false
-            hibernate.generate_statistics: true
+      database-platform: io.github.jhipster.domain.util.FixedPostgreSQL82Dialect
+      database: POSTGRESQL
+      show-sql: false
+      properties:
+        hibernate.model.generator_name_as_sequence_name: false
+        hibernate.id.new_generator_mappings: true
+        hibernate.connection.provider_disables_autocommit: true
+        hibernate.cache.use_second_level_cache: false
+        hibernate.cache.use_query_cache: false
+        hibernate.generate_statistics: false
     liquibase:
         contexts: dev
     mail:
@@ -144,5 +144,5 @@ application:
     timelines-enabled: false
     tenant-ignored-path-list: /swagger-resources/configuration/ui, /management/health, /oauth/token_key, /h2-console
     lep:
-        tenant-script-storage: XM_MS_CONFIG
+        tenant-script-storage: FILE
         lep-resource-path-pattern: /config/tenants/{tenantName}/entity/lep/resources/**/*
