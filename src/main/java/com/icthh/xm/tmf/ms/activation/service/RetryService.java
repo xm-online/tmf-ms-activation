@@ -2,6 +2,7 @@ package com.icthh.xm.tmf.ms.activation.service;
 
 import static com.google.common.base.Predicates.not;
 import static com.icthh.xm.tmf.ms.activation.domain.SagaEvent.SagaEventStatus.ON_RETRY;
+import static com.icthh.xm.tmf.ms.activation.domain.SagaEvent.SagaEventStatus.TASK_WAIT_CONDITION;
 import static com.icthh.xm.tmf.ms.activation.domain.SagaEvent.SagaEventStatus.WAIT_DEPENDS_TASK;
 
 import com.icthh.xm.tmf.ms.activation.domain.SagaEvent;
@@ -44,7 +45,7 @@ public class RetryService {
     public void rescheduleAllEvents() {
         sagaEventRepository.findByStatus(ON_RETRY).forEach(this::doResend);
         sagaEventRepository.findByStatus(WAIT_DEPENDS_TASK).forEach(this::doResend);
-        sagaEventRepository.findByStatus(WAIT_CONDITION).forEach(this::doResend);
+        sagaEventRepository.findByStatus(TASK_WAIT_CONDITION).forEach(this::doResend);
     }
 
     public void retry(SagaEvent sagaEvent, SagaTaskSpec sagaTaskSpec, SagaEvent.SagaEventStatus eventStatus) {
@@ -63,6 +64,10 @@ public class RetryService {
 
     public void retry(SagaEvent sagaEvent, SagaTaskSpec sagaTaskSpec) {
         retry(sagaEvent, sagaTaskSpec, ON_RETRY);
+    }
+
+    public void retryForTaskWaitCondition(SagaEvent sagaEvent, SagaTaskSpec sagaTaskSpec) {
+        retry(sagaEvent, sagaTaskSpec, TASK_WAIT_CONDITION);
     }
 
     public void retryForWaitDependsTask(SagaEvent sagaEvent, SagaTaskSpec sagaTaskSpec) {

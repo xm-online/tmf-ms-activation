@@ -14,10 +14,11 @@
 # ===================================================================
 
 logging:
-    level:
-        ROOT: DEBUG
-        io.github.jhipster: DEBUG
-        com.icthh.xm.tmf.ms.activation: DEBUG
+  level:
+    ROOT: INFO
+    io.github.jhipster: INFO
+    com.icthh.xm: WARN
+
 spring:
     profiles:
         active: dev
