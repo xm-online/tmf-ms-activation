@@ -61,6 +61,6 @@ public class SagaEvent implements Serializable {
     }
 
     public enum SagaEventStatus {
-        ON_RETRY, SUSPENDED, WAIT_DEPENDS_TASK, IN_QUEUE
+        ON_RETRY, SUSPENDED, WAIT_DEPENDS_TASK, IN_QUEUE, WAIT_CONDITION_TASK
     }
 }
