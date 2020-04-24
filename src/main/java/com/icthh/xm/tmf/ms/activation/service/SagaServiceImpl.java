@@ -237,7 +237,7 @@ public class SagaServiceImpl implements SagaService {
         String txId = context.getTxId();
 
         try {
-            boolean taskExecutionAllowed = taskExecutor.checkWaitCondition(taskSpec, sagaEvent, transaction);
+            boolean taskExecutionAllowed = taskExecutor.onCheckWaitCondition(taskSpec, sagaEvent, transaction);
             if (!taskExecutionAllowed) {
                 log.info("Task will not executed. Wait condition not happened yet. Transaction id {}.", txId);
                 retryService.retryForTaskWaitCondition(sagaEvent, context.getTaskSpec());
@@ -245,7 +245,7 @@ public class SagaServiceImpl implements SagaService {
             }
         } catch (Throwable t) {
             log.error("Task will not executed. Error during condition check. Transaction id {}.", txId);
-            retryService.retryForTaskWaitCondition(sagaEvent, context.getTaskSpec());
+            retryService.retry(sagaEvent, context.getTaskSpec());
             return false;
         }
         return true;
