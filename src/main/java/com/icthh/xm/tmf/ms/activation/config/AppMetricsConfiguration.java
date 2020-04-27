@@ -37,7 +37,7 @@ public class AppMetricsConfiguration extends MetricsConfigurerAdapter {
     private final SagaEventRepository sagaEventRepository;
     private final MetricRegistry metricRegistry;
     private final ApplicationProperties applicationProperties;
-    private final KafkaOffsetsMetric kafkaOffsetsMetric;
+    private final ActivationKafkaOffsetsMetric kafkaOffsetsMetric;
     private final TenantListRepository tenantListRepository;
     private final TenantUtils tenantUtils;
 
@@ -46,7 +46,7 @@ public class AppMetricsConfiguration extends MetricsConfigurerAdapter {
     public AppMetricsConfiguration(@Lazy SagaTransactionRepository sagaTransactionRepository,
                                    @Lazy SagaEventRepository sagaEventRepository, MetricRegistry metricRegistry,
                                    TenantListRepository tenantListRepository,
-                                   ApplicationProperties applicationProperties, KafkaOffsetsMetric kafkaOffsetsMetric,
+                                   ApplicationProperties applicationProperties, ActivationKafkaOffsetsMetric kafkaOffsetsMetric,
                                    TenantUtils tenantUtils) {
         this.sagaTransactionRepository = sagaTransactionRepository;
         this.sagaEventRepository = sagaEventRepository;

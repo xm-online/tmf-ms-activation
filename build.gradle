@@ -336,6 +336,7 @@ dependencies {
     implementation "com.icthh.xm.commons:xm-commons-ms-web:${xm_commons_version}"
     implementation "com.icthh.xm.commons:xm-commons-metric:${xm_commons_version}"
     implementation "com.icthh.xm.commons:xm-commons-topic:${xm_commons_version}"
+    implementation "com.icthh.xm.commons:xm-commons-scheduler:${xm_commons_version}"
     implementation "org.openapitools:jackson-databind-nullable:0.2.0"
 
     implementation 'org.hibernate:hibernate-jpamodelgen'
