@@ -4,6 +4,7 @@ import com.icthh.xm.commons.config.client.service.TenantConfigService;
 import com.icthh.xm.commons.lep.commons.CommonsExecutor;
 import com.icthh.xm.commons.lep.commons.CommonsService;
 import com.icthh.xm.commons.lep.spring.SpringLepProcessingApplicationListener;
+import com.icthh.xm.commons.topic.service.KafkaTemplateService;
 import com.icthh.xm.lep.api.ScopedContext;
 import com.icthh.xm.tmf.ms.activation.service.MailService;
 import com.icthh.xm.tmf.ms.activation.service.SagaService;
@@ -25,6 +26,7 @@ public class XmActivationLepProcessingApplicationListener extends SpringLepProce
     public static final String BINDING_SUB_KEY_TEMPLATE_REST = "rest";
     public static final String BINDING_SUB_KEY_SERVICE_MAIL = "mailService";
     public static final String BINDING_SUB_KEY_SERVICE_SAGA = "sagaService";
+    public static final String BINDING_SUB_KEY_TEMPLATE_KAFKA  = "kafka";
 
     private final TenantConfigService tenantConfigService;
     private final RestTemplate restTemplate;
@@ -32,19 +34,22 @@ public class XmActivationLepProcessingApplicationListener extends SpringLepProce
     private final ApplicationContext applicationContext;
     private final MailService mailService;
     private final SagaService sagaService;
+    private final KafkaTemplateService kafkaTemplateService;
 
     public XmActivationLepProcessingApplicationListener(TenantConfigService tenantConfigService,
                                                         @Qualifier("loadBalancedRestTemplate") RestTemplate restTemplate,
                                                         CommonsService commonsService,
                                                         ApplicationContext applicationContext,
                                                         MailService mailService,
-                                                        SagaService sagaService) {
+                                                        SagaService sagaService,
+                                                        KafkaTemplateService kafkaTemplateService) {
         this.tenantConfigService = tenantConfigService;
         this.restTemplate = restTemplate;
         this.commonsService = commonsService;
         this.applicationContext = applicationContext;
         this.mailService = mailService;
         this.sagaService = sagaService;
+        this.kafkaTemplateService = kafkaTemplateService;
     }
 
     @Override
@@ -57,9 +62,12 @@ public class XmActivationLepProcessingApplicationListener extends SpringLepProce
 
         executionContext.setValue(BINDING_KEY_COMMONS, new CommonsExecutor(commonsService));
         executionContext.setValue(BINDING_KEY_SERVICES, services);
+
         // templates
         Map<String, Object> templates = new HashMap<>();
         templates.put(BINDING_SUB_KEY_TEMPLATE_REST, restTemplate);
+        templates.put(BINDING_SUB_KEY_TEMPLATE_KAFKA, kafkaTemplateService);
+
         executionContext.setValue(BINDING_KEY_TEMPLATES, templates);
         executionContext.setValue("applicationContext", applicationContext);
     }
