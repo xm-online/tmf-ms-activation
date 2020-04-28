@@ -56,5 +56,4 @@ public class ApplicationProperties {
         private long delay;
         private int multiplier;
     }
-
 }
