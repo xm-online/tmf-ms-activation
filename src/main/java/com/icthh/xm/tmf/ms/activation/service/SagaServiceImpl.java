@@ -111,6 +111,7 @@ public class SagaServiceImpl implements SagaService {
                                                                              this::isTransactionInCorrectState,
                                                                              this::isCurrentTaskNotFinished,
                                                                              this::isAllDependsTaskFinished,
+                                                                             this::isCurrentTaskNotWaitForCondition,
                                                                              this::isTaskNotSuspended);
 
         for (var precondition : preconditions) {
@@ -225,6 +226,26 @@ public class SagaServiceImpl implements SagaService {
         SagaTransaction transaction = context.getTransaction();
         if (NEW != transaction.getSagaTransactionState()) {
             log.warn("Transaction {} in incorrect state. Event {} skipped.", transaction, sagaEvent);
+            return false;
+        }
+        return true;
+    }
+
+    private boolean isCurrentTaskNotWaitForCondition(SagaEvent sagaEvent, Context context) {
+        SagaTaskSpec taskSpec = context.getTaskSpec();
+        SagaTransaction transaction = context.getTransaction();
+        String txId = context.getTxId();
+
+        try {
+            boolean taskExecutionAllowed = taskExecutor.onCheckWaitCondition(taskSpec, sagaEvent, transaction);
+            if (!taskExecutionAllowed) {
+                log.info("Task will not executed. Wait condition not happened yet. Transaction id {}.", txId);
+                retryService.retryForTaskWaitCondition(sagaEvent, context.getTaskSpec());
+                return false;
+            }
+        } catch (Throwable t) {
+            log.error("Task will not executed. Error during condition check. Transaction id {}.", txId);
+            retryService.retry(sagaEvent, context.getTaskSpec());
             return false;
         }
         return true;

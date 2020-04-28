@@ -1,14 +1,9 @@
 package com.icthh.xm.tmf.ms.activation.config;
 
-import static com.icthh.xm.commons.config.client.repository.TenantListRepository.TENANTS_LIST_CONFIG_KEY;
-import static java.util.Arrays.asList;
-
 import com.codahale.metrics.Gauge;
 import com.codahale.metrics.Metric;
 import com.codahale.metrics.MetricSet;
-import com.icthh.xm.commons.config.client.repository.CommonConfigRepository;
 import com.icthh.xm.commons.config.client.repository.TenantListRepository;
-import com.icthh.xm.commons.config.domain.Configuration;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -21,7 +16,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
-import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
@@ -39,7 +33,7 @@ import org.springframework.util.ObjectUtils;
 @Slf4j
 @RequiredArgsConstructor
 @Component
-public class KafkaOffsetsMetric implements MetricSet {
+public class ActivationKafkaOffsetsMetric implements MetricSet {
 
     private final String METRIC_NAME = "kafka.offsets.";
     private final String TOPIC_PREFIX = "saga-events-";
@@ -72,7 +66,7 @@ public class KafkaOffsetsMetric implements MetricSet {
 
             try {
                 if (consumer == null) {
-                    synchronized (KafkaOffsetsMetric.this) {
+                    synchronized (ActivationKafkaOffsetsMetric.this) {
                         if (consumer == null) {
                             consumer = createConsumerFactory(group).createConsumer();
                         }
