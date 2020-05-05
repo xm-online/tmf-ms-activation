@@ -1,6 +1,7 @@
 package com.icthh.xm.tmf.ms.activation.web.rest;
 
 import com.codahale.metrics.annotation.Timed;
+import com.icthh.xm.commons.permission.annotation.PrivilegeDescription;
 import com.icthh.xm.tmf.ms.activation.api.ServiceApiDelegate;
 import com.icthh.xm.tmf.ms.activation.domain.SagaTransaction;
 import com.icthh.xm.tmf.ms.activation.model.Service;
@@ -30,6 +31,7 @@ public class ServiceApiImpl implements ServiceApiDelegate {
 
     @Timed
     @PreAuthorize("hasPermission({'service': #service}, 'ACTIVATION.ACTION.SERVICE')")
+    @PrivilegeDescription("Privilege to create service")
     @Override
     public ResponseEntity<Service> serviceCreate(Service service) {
 
