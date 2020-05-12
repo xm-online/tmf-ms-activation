@@ -15,6 +15,7 @@ import com.icthh.xm.tmf.ms.activation.repository.SagaTransactionRepository;
 import com.icthh.xm.tmf.ms.activation.utils.TenantUtils;
 import lombok.SneakyThrows;
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -187,19 +188,7 @@ public class SagaServiceTest {
         SagaTransactionSpec transactionSpec = specService.getTransactionSpec(typeKey);
         SagaTaskSpec firstTaskSpec = transactionSpec.getTask(firstTaskKey);
 
-        SagaEvent sagaEvent = new SagaEvent().setTenantKey("XM")
-            .setTypeKey(firstTaskKey)
-            .setTransactionId(txId);
-
-        when(taskExecutor.executeTask(eq(firstTaskSpec), eq(sagaEvent), eq(transaction), eq(new Continuation())))
-            .thenAnswer(invocationOnMock -> {
-                    SagaTaskSpec taskSpec = invocationOnMock.getArgument(0);
-                    taskSpec.setNext(List.of("NEXT-SECOND-TASK"));
-                    return Map.of();
-                }
-            );
-
-        sagaService.onSagaEvent(sagaEvent);
+        generateEvent(txId, firstTaskKey, "NEXT-SECOND-TASK", transaction, firstTaskSpec);
 
         verify(transactionRepository).findById(eq(txId));
         verify(logRepository, times(4)).save(sagaLogArgumentCaptor.capture());
@@ -216,11 +205,74 @@ public class SagaServiceTest {
         assertThat(finished, hasSize(1));
         assertEquals(started.get(0).getEventTypeKey(), firstTaskKey);
 
-        List<String> rejectedEventTypes = getByLogType(savedLogs, REJECTED_BY_CONDITION)
-            .stream().map(SagaLog::getEventTypeKey).collect(toList());
+        List<String> rejectedEventTypes = extractEventTypeKey(getByLogType(savedLogs, REJECTED_BY_CONDITION));
 
         assertThat(rejectedEventTypes, hasSize(2));
         assertThat(rejectedEventTypes, containsInAnyOrder("NEXT-TASK-REJECTED-1", "NEXT-TASK-REJECTED-2"));
+    }
+
+    @Test
+    public void testPartialRejectTasksByCondition() {
+        when(tenantUtils.getTenantKey()).thenReturn("XM");
+        String txId = UUID.randomUUID().toString();
+
+        String typeKey = "TASK-WITH-REJECTED-AND-NON-REJECTED";
+
+        SagaTransaction transaction = mockTx(txId, NEW).setTypeKey(typeKey);
+        when(transactionRepository.findById(txId)).thenReturn(of(transaction));
+
+        SagaTransactionSpec transactionSpec = specService.getTransactionSpec(typeKey);
+
+        List<String> startedAndEndedEvents = List.of("FIRST-TASK", "NEXT-SECOND-TASK", "NEXT-THIRD-TASK");
+        List<String> nextEvents = List.of("NEXT-SECOND-TASK", "NEXT-THIRD-TASK", StringUtils.EMPTY);
+
+        for (int i = 0; i < startedAndEndedEvents.size(); i++) {
+            generateEvent(txId, startedAndEndedEvents.get(i),
+                nextEvents.get(i), transaction, transactionSpec.getTask(startedAndEndedEvents.get(i)));
+        }
+
+        verify(transactionRepository, times(startedAndEndedEvents.size())).findById(eq(txId));
+
+        //startedAndEndedEvents.size() tasks started and ended + 1 task rejected
+        verify(logRepository, times(startedAndEndedEvents.size() * 2 + 1))
+            .save(sagaLogArgumentCaptor.capture());
+
+        List<SagaLog> savedLogs = sagaLogArgumentCaptor.getAllValues();
+
+        assertThat(savedLogs, hasSize(startedAndEndedEvents.size() * 2 + 1));
+
+        List<SagaLog> started = getByLogType(savedLogs, EVENT_START);
+        assertThat(started, hasSize(startedAndEndedEvents.size()));
+        assertEquals(startedAndEndedEvents, extractEventTypeKey(started));
+
+        List<SagaLog> ended = getByLogType(savedLogs, EVENT_END);
+        assertThat(ended, hasSize(startedAndEndedEvents.size()));
+        assertEquals(startedAndEndedEvents, extractEventTypeKey(ended));
+
+        List<SagaLog> rejected = getByLogType(savedLogs, REJECTED_BY_CONDITION);
+        assertThat(rejected, hasSize(1));
+        assertEquals(singletonList("NEXT-REJECTED-TASK"), extractEventTypeKey(rejected));
+    }
+
+    private List<String> extractEventTypeKey(final List<SagaLog> started) {
+        return started.stream().map(SagaLog::getEventTypeKey).collect(toList());
+    }
+
+    private void generateEvent(final String txId, final String taskKey, final String nextTaskKey,
+                               final SagaTransaction transaction, final SagaTaskSpec taskSpec) {
+        SagaEvent sagaEvent = new SagaEvent().setTenantKey("XM")
+            .setTypeKey(taskKey)
+            .setTransactionId(txId);
+
+        when(taskExecutor.executeTask(eq(taskSpec), eq(sagaEvent), eq(transaction), eq(new Continuation())))
+            .thenAnswer(invocationOnMock -> {
+                    SagaTaskSpec spec = invocationOnMock.getArgument(0);
+                    spec.setNext(StringUtils.isEmpty(nextTaskKey) ? emptyList() : List.of(nextTaskKey));
+                    return Map.of();
+                }
+            );
+
+        sagaService.onSagaEvent(sagaEvent);
     }
 
     private List<SagaLog> getByLogType(List<SagaLog> sagaLogs, SagaLogType logType) {
