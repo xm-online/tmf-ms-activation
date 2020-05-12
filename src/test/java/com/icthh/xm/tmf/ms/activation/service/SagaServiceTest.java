@@ -363,7 +363,6 @@ public class SagaServiceTest {
         verify(logRepository).findLogs(eq(EVENT_END), eq(mockTx(txId, NEW)), eq("NEXT-JOIN-TASK"));
         verify(logRepository).save(refEq(createLog(txId, "NEXT-JOIN-TASK", EVENT_END)));
         verify(logRepository).getFinishLogs(eq(txId), eq(allTasks));
-        verify(logRepository).getFinishLogs(eq(txId), eq(singletonList("SOME-OTHER-TASK")));
 
         noMoreInteraction();
     }

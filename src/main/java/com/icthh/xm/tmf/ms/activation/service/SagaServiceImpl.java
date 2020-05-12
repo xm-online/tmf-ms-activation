@@ -19,7 +19,6 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.NotImplementedException;
 import org.apache.commons.lang3.time.StopWatch;
 import org.springframework.data.domain.Page;
@@ -54,6 +53,7 @@ import static java.lang.Boolean.TRUE;
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
+import static java.util.Collections.singleton;
 import static java.util.Collections.singletonList;
 import static java.util.stream.Collectors.toList;
 import static org.apache.commons.lang3.StringUtils.isEmpty;
@@ -152,10 +152,7 @@ public class SagaServiceImpl implements SagaService {
             Set<String> nextTasks =  new HashSet<>(taskSpec.getNext());
             Map<String, Object> taskContext = taskExecutor.executeTask(taskSpec, sagaEvent, transaction, continuation);
             nextTasks.removeAll(taskSpec.getNext());
-            markAsRejectedByCondition(nextTasks, transaction);
-            if (CollectionUtils.isNotEmpty(taskSpec.getNext())) {
-                markAsNonRejectedByCondition(taskSpec.getNext(), transaction);
-            }
+            nextTasks.forEach(task -> rejectTask(taskSpec.getKey(), task, context));
             if (TRUE.equals(taskSpec.getIsSuspendable()) && !continuation.isContinuationFlag()) {
                 log.info("Task by event {} suspended. Transaction: {}. Time: {}ms", sagaEvent, transaction, stopWatch.getTime());
                 sagaEventRepository.save(sagaEvent.setStatus(SUSPENDED));
@@ -170,14 +167,20 @@ public class SagaServiceImpl implements SagaService {
         }
     }
 
-    /**
-     * In case if tasks are defined as next tasks in multiple {@link SagaTaskSpec}`s and were already rejected by
-     * condition, these tasks will not be executed, therefore they should be restored.
-     */
-    private void markAsNonRejectedByCondition(final List<String> tasks, final SagaTransaction sagaTransaction) {
-        List<SagaLog> finishLogs = logRepository.getFinishLogs(sagaTransaction.getId(), tasks);
-        log.debug("Delete finish logs for tasks {}", tasks);
-        finishLogs.forEach(logRepository::delete);
+    private void rejectTask(final String currentTaskKey, String rejectKey, Context context) {
+        if (isPresentInOtherNotFinishedTasks(currentTaskKey, rejectKey, context) ||
+            isTaskFinished(rejectKey, context.getTxId())) {
+            return;
+        }
+        markAsRejectedByCondition(singleton(rejectKey), context.getTransaction());
+    }
+
+    private boolean isPresentInOtherNotFinishedTasks(final String currentTaskKey, String rejectKey, Context context) {
+        List<SagaTaskSpec> tasksWithoutCurrent = context.getTransactionSpec().getTasks().stream()
+            .filter(task -> !task.getKey().equals(currentTaskKey)).collect(toList());
+        return tasksWithoutCurrent.stream()
+            .filter(task -> !isTaskFinished(task.getKey(), context.getTxId()))
+            .anyMatch(task -> task.getNext().contains(rejectKey));
     }
 
     private void markAsRejectedByCondition(Set<String> nextTasks, SagaTransaction sagaTransaction) {
@@ -286,7 +289,7 @@ public class SagaServiceImpl implements SagaService {
     private boolean isCurrentTaskNotFinished(SagaEvent sagaEvent, Context context) {
         SagaTransaction transaction = context.getTransaction();
         SagaTransactionSpec transactionSpec = context.getTransactionSpec();
-        if (isTaskFinished(sagaEvent, context.getTxId())) {
+        if (isTaskFinished(sagaEvent.getTypeKey(), context.getTxId())) {
             log.warn("Task is already finished. Event {} skipped. Transaction {}.", transaction, sagaEvent);
             updateTransactionStatus(transaction, transactionSpec);
             return false;
@@ -300,8 +303,8 @@ public class SagaServiceImpl implements SagaService {
         return new Context(transaction, transactionSpec, taskSpec);
     }
 
-    private boolean isTaskFinished(SagaEvent sagaEvent, String txId) {
-        return getNotFinishedTasks(txId, singletonList(sagaEvent.getTypeKey())).isEmpty();
+    private boolean isTaskFinished(String eventTypeKey, String txId) {
+        return getNotFinishedTasks(txId, singletonList(eventTypeKey)).isEmpty();
     }
 
     @Override
