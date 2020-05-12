@@ -19,6 +19,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.NotImplementedException;
 import org.apache.commons.lang3.time.StopWatch;
 import org.springframework.data.domain.Page;
@@ -152,6 +153,9 @@ public class SagaServiceImpl implements SagaService {
             Map<String, Object> taskContext = taskExecutor.executeTask(taskSpec, sagaEvent, transaction, continuation);
             nextTasks.removeAll(taskSpec.getNext());
             markAsRejectedByCondition(nextTasks, transaction);
+            if (CollectionUtils.isNotEmpty(taskSpec.getNext())) {
+                markAsNonRejectedByCondition(taskSpec.getNext(), transaction);
+            }
             if (TRUE.equals(taskSpec.getIsSuspendable()) && !continuation.isContinuationFlag()) {
                 log.info("Task by event {} suspended. Transaction: {}. Time: {}ms", sagaEvent, transaction, stopWatch.getTime());
                 sagaEventRepository.save(sagaEvent.setStatus(SUSPENDED));
@@ -164,6 +168,16 @@ public class SagaServiceImpl implements SagaService {
             log.error("Error execute task.", e);
             failHandler(transaction, sagaEvent, taskSpec);
         }
+    }
+
+    /**
+     * In case if tasks are defined as next tasks in multiple {@link SagaTaskSpec}`s and were already rejected by
+     * condition, these tasks will not be executed, therefore they should be restored.
+     */
+    private void markAsNonRejectedByCondition(final List<String> tasks, final SagaTransaction sagaTransaction) {
+        List<SagaLog> finishLogs = logRepository.getFinishLogs(sagaTransaction.getId(), tasks);
+        log.debug("Delete finish logs for tasks {}", tasks);
+        finishLogs.forEach(logRepository::delete);
     }
 
     private void markAsRejectedByCondition(Set<String> nextTasks, SagaTransaction sagaTransaction) {
