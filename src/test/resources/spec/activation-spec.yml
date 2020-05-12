@@ -39,3 +39,15 @@ transactions:
     - key: NEXT-SECOND-TASK
     - key: NEXT-TASK-REJECTED-1
     - key: NEXT-TASK-REJECTED-2
+- key: TASK-WITH-REJECTED-AND-NON-REJECTED
+  tasks:
+    - key: FIRST-TASK
+      next:
+        - NEXT-SECOND-TASK
+        - NEXT-THIRD-TASK
+        - NEXT-REJECTED-TASK
+    - key: NEXT-SECOND-TASK
+      next:
+        - NEXT-THIRD-TASK
+    - key: NEXT-THIRD-TASK
+    - key: NEXT-REJECTED-TASK
