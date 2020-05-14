@@ -172,7 +172,9 @@ public class SagaServiceImpl implements SagaService {
             isTaskFinished(rejectKey, context.getTxId())) {
             return;
         }
-        markAsRejectedByCondition(singleton(rejectKey), context.getTransaction());
+        markAsRejectedByCondition(rejectKey, context);
+        SagaTaskSpec currentTask = context.getTransactionSpec().getTask(rejectKey);
+        currentTask.getNext().forEach(nextTask -> rejectTask(rejectKey, nextTask, context));
     }
 
     private boolean isPresentInOtherNotFinishedTasks(final String currentTaskKey, String rejectKey, Context context) {
@@ -183,9 +185,8 @@ public class SagaServiceImpl implements SagaService {
             .anyMatch(task -> task.getNext().contains(rejectKey));
     }
 
-    private void markAsRejectedByCondition(Set<String> nextTasks, SagaTransaction sagaTransaction) {
-        nextTasks.forEach(key ->
-            writeLog(new SagaEvent().setTypeKey(key), sagaTransaction, REJECTED_BY_CONDITION));
+    private void markAsRejectedByCondition(String taskKey, Context context) {
+        writeLog(new SagaEvent().setTypeKey(taskKey), context.getTransaction(), REJECTED_BY_CONDITION);
     }
 
     @LogicExtensionPoint("ContinueTask")

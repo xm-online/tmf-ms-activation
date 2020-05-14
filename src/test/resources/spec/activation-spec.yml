@@ -51,3 +51,6 @@ transactions:
         - NEXT-THIRD-TASK
     - key: NEXT-THIRD-TASK
     - key: NEXT-REJECTED-TASK
+      next:
+        - NEXT-REJECTED-INSIDE-REJECTED-TASK
+    - key: NEXT-REJECTED-INSIDE-REJECTED-TASK

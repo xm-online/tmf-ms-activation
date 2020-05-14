@@ -233,13 +233,13 @@ public class SagaServiceTest {
 
         verify(transactionRepository, times(startedAndEndedEvents.size())).findById(eq(txId));
 
-        //startedAndEndedEvents.size() tasks started and ended + 1 task rejected
-        verify(logRepository, times(startedAndEndedEvents.size() * 2 + 1))
+        //startedAndEndedEvents.size() tasks started and ended + 2 task rejected
+        verify(logRepository, times(startedAndEndedEvents.size() * 2 + 2))
             .save(sagaLogArgumentCaptor.capture());
 
         List<SagaLog> savedLogs = sagaLogArgumentCaptor.getAllValues();
 
-        assertThat(savedLogs, hasSize(startedAndEndedEvents.size() * 2 + 1));
+        assertThat(savedLogs, hasSize(startedAndEndedEvents.size() * 2 + 2));
 
         List<SagaLog> started = getByLogType(savedLogs, EVENT_START);
         assertThat(started, hasSize(startedAndEndedEvents.size()));
@@ -250,8 +250,9 @@ public class SagaServiceTest {
         assertEquals(startedAndEndedEvents, extractEventTypeKey(ended));
 
         List<SagaLog> rejected = getByLogType(savedLogs, REJECTED_BY_CONDITION);
-        assertThat(rejected, hasSize(1));
-        assertEquals(singletonList("NEXT-REJECTED-TASK"), extractEventTypeKey(rejected));
+        assertThat(rejected, hasSize(2));
+        assertThat(List.of("NEXT-REJECTED-TASK", "NEXT-REJECTED-INSIDE-REJECTED-TASK"),
+            containsInAnyOrder(extractEventTypeKey(rejected).toArray(new String[rejected.size()])));
     }
 
     private List<String> extractEventTypeKey(final List<SagaLog> started) {
