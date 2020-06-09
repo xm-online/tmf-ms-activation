@@ -59,11 +59,11 @@ public class RetryService {
 
         if (sagaEvent.getRetryNumber() > sagaTaskSpec.getRetryCount() && sagaTaskSpec.getRetryCount() >= 0) {
             log.warn("Retry limit exceeded for event {}. {} > {}", sagaEvent, sagaEvent.getRetryNumber(),
-                     sagaTaskSpec.getRetryCount());
+                sagaTaskSpec.getRetryCount());
             try {
                 self.retryLimitExceeded(sagaEvent, sagaTaskSpec, eventStatus);
             } catch (Throwable e) { // Because of fact that groovy code can have compilation errors
-                log.error(" Error unable to start compensation lep ");
+                log.error(" Error unable to start compensation lep ", e);
             }
             return;
         }
@@ -132,17 +132,17 @@ public class RetryService {
 
 
     @Transactional
-    @LogicExtensionPoint("retryLimitExceeded")
+    @LogicExtensionPoint("RetryLimitExceeded")
     public Map<String, Object> retryLimitExceeded(SagaEvent sagaEvent, SagaTaskSpec task, SagaEvent.SagaEventStatus eventStatus) {
-        log.info("No handlers for retryLimitExceeded");
+        log.info("No handler for RetryLimitExceeded");
         return new HashMap<>();
     }
 
 
     @Transactional
-    @LogicExtensionPoint(value = "retryLimitExceeded", resolver = TaskTypeKeyResolver.class)
+    @LogicExtensionPoint(value = "RetryLimitExceeded", resolver = TaskTypeKeyResolver.class)
     public Map<String, Object> retryLimitExceededWithTaskTypeResolver(SagaEvent sagaEvent, SagaTaskSpec task, SagaEvent.SagaEventStatus eventStatus) {
-        log.info("No handlers for retryLimitExceededWithTaskTypeResolver");
+        log.info("No handler for RetryLimitExceededWithTaskTypeResolver");
         return self.retryLimitExceeded(sagaEvent, task, eventStatus);
     }
 }

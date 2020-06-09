@@ -4,6 +4,7 @@ import com.icthh.xm.commons.lep.XmLepScriptConfigServerResourceLoader;
 import com.icthh.xm.commons.security.XmAuthenticationContext;
 import com.icthh.xm.commons.security.XmAuthenticationContextHolder;
 import com.icthh.xm.commons.tenant.TenantContextHolder;
+import com.icthh.xm.commons.tenant.TenantContextUtils;
 import com.icthh.xm.lep.api.LepManager;
 import com.icthh.xm.tmf.ms.activation.ActivationApp;
 import com.icthh.xm.tmf.ms.activation.config.SecurityBeanOverrideConfiguration;
@@ -11,10 +12,12 @@ import com.icthh.xm.tmf.ms.activation.domain.SagaEvent;
 import com.icthh.xm.tmf.ms.activation.domain.spec.SagaTaskSpec;
 import com.icthh.xm.tmf.ms.activation.events.EventsSender;
 import com.icthh.xm.tmf.ms.activation.repository.SagaEventRepository;
-import com.icthh.xm.tmf.ms.activation.utils.TenantUtils;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.io.IOUtils;
+import org.hamcrest.collection.IsMapContaining;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -24,16 +27,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.cloud.stream.binding.BinderAwareChannelResolver;
 import org.springframework.cloud.stream.test.binder.MessageCollectorAutoConfiguration;
-import org.springframework.messaging.MessageChannel;
-import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.time.Instant;
 import java.util.HashMap;
-import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
@@ -43,9 +44,10 @@ import static com.icthh.xm.commons.i18n.I18nConstants.LANGUAGE;
 import static com.icthh.xm.commons.lep.XmLepConstants.THREAD_CONTEXT_KEY_AUTH_CONTEXT;
 import static com.icthh.xm.commons.lep.XmLepConstants.THREAD_CONTEXT_KEY_TENANT_CONTEXT;
 import static com.icthh.xm.tmf.ms.activation.domain.SagaEvent.SagaEventStatus.ON_RETRY;
-import static com.icthh.xm.tmf.ms.activation.service.SagaServiceTest.loadFile;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.when;
+import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.refEq;
+import static org.mockito.Mockito.*;
 
 @Slf4j
 @RunWith(SpringRunner.class)
@@ -57,27 +59,27 @@ public class RetryServiceTest {
     @Autowired
     private XmLepScriptConfigServerResourceLoader lepResourceLoader;
     @Autowired
-    private ThreadPoolTaskScheduler threadPoolTaskScheduler;
-    @Autowired
     private LepManager lepManager;
     @Autowired
     private TenantContextHolder tenantContextHolder;
-
-    private RetryService retryService;
-    @Mock
-    private TenantUtils tenantUtils;
-    @Mock
+    @MockBean
     private SagaEventRepository eventRepository;
-    @Mock
+    @MockBean
     private EventsSender eventsSender;
+    @Autowired
+    private SagaSpecService sagaSpecService;
     @Mock
     private XmAuthenticationContext context;
     @Mock
     private XmAuthenticationContextHolder authContextHolder;
-    @MockBean
-    private BinderAwareChannelResolver binderAwareChannelResolver;
-    @Mock
-    private MessageChannel messageChannel;
+
+    @Autowired
+    private RetryService retryService;
+
+    private static final String TENANT = "XM";
+    private static final String TYPE_KEY = "TEST-TYPE-KEY";
+    private static final String FIRST_TASK_KEY = "TASK-1";
+
 
     @After
     public void destroy() {
@@ -85,23 +87,10 @@ public class RetryServiceTest {
         tenantContextHolder.getPrivilegedContext().destroyCurrentContext();
     }
 
-    private static final String TENANT = "XM";
-    private static final String TYPE_KEY = "TEST-TYPE-KEY";
-    private static final String FIRST_TASK_KEY = "TASK-1";
-    private static final String COUNT_DOWN_LOCK_KEY = "COUNT_DOWN_LOCK";
-
-    private SagaSpecService specService;
-
 
     @Before
-    public void before() throws IOException {
-
-        when(messageChannel.send(any())).thenReturn(false)
-            .thenReturn(false)
-            .thenReturn(false)
-            .thenReturn(true);
-
-        when(binderAwareChannelResolver.resolveDestination(any())).thenReturn(messageChannel);
+    public void init() throws IOException {
+        TenantContextUtils.setTenant(tenantContextHolder, TENANT);
 
         when(context.hasAuthentication()).thenReturn(true);
         when(context.getLogin()).thenReturn(Optional.of("testLogin"));
@@ -115,61 +104,54 @@ public class RetryServiceTest {
             ctx.setValue(THREAD_CONTEXT_KEY_AUTH_CONTEXT, authContextHolder.getContext());
         });
 
-        specService = new SagaSpecService(tenantUtils);
-        retryService = new RetryService(threadPoolTaskScheduler, eventsSender, eventRepository, tenantUtils);
-        specService.onRefresh("/config/tenants/XM/activation/activation-spec.yml", loadFile("spec/activation-spec-retry-service-test.yml"));
+        sagaSpecService.onRefresh("/config/tenants/XM/activation/activation-spec.yml", loadFile("spec/activation-spec-retry-service-test.yml"));
 
     }
 
     @SneakyThrows
     @Test
     public void testRetry() {
-        lepResourceLoader.onRefresh("/config/tenants/XM/activation/lep/service/retry/retryLimitExceeded$$around.groovy",
-            "  event = lepContext.inArgs.sagaEvent" +
-                " event.taskContext.put('data','data'); " +
-                " event.taskContext.COUNT_DOWN_LOCK.countDown(); ");
+        lepResourceLoader.onRefresh("/config/tenants/XM/activation/lep/service/retry/RetryLimitExceeded$$around.groovy", loadFile("/lep/RetryLimitExceeded$$around.groovy"));
 
 
-        when(tenantUtils.getTenantKey()).thenReturn(TENANT);
-        String txId = UUID.randomUUID().toString();
-        String id = UUID.randomUUID().toString();
+        final String txId = UUID.randomUUID().toString();
+        final String id = UUID.randomUUID().toString();
 
         CountDownLatch countDownLatch = new CountDownLatch(3);
-        Map<String, Object> taskContext = new HashMap<>();
-        taskContext.put(COUNT_DOWN_LOCK_KEY, countDownLatch);
 
         SagaEvent sagaEvent = new SagaEvent().setTenantKey(TENANT)
             .setId(id)
             .setTypeKey(FIRST_TASK_KEY)
             .setTransactionId(txId)
             .setCreateDate(Instant.now())
-            .setTaskContext(taskContext);
+            .setTaskContext(new HashMap<>());
 
 
         when(eventRepository.save(refEq(sagaEvent, "backOff", "retryNumber", "status"))).thenReturn(sagaEvent);
         when(eventRepository.findById(eq(id))).thenReturn(Optional.of(sagaEvent));
 
-        SagaTaskSpec task = specService.getTransactionSpec(TYPE_KEY).getTask(FIRST_TASK_KEY);
+        SagaTaskSpec task = sagaSpecService.getTransactionSpec(TYPE_KEY).getTask(FIRST_TASK_KEY);
 
 
         Mockito.doAnswer(invocation -> {
-
             SagaEvent event = (SagaEvent) invocation.getArguments()[0];
             retryService.retry(event, task, ON_RETRY);
             countDownLatch.countDown();
             return null;
         }).when(eventsSender).sendEvent(refEq(sagaEvent, "backOff", "retryNumber", "status"));
 
-
         retryService.retry(sagaEvent, task, ON_RETRY);
+        countDownLatch.await(5, TimeUnit.SECONDS);
 
+        verify(eventRepository, times(6)).save(refEq(sagaEvent, "backOff", "retryNumber", "status"));
+        verify(eventRepository, times(3)).findById(eq(id));
 
-        countDownLatch.await(15, TimeUnit.SECONDS);
-        if (1 == 1) {
-            log.error("dadadqa");
-
-        }
-
+        Assert.assertThat(sagaEvent.getTaskContext(), IsMapContaining.hasEntry("test", "data"));
     }
 
+    @SneakyThrows
+    public static String loadFile(String path) {
+        InputStream cfgInputStream = new ClassPathResource(path).getInputStream();
+        return IOUtils.toString(cfgInputStream, UTF_8);
+    }
 }
