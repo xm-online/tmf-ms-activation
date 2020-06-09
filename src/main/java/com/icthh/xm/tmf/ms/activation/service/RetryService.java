@@ -63,7 +63,7 @@ public class RetryService {
             try {
                 self.retryLimitExceeded(sagaEvent, sagaTaskSpec, eventStatus);
             } catch (Throwable e) { // Because of fact that groovy code can have compilation errors
-                log.error(" Error unable to start compensation lep ", e);
+                log.error("Error unable to start compensation lep: {}", e.getMessage(), e);
             }
             return;
         }
