@@ -1,20 +1,13 @@
 package com.icthh.xm.tmf.ms.activation.service;
 
-import static com.google.common.base.Predicates.not;
-import static com.icthh.xm.tmf.ms.activation.domain.SagaEvent.SagaEventStatus.ON_RETRY;
-import static com.icthh.xm.tmf.ms.activation.domain.SagaEvent.SagaEventStatus.WAIT_CONDITION_TASK;
-import static com.icthh.xm.tmf.ms.activation.domain.SagaEvent.SagaEventStatus.WAIT_DEPENDS_TASK;
-
+import com.icthh.xm.commons.lep.LogicExtensionPoint;
+import com.icthh.xm.commons.lep.spring.LepService;
 import com.icthh.xm.tmf.ms.activation.domain.SagaEvent;
 import com.icthh.xm.tmf.ms.activation.domain.spec.SagaTaskSpec;
 import com.icthh.xm.tmf.ms.activation.events.EventsSender;
 import com.icthh.xm.tmf.ms.activation.repository.SagaEventRepository;
+import com.icthh.xm.tmf.ms.activation.resolver.TaskTypeKeyResolver;
 import com.icthh.xm.tmf.ms.activation.utils.TenantUtils;
-import java.time.Instant;
-import java.util.Map;
-import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
-import javax.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,8 +15,19 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import javax.annotation.PostConstruct;
+import java.time.Instant;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
+
+import static com.google.common.base.Predicates.not;
+import static com.icthh.xm.tmf.ms.activation.domain.SagaEvent.SagaEventStatus.*;
+
 @Slf4j
 @Service
+@LepService(group = "service.retry")
 @RequiredArgsConstructor
 public class RetryService {
 
@@ -54,8 +58,13 @@ public class RetryService {
         sagaEvent.setRetryNumber(sagaEvent.getRetryNumber() + 1);
 
         if (sagaEvent.getRetryNumber() > sagaTaskSpec.getRetryCount() && sagaTaskSpec.getRetryCount() >= 0) {
-            log.warn("Limit retry exceeded for event {}. {} > {}", sagaEvent, sagaEvent.getRetryNumber(),
+            log.warn("Retry limit exceeded for event {}. {} > {}", sagaEvent, sagaEvent.getRetryNumber(),
                      sagaTaskSpec.getRetryCount());
+            try {
+                self.retryLimitExceeded(sagaEvent, sagaTaskSpec, eventStatus);
+            } catch (Throwable e) { // Because of fact that groovy code can have compilation errors
+                log.error(" Error unable to start compensation lep ");
+            }
             return;
         }
 
@@ -121,4 +130,19 @@ public class RetryService {
         this.self = self;
     }
 
+
+    @Transactional
+    @LogicExtensionPoint("retryLimitExceeded")
+    public Map<String, Object> retryLimitExceeded(SagaEvent sagaEvent, SagaTaskSpec task, SagaEvent.SagaEventStatus eventStatus) {
+        log.info("No handlers for retryLimitExceeded");
+        return new HashMap<>();
+    }
+
+
+    @Transactional
+    @LogicExtensionPoint(value = "retryLimitExceeded", resolver = TaskTypeKeyResolver.class)
+    public Map<String, Object> retryLimitExceededWithTaskTypeResolver(SagaEvent sagaEvent, SagaTaskSpec task, SagaEvent.SagaEventStatus eventStatus) {
+        log.info("No handlers for retryLimitExceededWithTaskTypeResolver");
+        return self.retryLimitExceeded(sagaEvent, task, eventStatus);
+    }
 }
