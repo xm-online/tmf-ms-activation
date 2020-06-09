@@ -34,6 +34,7 @@ import org.mockito.MockitoAnnotations;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.cloud.stream.test.binder.MessageCollectorAutoConfiguration;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.test.context.junit4.SpringRunner;
@@ -67,6 +68,9 @@ public class SagaTaskExecutorTest {
 
     @Mock
     private XmAuthenticationContext context;
+
+    @MockBean
+    private RetryService retryService;
 
     @Before
     public void setup() {
