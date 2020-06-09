@@ -31,7 +31,6 @@ import org.springframework.cloud.stream.test.binder.MessageCollectorAutoConfigur
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.test.context.junit4.SpringRunner;
 
-import java.io.IOException;
 import java.io.InputStream;
 import java.time.Instant;
 import java.util.HashMap;
@@ -43,6 +42,7 @@ import java.util.concurrent.TimeUnit;
 import static com.icthh.xm.commons.i18n.I18nConstants.LANGUAGE;
 import static com.icthh.xm.commons.lep.XmLepConstants.THREAD_CONTEXT_KEY_AUTH_CONTEXT;
 import static com.icthh.xm.commons.lep.XmLepConstants.THREAD_CONTEXT_KEY_TENANT_CONTEXT;
+import static com.icthh.xm.tmf.ms.activation.domain.SagaEvent.SagaEventStatus.IN_QUEUE;
 import static com.icthh.xm.tmf.ms.activation.domain.SagaEvent.SagaEventStatus.ON_RETRY;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.mockito.ArgumentMatchers.eq;
@@ -89,7 +89,7 @@ public class RetryServiceTest {
 
 
     @Before
-    public void init() throws IOException {
+    public void init() {
         TenantContextUtils.setTenant(tenantContextHolder, TENANT);
 
         when(context.hasAuthentication()).thenReturn(true);
@@ -108,11 +108,10 @@ public class RetryServiceTest {
 
     }
 
-    @SneakyThrows
     @Test
+    @SneakyThrows
     public void testRetry() {
         lepResourceLoader.onRefresh("/config/tenants/XM/activation/lep/service/retry/RetryLimitExceeded$$around.groovy", loadFile("/lep/RetryLimitExceeded$$around.groovy"));
-
 
         final String txId = UUID.randomUUID().toString();
         final String id = UUID.randomUUID().toString();
@@ -127,7 +126,9 @@ public class RetryServiceTest {
             .setTaskContext(new HashMap<>());
 
 
-        when(eventRepository.save(refEq(sagaEvent, "backOff", "retryNumber", "status"))).thenReturn(sagaEvent);
+        final String[] excludedFields = new String[]{"backOff", "taskContext", "createDate", "retryNumber", "status"};
+
+        when(eventRepository.save(refEq(sagaEvent, excludedFields))).thenReturn(sagaEvent);
         when(eventRepository.findById(eq(id))).thenReturn(Optional.of(sagaEvent));
 
         SagaTaskSpec task = sagaSpecService.getTransactionSpec(TYPE_KEY).getTask(FIRST_TASK_KEY);
@@ -137,16 +138,35 @@ public class RetryServiceTest {
             SagaEvent event = (SagaEvent) invocation.getArguments()[0];
             retryService.retry(event, task, ON_RETRY);
             countDownLatch.countDown();
-            return null;
-        }).when(eventsSender).sendEvent(refEq(sagaEvent, "backOff", "retryNumber", "status"));
+            return event;
+        }).when(eventsSender).sendEvent(refEq(sagaEvent, excludedFields));
 
         retryService.retry(sagaEvent, task, ON_RETRY);
         countDownLatch.await(5, TimeUnit.SECONDS);
 
-        verify(eventRepository, times(6)).save(refEq(sagaEvent, "backOff", "retryNumber", "status"));
+        verify(eventRepository, atLeastOnce()).findByStatus(any());
+
         verify(eventRepository, times(3)).findById(eq(id));
 
+        verify(eventRepository, times(6)).save(
+            refEq(inQueueSagaEvent(txId, id), "backOff", "taskContext", "retryNumber", "createDate"));
+
+
+        verify(eventsSender, times(3)).sendEvent(
+            refEq(inQueueSagaEvent(txId, id), "backOff", "taskContext", "createDate", "retryNumber"));
+
         Assert.assertThat(sagaEvent.getTaskContext(), IsMapContaining.hasEntry("test", "data"));
+
+        verifyNoMoreInteractions(eventsSender);
+        verifyNoMoreInteractions(eventRepository);
+    }
+
+    private SagaEvent inQueueSagaEvent(String txId, String id) {
+        return new SagaEvent().setTenantKey(TENANT)
+            .setId(id)
+            .setStatus(IN_QUEUE)
+            .setTypeKey(FIRST_TASK_KEY)
+            .setTransactionId(txId);
     }
 
     @SneakyThrows

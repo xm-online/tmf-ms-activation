@@ -63,9 +63,4 @@ public class TenantConfigMockConfiguration {
         return mock(TenantVerifyInterceptor.class);
     }
 
-   /* @Bean
-    public RetryService retryService() {
-        return mock(RetryService.class);
-    }
-    */
 }
