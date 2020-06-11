@@ -353,7 +353,7 @@ public class SagaServiceTest {
         verify(logRepository).getFinishLogs(eq(txId), eq(asList("PARALEL-TASK1", "PARALEL-TASK2")));
         verify(retryService).retryForWaitDependsTask(refEq(new SagaEvent().setTenantKey("XM")
             .setTypeKey("NEXT-JOIN-TASK")
-            .setTransactionId(txId), "id"), mockTx(), any());
+            .setTransactionId(txId), "id"), any(), any());
 
         noMoreInteraction();
     }
@@ -489,7 +489,7 @@ public class SagaServiceTest {
         verify(taskExecutor).executeTask(refEq(sagaTaskSpec), refEq(sagaEvent), refEq(mockTx(txId)), refEq(continuation));
         verify(retryService).retry(refEq(new SagaEvent().setTenantKey("XM")
             .setTypeKey("NEXT-JOIN-TASK")
-            .setTransactionId(txId), "id"), mockTx(), any());
+            .setTransactionId(txId), "id"), any(), any());
         verify(sagaEventRepository).findById("eventId");
 
         noMoreInteraction();
@@ -521,7 +521,7 @@ public class SagaServiceTest {
         verify(taskExecutor).onCheckWaitCondition(sagaTaskSpec, sagaEvent, mockTx(txId));
         verify(retryService).retryForTaskWaitCondition(refEq(new SagaEvent().setTenantKey("XM")
             .setTypeKey("NEXT-JOIN-TASK")
-            .setTransactionId(txId), "id"), mockTx(), any());
+            .setTransactionId(txId), "id"), any(), any());
 
         noMoreInteraction();
     }
