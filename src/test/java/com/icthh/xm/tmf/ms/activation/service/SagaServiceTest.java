@@ -1,6 +1,10 @@
 package com.icthh.xm.tmf.ms.activation.service;
 
-import com.icthh.xm.tmf.ms.activation.domain.*;
+import com.icthh.xm.tmf.ms.activation.domain.SagaEvent;
+import com.icthh.xm.tmf.ms.activation.domain.SagaLog;
+import com.icthh.xm.tmf.ms.activation.domain.SagaLogType;
+import com.icthh.xm.tmf.ms.activation.domain.SagaTransaction;
+import com.icthh.xm.tmf.ms.activation.domain.SagaTransactionState;
 import com.icthh.xm.tmf.ms.activation.domain.spec.RetryPolicy;
 import com.icthh.xm.tmf.ms.activation.domain.spec.SagaTaskSpec;
 import com.icthh.xm.tmf.ms.activation.domain.spec.SagaTransactionSpec;
@@ -26,27 +30,45 @@ import org.testcontainers.shaded.org.apache.commons.lang.mutable.MutableBoolean;
 import java.io.IOException;
 import java.time.Clock;
 import java.time.Instant;
-import java.util.*;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 
 import static com.icthh.xm.tmf.ms.activation.domain.SagaEvent.SagaEventStatus.IN_QUEUE;
 import static com.icthh.xm.tmf.ms.activation.domain.SagaEvent.SagaEventStatus.SUSPENDED;
-import static com.icthh.xm.tmf.ms.activation.domain.SagaLogType.*;
-import static com.icthh.xm.tmf.ms.activation.domain.SagaTransactionState.*;
+import static com.icthh.xm.tmf.ms.activation.domain.SagaLogType.EVENT_END;
+import static com.icthh.xm.tmf.ms.activation.domain.SagaLogType.EVENT_START;
+import static com.icthh.xm.tmf.ms.activation.domain.SagaLogType.REJECTED_BY_CONDITION;
+import static com.icthh.xm.tmf.ms.activation.domain.SagaTransactionState.CANCELED;
+import static com.icthh.xm.tmf.ms.activation.domain.SagaTransactionState.FINISHED;
+import static com.icthh.xm.tmf.ms.activation.domain.SagaTransactionState.NEW;
 import static com.icthh.xm.tmf.ms.activation.domain.spec.RetryPolicy.RETRY;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.time.ZoneOffset.UTC;
 import static java.util.Arrays.asList;
-import static java.util.Collections.*;
+import static java.util.Collections.emptyList;
+import static java.util.Collections.emptyMap;
+import static java.util.Collections.singletonList;
 import static java.util.Optional.empty;
 import static java.util.Optional.of;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.stream.Collectors.toList;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.hasSize;
-import static org.junit.Assert.*;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.refEq;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
 public class SagaServiceTest {

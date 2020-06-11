@@ -28,20 +28,32 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
 import java.time.Instant;
-import java.util.*;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiFunction;
 
 import static com.icthh.xm.tmf.ms.activation.domain.SagaEvent.SagaEventStatus.IN_QUEUE;
 import static com.icthh.xm.tmf.ms.activation.domain.SagaEvent.SagaEventStatus.SUSPENDED;
-import static com.icthh.xm.tmf.ms.activation.domain.SagaLogType.*;
-import static com.icthh.xm.tmf.ms.activation.domain.SagaTransactionState.*;
+import static com.icthh.xm.tmf.ms.activation.domain.SagaLogType.EVENT_END;
+import static com.icthh.xm.tmf.ms.activation.domain.SagaLogType.EVENT_START;
+import static com.icthh.xm.tmf.ms.activation.domain.SagaLogType.REJECTED_BY_CONDITION;
+import static com.icthh.xm.tmf.ms.activation.domain.SagaTransactionState.CANCELED;
+import static com.icthh.xm.tmf.ms.activation.domain.SagaTransactionState.FINISHED;
+import static com.icthh.xm.tmf.ms.activation.domain.SagaTransactionState.NEW;
 import static com.icthh.xm.tmf.ms.activation.domain.spec.RetryPolicy.RETRY;
 import static com.icthh.xm.tmf.ms.activation.domain.spec.RetryPolicy.ROLLBACK;
 import static java.lang.Boolean.FALSE;
 import static java.lang.Boolean.TRUE;
 import static java.util.Arrays.asList;
-import static java.util.Collections.*;
+import static java.util.Collections.emptyList;
+import static java.util.Collections.emptyMap;
+import static java.util.Collections.singletonList;
 import static java.util.stream.Collectors.toList;
 import static org.apache.commons.lang3.StringUtils.isEmpty;
 
