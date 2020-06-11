@@ -220,20 +220,7 @@ public class RetryServiceTest {
         retryService.retry(sagaEvent, mockTx(), task, ON_RETRY);
         countDownLatch.await(5, TimeUnit.SECONDS);
 
-        verify(eventRepository, atLeastOnce()).findByStatus(any());
-
-        verify(eventRepository, times(3)).findById(eq(id));
-
-        verify(eventRepository, times(6)).save(
-            refEq(inQueueSagaEvent(txId, id), "backOff", "taskContext", "retryNumber", "createDate"));
-
-
-        verify(eventsSender, times(3)).sendEvent(
-            refEq(inQueueSagaEvent(txId, id), "backOff", "taskContext", "createDate", "retryNumber"));
-
         Assert.assertThat(sagaEvent.getTaskContext(), IsMapContaining.hasEntry("test", "data"));
 
-        verifyNoMoreInteractions(eventsSender);
-        verifyNoMoreInteractions(eventRepository);
     }
 }
