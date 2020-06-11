@@ -375,7 +375,7 @@ public class SagaServiceTest {
         verify(logRepository).getFinishLogs(eq(txId), eq(asList("PARALEL-TASK1", "PARALEL-TASK2")));
         verify(retryService).retryForWaitDependsTask(refEq(new SagaEvent().setTenantKey("XM")
             .setTypeKey("NEXT-JOIN-TASK")
-            .setTransactionId(txId), "id"), any());
+            .setTransactionId(txId), "id"), any(), any());
 
         noMoreInteraction();
     }
@@ -422,19 +422,19 @@ public class SagaServiceTest {
 
     private SagaEvent mockEvent(String txId, String typeKey, String id) {
         return new SagaEvent().setTenantKey("XM")
-                              .setId(id)
-                              .setTypeKey(typeKey)
-                              .setCreateDate(Instant.now(clock))
-                              .setTransactionId(txId);
+            .setId(id)
+            .setTypeKey(typeKey)
+            .setCreateDate(Instant.now(clock))
+            .setTransactionId(txId);
     }
 
     private SagaEvent inQueueEvent(String txId, String typeKey, String id) {
         return new SagaEvent().setTenantKey("XM")
-                              .setId(id)
-                              .setStatus(IN_QUEUE)
-                              .setTypeKey(typeKey)
-                              .setCreateDate(Instant.now(clock))
-                              .setTransactionId(txId);
+            .setId(id)
+            .setStatus(IN_QUEUE)
+            .setTypeKey(typeKey)
+            .setCreateDate(Instant.now(clock))
+            .setTransactionId(txId);
     }
 
     @Test
@@ -511,7 +511,7 @@ public class SagaServiceTest {
         verify(taskExecutor).executeTask(refEq(sagaTaskSpec), refEq(sagaEvent), refEq(mockTx(txId)), refEq(continuation));
         verify(retryService).retry(refEq(new SagaEvent().setTenantKey("XM")
             .setTypeKey("NEXT-JOIN-TASK")
-            .setTransactionId(txId), "id"), any());
+            .setTransactionId(txId), "id"), any(), any());
         verify(sagaEventRepository).findById("eventId");
 
         noMoreInteraction();
@@ -543,7 +543,7 @@ public class SagaServiceTest {
         verify(taskExecutor).onCheckWaitCondition(sagaTaskSpec, sagaEvent, mockTx(txId));
         verify(retryService).retryForTaskWaitCondition(refEq(new SagaEvent().setTenantKey("XM")
             .setTypeKey("NEXT-JOIN-TASK")
-            .setTransactionId(txId), "id"), any());
+            .setTransactionId(txId), "id"), any(), any());
 
         noMoreInteraction();
     }
