@@ -3,10 +3,12 @@ package com.icthh.xm.tmf.ms.activation.service;
 import com.icthh.xm.commons.lep.LogicExtensionPoint;
 import com.icthh.xm.commons.lep.spring.LepService;
 import com.icthh.xm.tmf.ms.activation.domain.SagaEvent;
+import com.icthh.xm.tmf.ms.activation.domain.SagaTransaction;
 import com.icthh.xm.tmf.ms.activation.domain.spec.SagaTaskSpec;
 import com.icthh.xm.tmf.ms.activation.events.EventsSender;
 import com.icthh.xm.tmf.ms.activation.repository.SagaEventRepository;
 import com.icthh.xm.tmf.ms.activation.resolver.TaskTypeKeyResolver;
+import com.icthh.xm.tmf.ms.activation.resolver.TransactionTypeKeyResolver;
 import com.icthh.xm.tmf.ms.activation.utils.TenantUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -52,7 +54,7 @@ public class RetryService {
         sagaEventRepository.findByStatus(WAIT_CONDITION_TASK).forEach(this::doResend);
     }
 
-    public void retry(SagaEvent sagaEvent, SagaTaskSpec sagaTaskSpec, SagaEvent.SagaEventStatus eventStatus) {
+    public void retry(SagaEvent sagaEvent, SagaTransaction sagaTransaction, SagaTaskSpec sagaTaskSpec, SagaEvent.SagaEventStatus eventStatus) {
         long backOff = Math.min(sagaTaskSpec.getMaxBackOff(), sagaEvent.getBackOff() + sagaTaskSpec.getBackOff());
         sagaEvent.setBackOff(backOff);
         sagaEvent.setRetryNumber(sagaEvent.getRetryNumber() + 1);
@@ -61,7 +63,7 @@ public class RetryService {
             log.warn("Retry limit exceeded for event {}. {} > {}", sagaEvent, sagaEvent.getRetryNumber(),
                 sagaTaskSpec.getRetryCount());
             try {
-                self.retryLimitExceeded(sagaEvent, sagaTaskSpec, eventStatus);
+                self.retryLimitExceededWithTaskTypeResolver(sagaEvent, sagaTransaction, sagaTaskSpec, eventStatus);
             } catch (Throwable e) { // Because of fact that groovy code can have compilation errors
                 log.error("Error unable to start compensation lep: {}", e.getMessage(), e);
             }
@@ -71,16 +73,16 @@ public class RetryService {
         scheduleRetry(sagaEvent, eventStatus);
     }
 
-    public void retry(SagaEvent sagaEvent, SagaTaskSpec sagaTaskSpec) {
-        retry(sagaEvent, sagaTaskSpec, ON_RETRY);
+    public void retry(SagaEvent sagaEvent, SagaTransaction sagaTransaction, SagaTaskSpec sagaTaskSpec) {
+        retry(sagaEvent, sagaTransaction, sagaTaskSpec, ON_RETRY);
     }
 
-    public void retryForTaskWaitCondition(SagaEvent sagaEvent, SagaTaskSpec sagaTaskSpec) {
-        retry(sagaEvent, sagaTaskSpec, WAIT_CONDITION_TASK);
+    public void retryForTaskWaitCondition(SagaEvent sagaEvent, SagaTransaction sagaTransaction, SagaTaskSpec sagaTaskSpec) {
+        retry(sagaEvent, sagaTransaction, sagaTaskSpec, WAIT_CONDITION_TASK);
     }
 
-    public void retryForWaitDependsTask(SagaEvent sagaEvent, SagaTaskSpec sagaTaskSpec) {
-        retry(sagaEvent, sagaTaskSpec, WAIT_DEPENDS_TASK);
+    public void retryForWaitDependsTask(SagaEvent sagaEvent, SagaTransaction sagaTransaction, SagaTaskSpec sagaTaskSpec) {
+        retry(sagaEvent, sagaTransaction, sagaTaskSpec, WAIT_DEPENDS_TASK);
     }
 
     private void scheduleRetry(SagaEvent sagaEvent, SagaEvent.SagaEventStatus eventStatus) {
@@ -141,8 +143,16 @@ public class RetryService {
 
     @Transactional
     @LogicExtensionPoint(value = "RetryLimitExceeded", resolver = TaskTypeKeyResolver.class)
-    public Map<String, Object> retryLimitExceededWithTaskTypeResolver(SagaEvent sagaEvent, SagaTaskSpec task, SagaEvent.SagaEventStatus eventStatus) {
+    public Map<String, Object> retryLimitExceededWithTaskTypeResolver(SagaEvent sagaEvent, SagaTransaction sagaTransaction, SagaTaskSpec task, SagaEvent.SagaEventStatus eventStatus) {
+        log.info("No handler for RetryLimitExceededWithTaskTypeResolver");
+        return self.retryLimitExceededWithTransactionTypeResolver(sagaEvent, sagaTransaction, task, eventStatus);
+    }
+
+    @Transactional
+    @LogicExtensionPoint(value = "RetryLimitExceeded", resolver = TransactionTypeKeyResolver.class)
+    public Map<String, Object> retryLimitExceededWithTransactionTypeResolver(SagaEvent sagaEvent, SagaTransaction sagaTransaction, SagaTaskSpec task, SagaEvent.SagaEventStatus eventStatus) {
         log.info("No handler for RetryLimitExceededWithTaskTypeResolver");
         return self.retryLimitExceeded(sagaEvent, task, eventStatus);
     }
+
 }
