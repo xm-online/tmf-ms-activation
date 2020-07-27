@@ -14,6 +14,7 @@ import com.icthh.xm.tmf.ms.activation.events.EventsSender;
 import com.icthh.xm.tmf.ms.activation.repository.SagaEventRepository;
 import com.icthh.xm.tmf.ms.activation.repository.SagaLogRepository;
 import com.icthh.xm.tmf.ms.activation.repository.SagaTransactionRepository;
+import com.icthh.xm.tmf.ms.activation.resolver.TransactionTypeKeyResolver;
 import com.icthh.xm.tmf.ms.activation.utils.TenantUtils;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -79,7 +80,7 @@ public class SagaServiceImpl implements SagaService {
     private Clock clock = Clock.systemUTC();
     private Map<String, Boolean> executingTask = new ConcurrentHashMap<>();
 
-    @LogicExtensionPoint("CreateNewSaga")
+    @LogicExtensionPoint(value = "CreateNewSaga", resolver = TransactionTypeKeyResolver.class)
     @Override
     public SagaTransaction createNewSaga(SagaTransaction sagaTransaction) {
         if (isEmpty(sagaTransaction.getKey())) {
