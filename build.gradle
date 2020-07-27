@@ -374,8 +374,6 @@ dependencies {
     testImplementation "org.testcontainers:postgresql:1.6.0"
     testImplementation "com.h2database:h2"
     liquibaseRuntime "com.h2database:h2"
-    implementation "com.oracle.ojdbc:ojdbc8"
-    liquibaseRuntime "com.oracle.ojdbc:ojdbc8"
 
     testCompileOnly "org.projectlombok:lombok:${lombok_version}"
     testAnnotationProcessor "org.projectlombok:lombok:${lombok_version}"

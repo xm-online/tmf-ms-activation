@@ -16,16 +16,16 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class SagaTransactionService {
+public class SagaTransactionFactory {
 
     private static final String KEY_PARAM = "key";
 
-    public SagaTransaction createSagaTransaction(String serviceType, Map<String, Object> params) {
+    public SagaTransaction createSagaTransaction(String typeKey, Map<String, Object> params) {
         final Map<String, Object> sagaContext = new HashMap<>(params);
         sagaContext.putAll(getAllHeaders());
 
         final SagaTransaction sagaTransaction = new SagaTransaction()
-            .setTypeKey(serviceType)
+            .setTypeKey(typeKey)
             .setContext(sagaContext);
 
         Optional.ofNullable(params.get(KEY_PARAM))

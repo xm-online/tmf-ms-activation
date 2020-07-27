@@ -8,7 +8,7 @@ import com.icthh.xm.tmf.ms.activation.api.ServiceApiDelegate;
 import com.icthh.xm.tmf.ms.activation.domain.SagaTransaction;
 import com.icthh.xm.tmf.ms.activation.model.Service;
 import com.icthh.xm.tmf.ms.activation.service.SagaService;
-import com.icthh.xm.tmf.ms.activation.service.SagaTransactionService;
+import com.icthh.xm.tmf.ms.activation.service.SagaTransactionFactory;
 import java.util.HashMap;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
@@ -23,7 +23,7 @@ public class ServiceApiImpl implements ServiceApiDelegate {
     private static final String MSISDN = "msisdn";
 
     private final SagaService sagaService;
-    private final SagaTransactionService sagaTransactionService;
+    private final SagaTransactionFactory sagaTransactionFactory;
 
     @Timed
     @PreAuthorize("hasPermission({'service': #service}, 'ACTIVATION.ACTION.SERVICE')")
@@ -37,7 +37,7 @@ public class ServiceApiImpl implements ServiceApiDelegate {
         if (isNotEmpty(service.getServiceCharacteristic())) {
             service.getServiceCharacteristic().forEach(ch -> params.put(ch.getName(), ch.getValue()));
         }
-        SagaTransaction sagaTransaction = sagaTransactionService.createSagaTransaction(service.getType(), params);
+        SagaTransaction sagaTransaction = sagaTransactionFactory.createSagaTransaction(service.getType(), params);
         sagaService.createNewSaga(sagaTransaction);
         return ResponseEntity.ok(service);
     }

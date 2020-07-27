@@ -11,7 +11,7 @@ import com.icthh.xm.tmf.ms.activation.mapper.ServiceMapper;
 import com.icthh.xm.tmf.ms.activation.model.v4.Service;
 import com.icthh.xm.tmf.ms.activation.model.v4.ServiceCreate;
 import com.icthh.xm.tmf.ms.activation.service.SagaService;
-import com.icthh.xm.tmf.ms.activation.service.SagaTransactionService;
+import com.icthh.xm.tmf.ms.activation.service.SagaTransactionFactory;
 import java.util.HashMap;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
@@ -20,7 +20,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Component;
 
-@Component("ServiceApiDelegateV4")
+@Component
 @RequiredArgsConstructor
 public class ServiceResourceApiImpl implements ServiceResourceApiDelegate {
 
@@ -28,7 +28,7 @@ public class ServiceResourceApiImpl implements ServiceResourceApiDelegate {
 
     private final ServiceMapper serviceMapper;
     private final SagaService sagaService;
-    private final SagaTransactionService sagaTransactionService;
+    private final SagaTransactionFactory sagaTransactionFactory;
 
     @Timed
     @PreAuthorize("hasPermission({'service': #service}, 'ACTIVATION.ACTION.SERVICE')")
@@ -37,13 +37,17 @@ public class ServiceResourceApiImpl implements ServiceResourceApiDelegate {
     public ResponseEntity<Service> createService(ServiceCreate service) {
         Map<String, Object> params = new HashMap<>();
         if (isNotEmpty(service.getRelatedParty())) {
-            params.put(MSISDN, service.getRelatedParty().get(0).getId());
+            service.getRelatedParty().stream()
+                .filter(relatedParty -> MSISDN.equals(relatedParty.getAtReferredType()))
+                .findAny()
+                .ifPresent(relatedParty -> params.put(relatedParty.getAtReferredType(), relatedParty.getId()));
         }
         if (isNotEmpty(service.getServiceCharacteristic())) {
             service.getServiceCharacteristic().forEach(ch -> params.put(ch.getName(), ch.getValue()));
         }
+
         SagaTransaction sagaTransaction =
-            sagaTransactionService.createSagaTransaction(service.getServiceType(), params);
+            sagaTransactionFactory.createSagaTransaction(service.getServiceSpecification().getId(), params);
         sagaService.createNewSaga(sagaTransaction);
         Service createdService = serviceMapper.serviceCreateToService(service);
         return status(HttpStatus.CREATED).body(createdService);
