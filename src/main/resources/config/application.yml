@@ -150,7 +150,7 @@ jhipster:
     mail:
         from: activation@localhost
     swagger:
-        default-include-pattern: /api/.*
+        default-include-pattern: /(api|tmf-api|DSEntityProvisioning/api)/.*
         title: activation API
         description: activation API documentation
         version: 0.0.1

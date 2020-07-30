@@ -3,7 +3,16 @@
  * generate Spring-MVC endpoint stubs at compile time from an OpenAPI definition file
  */
 
-openApiGenerate {
+buildscript {
+    repositories {
+        maven { url "https://plugins.gradle.org/m2/" }
+    }
+    dependencies {
+        classpath "org.openapitools:openapi-generator-gradle-plugin:${openapi_plugin_version}"
+    }
+}
+
+task openApiGenerateV2(type: org.openapitools.generator.gradle.plugin.tasks.GenerateTask){
     generatorName = "spring"
     inputSpec = "$rootDir/src/main/resources/swagger/api.yml".toString()
     outputDir = "$buildDir/openapi".toString()
@@ -15,6 +24,19 @@ openApiGenerate {
     configOptions = [delegatePattern: "true"]
 }
 
+task openApiGenerateV4(type: org.openapitools.generator.gradle.plugin.tasks.GenerateTask){
+    generatorName = "spring"
+    inputSpec = "$rootDir/src/main/resources/swagger/api_v4.yml".toString()
+    outputDir = "$buildDir/openapi".toString()
+    apiPackage = "com.icthh.xm.tmf.ms.activation.api.v4"
+    modelPackage = "com.icthh.xm.tmf.ms.activation.model.v4"
+    apiFilesConstrainedTo = [""]
+    modelFilesConstrainedTo = [""]
+    supportingFilesConstrainedTo = ["ApiUtil.java"]
+    configOptions = [delegatePattern: "true"]
+    additionalProperties = [useTags: "true"]
+}
+
 sourceSets {
     main {
         java {
@@ -23,4 +45,4 @@ sourceSets {
     }
 }
 
-compileJava.dependsOn("openApiGenerate")
+compileJava.dependsOn openApiGenerateV2, openApiGenerateV4
