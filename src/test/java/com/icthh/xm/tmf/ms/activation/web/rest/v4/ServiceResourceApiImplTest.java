@@ -2,13 +2,16 @@ package com.icthh.xm.tmf.ms.activation.web.rest.v4;
 
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.icthh.xm.commons.i18n.error.web.ExceptionTranslator;
 import com.icthh.xm.commons.i18n.spring.service.LocalizationMessageService;
 import com.icthh.xm.tmf.ms.activation.api.v4.ServiceResourceApiController;
-import com.icthh.xm.tmf.ms.activation.mapper.ServiceMapper;
+import com.icthh.xm.tmf.ms.activation.domain.SagaTransaction;
+import com.icthh.xm.tmf.ms.activation.mapper.ServiceMapperImpl;
 import com.icthh.xm.tmf.ms.activation.model.v4.Characteristic;
 import com.icthh.xm.tmf.ms.activation.model.v4.RelatedParty;
 import com.icthh.xm.tmf.ms.activation.model.v4.ServiceCreate;
@@ -20,9 +23,12 @@ import com.icthh.xm.tmf.ms.activation.web.rest.TestUtil;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 import lombok.SneakyThrows;
+import org.hamcrest.Matchers;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.ArgumentMatchers;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
@@ -32,11 +38,9 @@ import org.springframework.test.web.servlet.MockMvc;
 
 @RunWith(SpringRunner.class)
 @WebMvcTest(controllers = ServiceResourceApiController.class, secure = false)
-@ContextConfiguration(classes = {ServiceResourceApiController.class, ServiceResourceApiImpl.class, ExceptionTranslator.class})
+@ContextConfiguration(classes = {ServiceResourceApiController.class, ServiceResourceApiImpl.class,
+    ExceptionTranslator.class, ServiceMapperImpl.class})
 public class ServiceResourceApiImplTest {
-
-    @MockBean
-    private ServiceMapper serviceMapper;
 
     @MockBean
     private SagaService sagaService;
@@ -53,6 +57,7 @@ public class ServiceResourceApiImplTest {
     @Test
     @SneakyThrows
     public void testCreateService() {
+        //given
         String msisdn = "380764563728";
         String iccid = "860000013242";
 
@@ -78,10 +83,17 @@ public class ServiceResourceApiImplTest {
         serviceCreate.setServiceSpecification(serviceSpecification);
         serviceCreate.setState(ServiceStateType.ACTIVE);
 
+        String id = UUID.randomUUID().toString();
+        when(sagaService.createNewSaga(ArgumentMatchers.any()))
+            .thenReturn(new SagaTransaction().setId(id));
+
+        //when
         mockMvc.perform(post("/tmf-api/ServiceActivationAndConfiguration/v4/service")
             .contentType(TestUtil.APPLICATION_JSON_UTF8)
             .content(TestUtil.convertObjectToJsonBytes(serviceCreate)))
-            .andExpect(status().isCreated());
+        //then
+            .andExpect(status().isCreated())
+            .andExpect(jsonPath("$.id", Matchers.is(id)));
 
         verify(sagaTransactionFactory).createSagaTransaction(eq(expectedTypeKey), eq(expectedContext));
     }
