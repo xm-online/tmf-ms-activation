@@ -48,8 +48,10 @@ public class ServiceResourceApiImpl implements ServiceResourceApiDelegate {
 
         SagaTransaction sagaTransaction =
             sagaTransactionFactory.createSagaTransaction(service.getServiceSpecification().getId(), params);
-        sagaService.createNewSaga(sagaTransaction);
+        SagaTransaction saga = sagaService.createNewSaga(sagaTransaction);
+
         Service createdService = serviceMapper.serviceCreateToService(service);
+        createdService.setId(saga.getId());
         return status(HttpStatus.CREATED).body(createdService);
     }
 }
