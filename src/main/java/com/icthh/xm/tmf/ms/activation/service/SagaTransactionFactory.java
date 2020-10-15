@@ -1,5 +1,7 @@
 package com.icthh.xm.tmf.ms.activation.service;
 
+import com.icthh.xm.commons.lep.LogicExtensionPoint;
+import com.icthh.xm.commons.lep.spring.LepService;
 import com.icthh.xm.tmf.ms.activation.domain.SagaTransaction;
 import java.util.Enumeration;
 import java.util.HashMap;
@@ -16,6 +18,7 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 @Slf4j
 @Service
 @RequiredArgsConstructor
+@LepService(group = "service.saga")
 public class SagaTransactionFactory {
 
     private static final String KEY_PARAM = "key";
@@ -41,6 +44,7 @@ public class SagaTransactionFactory {
      *
      * @return params context that will hold extracted headers
      */
+    @LogicExtensionPoint(value = "GetAllHeaders")
     private Map<String, String> getAllHeaders() {
         final Map<String, String> params = new HashMap<>();
         RequestAttributes requestAttributes = RequestContextHolder.getRequestAttributes();
