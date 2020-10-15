@@ -23,6 +23,7 @@ public class SagaTransactionFactory {
 
     private static final String KEY_PARAM = "key";
 
+    @LogicExtensionPoint("CreateSagaTransaction")
     public SagaTransaction createSagaTransaction(String typeKey, Map<String, Object> params) {
         final Map<String, Object> sagaContext = new HashMap<>(params);
         sagaContext.putAll(getAllHeaders());
@@ -44,7 +45,6 @@ public class SagaTransactionFactory {
      *
      * @return params context that will hold extracted headers
      */
-    @LogicExtensionPoint(value = "GetAllHeaders")
     private Map<String, String> getAllHeaders() {
         final Map<String, String> params = new HashMap<>();
         RequestAttributes requestAttributes = RequestContextHolder.getRequestAttributes();
