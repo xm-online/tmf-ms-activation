@@ -1,5 +1,7 @@
 package com.icthh.xm.tmf.ms.activation.service;
 
+import com.icthh.xm.commons.lep.LogicExtensionPoint;
+import com.icthh.xm.commons.lep.spring.LepService;
 import com.icthh.xm.tmf.ms.activation.domain.SagaTransaction;
 import java.util.Enumeration;
 import java.util.HashMap;
@@ -16,10 +18,12 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 @Slf4j
 @Service
 @RequiredArgsConstructor
+@LepService(group = "service.saga")
 public class SagaTransactionFactory {
 
     private static final String KEY_PARAM = "key";
 
+    @LogicExtensionPoint("CreateSagaTransaction")
     public SagaTransaction createSagaTransaction(String typeKey, Map<String, Object> params) {
         final Map<String, Object> sagaContext = new HashMap<>(params);
         sagaContext.putAll(getAllHeaders());
