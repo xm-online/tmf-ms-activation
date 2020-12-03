@@ -1,5 +1,7 @@
 package com.icthh.xm.tmf.ms.activation.service;
 
+import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
 import com.icthh.xm.commons.lep.LogicExtensionPoint;
 import com.icthh.xm.commons.lep.spring.LepService;
 import com.icthh.xm.tmf.ms.activation.domain.SagaEvent;
@@ -23,7 +25,9 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Consumer;
 
+import static com.google.common.base.Predicates.alwaysTrue;
 import static com.google.common.base.Predicates.not;
 import static com.icthh.xm.tmf.ms.activation.domain.SagaEvent.SagaEventStatus.ON_RETRY;
 import static com.icthh.xm.tmf.ms.activation.domain.SagaEvent.SagaEventStatus.WAIT_DEPENDS_TASK;
@@ -103,11 +107,15 @@ public class RetryService {
     }
 
     public void doResend(SagaEvent sagaEvent) {
+        doResend(sagaEvent, self::removeAndSend);
+    }
+
+    private void doResend(SagaEvent sagaEvent, Consumer<SagaEvent> operation) {
         scheduledEventsId.remove(sagaEvent.getId());
         tenantUtils.doInTenantContext(() -> {
             try {
                 log.info("Retry event {}. Send into broker.", sagaEvent);
-                self.removeAndSend(sagaEvent);
+                operation.accept(sagaEvent);
             } catch (Exception e) {
                 log.info("Error has happend.", e);
                 scheduleRetry(sagaEvent, ON_RETRY);
@@ -118,8 +126,13 @@ public class RetryService {
 
     @Transactional
     public void removeAndSend(SagaEvent sagaEvent) {
+        this.removeAndSend(sagaEvent, not(SagaEvent::isInQueue));
+    }
+
+    @Transactional
+    public void removeAndSend(SagaEvent sagaEvent, Predicate<SagaEvent> eventFilter) {
         Optional<SagaEvent> actualSagaEvent = sagaEventRepository.findById(sagaEvent.getId());
-        if (actualSagaEvent.filter(not(SagaEvent::isInQueue)).isPresent()) {
+        if (actualSagaEvent.filter(eventFilter).isPresent()) {
             SagaEvent event = actualSagaEvent.get();
             event.markAsInQueue();
             event = sagaEventRepository.save(event);
@@ -155,6 +168,11 @@ public class RetryService {
     public Map<String, Object> retryLimitExceededWithTransactionTypeResolver(SagaEvent sagaEvent, SagaTransaction sagaTransaction, SagaTaskSpec task, SagaEvent.SagaEventStatus eventStatus) {
         log.info("No handler for RetryLimitExceededWithTaskTypeResolver");
         return self.retryLimitExceeded(sagaEvent, task, eventStatus);
+    }
+
+    // Method that allow to resend lost kafka event from db
+    public void doResendInQueueEvent(SagaEvent sagaEvent) {
+        doResend(sagaEvent, (event) -> self.removeAndSend(event, alwaysTrue()));
     }
 
 }

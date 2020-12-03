@@ -355,7 +355,7 @@ public class SagaServiceImpl implements SagaService {
      */
     @Override
     public void resendEventsByStateInQueue() {
-        sagaEventRepository.findByStatus(IN_QUEUE).forEach(retryService::doResend);
+        sagaEventRepository.findByStatus(IN_QUEUE).forEach(retryService::doResendInQueueEvent);
     }
 
     @Override

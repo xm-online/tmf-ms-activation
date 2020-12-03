@@ -229,4 +229,39 @@ public class RetryServiceTest {
         Assert.assertThat(sagaEvent.getTaskContext(), IsMapContaining.hasEntry("test", "data"));
 
     }
+
+    @Test
+    @SneakyThrows
+    public void testResendInQueueEvent() {
+
+        final String txId = UUID.randomUUID().toString();
+        final String id = UUID.randomUUID().toString();
+
+        SagaEvent sagaEvent = new SagaEvent().setTenantKey(TENANT)
+                .setId(id)
+                .setTypeKey(FIRST_TASK_KEY)
+                .setTransactionId(txId)
+                .setStatus(IN_QUEUE)
+                .setCreateDate(Instant.now())
+                .setTaskContext(new HashMap<>());
+
+        when(eventRepository.findById(eq(id))).thenReturn(Optional.of(sagaEvent));
+
+        retryService.doResend(sagaEvent);
+
+        verify(eventRepository).findById(eq(id));
+        verifyNoMoreInteractions(eventsSender);
+
+        final String[] excludedFields = new String[]{"backOff", "taskContext", "createDate", "retryNumber"};
+        when(eventRepository.save(refEq(sagaEvent, excludedFields))).thenReturn(sagaEvent);
+
+        retryService.doResendInQueueEvent(sagaEvent);
+
+        verify(eventRepository, times(2)).findById(eq(id));
+        verify(eventRepository).save(refEq(sagaEvent, excludedFields));
+        verify(eventsSender).sendEvent(refEq(sagaEvent, excludedFields));
+
+        verifyNoMoreInteractions(eventsSender);
+        verifyNoMoreInteractions(eventRepository);
+    }
 }
