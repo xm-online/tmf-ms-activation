@@ -64,14 +64,8 @@ public class SagaServiceImplTest {
     @Autowired
     private SagaService sagaService;
 
-    @Autowired
-    private XmLepScriptConfigServerResourceLoader lepResourceLoader;
-
     @MockBean
     private SagaTaskExecutor sagaTaskExecutor;
-
-    @Autowired
-    private SagaSpecService sagaSpecService;
 
     @Autowired
     private LepManager lepManager;
