@@ -103,9 +103,6 @@ public class SagaServiceImplTest {
             ctx.setValue(THREAD_CONTEXT_KEY_TENANT_CONTEXT, tenantContextHolder.getContext());
             ctx.setValue(THREAD_CONTEXT_KEY_AUTH_CONTEXT, authContextHolder.getContext());
         });
-
-        //String config = loadFile("spec/activation-spec-group-test.yml");
-        //sagaSpecService.onRefresh("/config/tenants/XM/activation/activation-spec.yml", config);
     }
 
     @SneakyThrows
