@@ -1,13 +1,14 @@
 package com.icthh.xm.tmf.ms.activation.domain.spec;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
-import com.icthh.xm.commons.exceptions.BusinessException;
+import com.icthh.xm.tmf.ms.activation.service.SagaSpecService.InvalidSagaSpecificationException;
 import lombok.Data;
 import lombok.experimental.Accessors;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -46,12 +47,16 @@ public class SagaTransactionSpec {
         return getTasks().stream().filter(task -> !nextTasks.contains(task.getKey())).collect(toList());
     }
 
-    public SagaTaskSpec getTask(String typeKey) {
+    public Optional<SagaTaskSpec> findTask(String typeKey) {
         return getTasks().stream()
-            .filter(task -> task.getKey().equals(typeKey))
-            .findAny()
-            .orElseThrow(() ->
-                new BusinessException("error.no.task.by.type.key.found", "No task by type key " + typeKey + " found")
+                .filter(task -> task.getKey().equals(typeKey))
+                .findAny();
+    }
+
+    public SagaTaskSpec getTask(String typeKey) {
+        return findTask(typeKey).orElseThrow(() ->
+                new InvalidSagaSpecificationException("error.no.task.by.type.key.found",
+                        "No task by type key " + typeKey + " found")
             );
     }
 }
