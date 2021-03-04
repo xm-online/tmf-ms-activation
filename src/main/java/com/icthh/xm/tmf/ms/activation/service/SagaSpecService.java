@@ -9,6 +9,7 @@ import com.icthh.xm.tmf.ms.activation.domain.spec.SagaSpec;
 import com.icthh.xm.tmf.ms.activation.domain.spec.SagaTransactionSpec;
 import com.icthh.xm.tmf.ms.activation.utils.TenantUtils;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
@@ -82,10 +83,27 @@ public class SagaSpecService implements RefreshableConfiguration {
         String tenantKey = tenantUtils.getTenantKey();
         SagaSpec sagaSpec = sagaSpecs.get(tenantKey);
         if (sagaSpec == null) {
-            throw new BusinessException("saga.spec.not.found",
+            throw new InvalidSagaSpecificationException("saga.spec.not.found",
                                         "Saga spec for type " + typeKey + " and tenant " + tenantKey + " not found.");
         }
         return sagaSpec.getByType(typeKey);
+    }
+
+    @IgnoreLogginAspect
+    public Optional<SagaTransactionSpec> findTransactionSpec(String typeKey) {
+        String tenantKey = tenantUtils.getTenantKey();
+        SagaSpec sagaSpec = sagaSpecs.get(tenantKey);
+        return Optional.ofNullable(sagaSpec).map(it -> it.getByType(typeKey));
+    }
+
+    public static class InvalidSagaSpecificationException extends BusinessException {
+        public InvalidSagaSpecificationException(String message) {
+            super(message);
+        }
+
+        public InvalidSagaSpecificationException(String code, String message) {
+            super(code, message);
+        }
     }
 
 }
