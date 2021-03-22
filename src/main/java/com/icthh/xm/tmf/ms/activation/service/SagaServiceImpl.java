@@ -383,6 +383,13 @@ public class SagaServiceImpl implements SagaService {
     }
 
     @Override
+    public SagaEvent getEventById(String eventId) {
+        return sagaEventRepository.findById(eventId)
+            .orElseThrow(
+                () -> entityNotFound("Event by id " + eventId + " not found"));
+    }
+
+    @Override
     public List<SagaLog> getLogsByTransaction(String txId) {
         return logRepository.findBySagaTransactionId(txId);
     }

@@ -1,14 +1,15 @@
 package com.icthh.xm.tmf.ms.activation.service;
 
 import com.google.common.base.Predicate;
-import com.google.common.base.Predicates;
 import com.icthh.xm.commons.lep.LogicExtensionPoint;
 import com.icthh.xm.commons.lep.spring.LepService;
 import com.icthh.xm.tmf.ms.activation.domain.SagaEvent;
 import com.icthh.xm.tmf.ms.activation.domain.SagaTransaction;
+import com.icthh.xm.tmf.ms.activation.domain.SagaTransactionState;
 import com.icthh.xm.tmf.ms.activation.domain.spec.SagaTaskSpec;
 import com.icthh.xm.tmf.ms.activation.events.EventsSender;
 import com.icthh.xm.tmf.ms.activation.repository.SagaEventRepository;
+import com.icthh.xm.tmf.ms.activation.repository.SagaTransactionRepository;
 import com.icthh.xm.tmf.ms.activation.resolver.TaskTypeKeyResolver;
 import com.icthh.xm.tmf.ms.activation.resolver.TransactionTypeKeyResolver;
 import com.icthh.xm.tmf.ms.activation.utils.TenantUtils;
@@ -32,6 +33,7 @@ import static com.google.common.base.Predicates.not;
 import static com.icthh.xm.tmf.ms.activation.domain.SagaEvent.SagaEventStatus.ON_RETRY;
 import static com.icthh.xm.tmf.ms.activation.domain.SagaEvent.SagaEventStatus.WAIT_DEPENDS_TASK;
 import static com.icthh.xm.tmf.ms.activation.domain.SagaEvent.SagaEventStatus.WAIT_CONDITION_TASK;
+import static com.icthh.xm.tmf.ms.activation.domain.SagaTransactionState.FAILED;
 
 @Slf4j
 @Service
@@ -42,6 +44,7 @@ public class RetryService {
     private final ThreadPoolTaskScheduler threadPoolTaskScheduler;
     private final EventsSender eventsSender;
     private final SagaEventRepository sagaEventRepository;
+    private final SagaTransactionRepository transactionRepository;
     private final TenantUtils tenantUtils;
 
     private final Map<String, Boolean> scheduledEventsId = new ConcurrentHashMap<>();
@@ -69,6 +72,7 @@ public class RetryService {
             log.warn("Retry limit exceeded for event {}. {} > {}", sagaEvent, sagaEvent.getRetryNumber(),
                 sagaTaskSpec.getRetryCount());
             try {
+                self.changeTransactionState(FAILED, sagaTransaction);
                 self.retryLimitExceededWithTaskTypeResolver(sagaEvent, sagaTransaction, sagaTaskSpec, eventStatus);
             } catch (Throwable e) { // Because of fact that groovy code can have compilation errors
                 log.error("Error unable to start compensation lep: {}", e.getMessage(), e);
@@ -104,6 +108,11 @@ public class RetryService {
         scheduledEventsId.put(sagaEvent.getId(), true);
         threadPoolTaskScheduler
             .schedule(() -> doResend(savedSagaEvent), Instant.now().plusSeconds(sagaEvent.getBackOff()));
+    }
+
+    @Transactional
+    public void changeTransactionState(SagaTransactionState state, SagaTransaction sagaTransaction) {
+        transactionRepository.save(sagaTransaction.setSagaTransactionState(state));
     }
 
     public void doResend(SagaEvent sagaEvent) {
