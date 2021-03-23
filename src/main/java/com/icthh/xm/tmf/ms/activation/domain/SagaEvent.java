@@ -17,10 +17,12 @@ import javax.persistence.Enumerated;
 import javax.persistence.Id;
 import javax.persistence.Table;
 import lombok.Data;
+import lombok.ToString;
 import lombok.experimental.Accessors;
 
 @Data
 @Accessors(chain = true)
+@ToString(exclude = "taskContext")
 @Entity
 @Table(name = "saga_event")
 public class SagaEvent implements Serializable {
