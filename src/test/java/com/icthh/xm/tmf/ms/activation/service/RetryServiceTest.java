@@ -13,6 +13,7 @@ import com.icthh.xm.tmf.ms.activation.domain.SagaTransaction;
 import com.icthh.xm.tmf.ms.activation.domain.spec.SagaTaskSpec;
 import com.icthh.xm.tmf.ms.activation.events.EventsSender;
 import com.icthh.xm.tmf.ms.activation.repository.SagaEventRepository;
+import com.icthh.xm.tmf.ms.activation.repository.SagaTransactionRepository;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.IOUtils;
@@ -76,7 +77,7 @@ public class RetryServiceTest {
     @MockBean
     private EventsSender eventsSender;
     @MockBean
-    private SagaService sagaService;
+    private SagaTransactionRepository transactionRepository;
     @Autowired
     private SagaSpecService sagaSpecService;
     @Mock
@@ -126,6 +127,7 @@ public class RetryServiceTest {
 
         final String txId = UUID.randomUUID().toString();
         final String id = UUID.randomUUID().toString();
+        final SagaTransaction transaction = mockTx().setId(txId);
 
         CountDownLatch countDownLatch = new CountDownLatch(3);
 
@@ -136,6 +138,7 @@ public class RetryServiceTest {
             .setCreateDate(Instant.now())
             .setTaskContext(new HashMap<>());
 
+        when(transactionRepository.findById(eq(txId))).thenReturn(Optional.of(transaction));
 
         final String[] excludedFields = new String[]{"backOff", "taskContext", "createDate", "retryNumber", "status"};
 
@@ -147,12 +150,12 @@ public class RetryServiceTest {
 
         Mockito.doAnswer(invocation -> {
             SagaEvent event = (SagaEvent) invocation.getArguments()[0];
-            retryService.retry(event, mockTx(), task, ON_RETRY);
+            retryService.retry(event, transaction, task, ON_RETRY);
             countDownLatch.countDown();
             return event;
         }).when(eventsSender).sendEvent(refEq(sagaEvent, excludedFields));
 
-        retryService.retry(sagaEvent, mockTx(), task, ON_RETRY);
+        retryService.retry(sagaEvent, transaction, task, ON_RETRY);
         countDownLatch.await(5, TimeUnit.SECONDS);
 
         verify(eventRepository, atLeastOnce()).findByStatus(any());
@@ -168,7 +171,8 @@ public class RetryServiceTest {
 
         Assert.assertThat(sagaEvent.getTaskContext(), IsMapContaining.hasEntry("test", "data"));
 
-        verify(sagaService).changeTransactionState(txId, FAILED);
+        verify(transactionRepository).save(mockTx().setId(txId).setSagaTransactionState(FAILED));
+
         verifyNoMoreInteractions(eventsSender);
         verifyNoMoreInteractions(eventRepository);
     }
@@ -201,6 +205,7 @@ public class RetryServiceTest {
 
         final String txId = UUID.randomUUID().toString();
         final String id = UUID.randomUUID().toString();
+        final SagaTransaction transaction = mockTx().setId(txId);
 
         CountDownLatch countDownLatch = new CountDownLatch(3);
 
@@ -211,6 +216,7 @@ public class RetryServiceTest {
             .setCreateDate(Instant.now())
             .setTaskContext(new HashMap<>());
 
+        when(transactionRepository.findById(eq(txId))).thenReturn(Optional.of(transaction));
 
         final String[] excludedFields = new String[]{"backOff", "taskContext", "createDate", "retryNumber", "status"};
 
@@ -222,16 +228,16 @@ public class RetryServiceTest {
 
         Mockito.doAnswer(invocation -> {
             SagaEvent event = (SagaEvent) invocation.getArguments()[0];
-            retryService.retry(event, mockTx(), task, ON_RETRY);
+            retryService.retry(event, transaction, task, ON_RETRY);
             countDownLatch.countDown();
             return event;
         }).when(eventsSender).sendEvent(refEq(sagaEvent, excludedFields));
 
-        retryService.retry(sagaEvent, mockTx(), task, ON_RETRY);
+        retryService.retry(sagaEvent, transaction, task, ON_RETRY);
         countDownLatch.await(5, TimeUnit.SECONDS);
 
         Assert.assertThat(sagaEvent.getTaskContext(), IsMapContaining.hasEntry("test", "data"));
-        verify(sagaService).changeTransactionState(txId, FAILED);
+        verify(transactionRepository).save(mockTx().setId(txId).setSagaTransactionState(FAILED));
     }
 
     @Test

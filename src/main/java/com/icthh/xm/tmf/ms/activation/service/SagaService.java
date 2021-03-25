@@ -6,8 +6,6 @@ import com.icthh.xm.tmf.ms.activation.domain.SagaTransaction;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-
-import com.icthh.xm.tmf.ms.activation.domain.SagaTransactionState;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
@@ -47,11 +45,4 @@ public interface SagaService {
 
     void updateTransactionContext(String id, Map<String, Object> context);
 
-    /**
-     * This method change transaction state in separate DB transaction
-     *
-     * @param txId  - the id of transaction
-     * @param state - new state of the transaction
-     */
-    void changeTransactionState(String txId, SagaTransactionState state);
 }

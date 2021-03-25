@@ -8,7 +8,6 @@ import com.icthh.xm.tmf.ms.activation.domain.SagaEvent;
 import com.icthh.xm.tmf.ms.activation.domain.SagaLog;
 import com.icthh.xm.tmf.ms.activation.domain.SagaLogType;
 import com.icthh.xm.tmf.ms.activation.domain.SagaTransaction;
-import com.icthh.xm.tmf.ms.activation.domain.SagaTransactionState;
 import com.icthh.xm.tmf.ms.activation.domain.spec.SagaTaskSpec;
 import com.icthh.xm.tmf.ms.activation.domain.spec.SagaTransactionSpec;
 import com.icthh.xm.tmf.ms.activation.events.EventsSender;
@@ -435,19 +434,6 @@ public class SagaServiceImpl implements SagaService {
     public void updateTransactionContext(String txId, Map<String, Object> context) {
         transactionRepository.findById(txId)
             .map(it -> it.setContext(context))
-            .ifPresentOrElse(transactionRepository::save,
-                () -> entityNotFound("Transaction with id " + txId + " not found"));
-    }
-
-    @Override
-    public void changeTransactionState(String txId, SagaTransactionState state) {
-        self.changeTransactionStateInner(txId, state);
-    }
-
-    public void changeTransactionStateInner(String txId, SagaTransactionState state) {
-        log.info("State of transaction:{} will be changed to: {}", txId, state);
-        transactionRepository.findById(txId)
-            .map(it -> it.setSagaTransactionState(state))
             .ifPresentOrElse(transactionRepository::save,
                 () -> entityNotFound("Transaction with id " + txId + " not found"));
     }

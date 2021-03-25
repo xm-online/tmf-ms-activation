@@ -2,13 +2,16 @@ package com.icthh.xm.tmf.ms.activation.service;
 
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
+import com.icthh.xm.commons.exceptions.EntityNotFoundException;
 import com.icthh.xm.commons.lep.LogicExtensionPoint;
 import com.icthh.xm.commons.lep.spring.LepService;
 import com.icthh.xm.tmf.ms.activation.domain.SagaEvent;
 import com.icthh.xm.tmf.ms.activation.domain.SagaTransaction;
+import com.icthh.xm.tmf.ms.activation.domain.SagaTransactionState;
 import com.icthh.xm.tmf.ms.activation.domain.spec.SagaTaskSpec;
 import com.icthh.xm.tmf.ms.activation.events.EventsSender;
 import com.icthh.xm.tmf.ms.activation.repository.SagaEventRepository;
+import com.icthh.xm.tmf.ms.activation.repository.SagaTransactionRepository;
 import com.icthh.xm.tmf.ms.activation.resolver.TaskTypeKeyResolver;
 import com.icthh.xm.tmf.ms.activation.resolver.TransactionTypeKeyResolver;
 import com.icthh.xm.tmf.ms.activation.utils.TenantUtils;
@@ -43,7 +46,7 @@ public class RetryService {
     private final ThreadPoolTaskScheduler threadPoolTaskScheduler;
     private final EventsSender eventsSender;
     private final SagaEventRepository sagaEventRepository;
-    private final SagaService sagaService;
+    private final SagaTransactionRepository transactionRepository;
     private final TenantUtils tenantUtils;
 
     private final Map<String, Boolean> scheduledEventsId = new ConcurrentHashMap<>();
@@ -108,6 +111,17 @@ public class RetryService {
             .schedule(() -> doResend(savedSagaEvent), Instant.now().plusSeconds(sagaEvent.getBackOff()));
     }
 
+    @Transactional
+    public void changeTransactionState(String txId, SagaTransactionState state) {
+        log.info("State of transaction:{} will be changed to: {}", txId, state);
+        transactionRepository.findById(txId)
+            .map(it -> it.setSagaTransactionState(state))
+            .ifPresentOrElse(transactionRepository::save,
+                () -> {
+                    throw new EntityNotFoundException("Transaction with id " + txId + " not found");
+                });
+    }
+
     public void doResend(SagaEvent sagaEvent) {
         doResend(sagaEvent, self::removeAndSend);
     }
@@ -154,7 +168,7 @@ public class RetryService {
     @LogicExtensionPoint("RetryLimitExceeded")
     public Map<String, Object> retryLimitExceeded(SagaEvent sagaEvent, SagaTaskSpec task, SagaEvent.SagaEventStatus eventStatus) {
         log.info("Retry limit exceeded for transaction {}, state will changed to {}", sagaEvent.getId(), FAILED);
-        sagaService.changeTransactionState(sagaEvent.getTransactionId(), FAILED);
+        self.changeTransactionState(sagaEvent.getTransactionId(), FAILED);
         return new HashMap<>();
     }
 
