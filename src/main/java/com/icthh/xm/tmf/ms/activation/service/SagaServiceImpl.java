@@ -8,6 +8,7 @@ import com.icthh.xm.tmf.ms.activation.domain.SagaEvent;
 import com.icthh.xm.tmf.ms.activation.domain.SagaLog;
 import com.icthh.xm.tmf.ms.activation.domain.SagaLogType;
 import com.icthh.xm.tmf.ms.activation.domain.SagaTransaction;
+import com.icthh.xm.tmf.ms.activation.domain.SagaTransactionState;
 import com.icthh.xm.tmf.ms.activation.domain.spec.SagaTaskSpec;
 import com.icthh.xm.tmf.ms.activation.domain.spec.SagaTransactionSpec;
 import com.icthh.xm.tmf.ms.activation.events.EventsSender;
@@ -105,7 +106,7 @@ public class SagaServiceImpl implements SagaService {
         sagaTransaction.setSagaTransactionState(NEW);
         sagaTransaction.setCreateDate(Instant.now(clock));
         SagaTransaction saved = transactionRepository.save(sagaTransaction);
-        log.info("Saga transaction created {}", sagaTransaction);
+        log.info("Saga transaction created {} with context {}", sagaTransaction, sagaTransaction.getContext());
         generateFirstEvents(saved);
         return saved;
     }
@@ -125,9 +126,9 @@ public class SagaServiceImpl implements SagaService {
     private void handleSagaEvent(SagaEvent sagaEvent) {
         DraftContext draftContext = initContext(sagaEvent);
         if (!isAllConditionalsValid(draftContext, sagaEvent,
-                this::isTransactionExists,
-                this::isTransactionInCorrectState,
-                this::isValidSpec)) {
+            this::isTransactionExists,
+            this::isTransactionInCorrectState,
+            this::isValidSpec)) {
             return;
         }
 
@@ -274,7 +275,7 @@ public class SagaServiceImpl implements SagaService {
 
     @SafeVarargs
     private <T> boolean isAllConditionalsValid(T context, SagaEvent sagaEvent,
-                                               BiFunction<SagaEvent, T, Boolean> ...conditionals) {
+                                               BiFunction<SagaEvent, T, Boolean>... conditionals) {
         for (var condition : conditionals) {
             if (!condition.apply(sagaEvent, context)) {
                 return false;
@@ -294,8 +295,8 @@ public class SagaServiceImpl implements SagaService {
 
     private boolean isTransactionInCorrectState(SagaEvent sagaEvent, DraftContext context) {
         boolean isNew = context.getTransaction()
-                .map(SagaTransaction::getSagaTransactionState)
-                .map(NEW::equals).orElse(false);
+            .map(SagaTransaction::getSagaTransactionState)
+            .map(NEW::equals).orElse(false);
         if (!isNew) {
             log.warn("Transaction in context {} in incorrect state. Event {} skipped.", context, sagaEvent);
             return false;
@@ -434,6 +435,19 @@ public class SagaServiceImpl implements SagaService {
     public void updateTransactionContext(String txId, Map<String, Object> context) {
         transactionRepository.findById(txId)
             .map(it -> it.setContext(context))
+            .ifPresentOrElse(transactionRepository::save,
+                () -> entityNotFound("Transaction with id " + txId + " not found"));
+    }
+
+    @Override
+    public void changeTransactionState(String txId, SagaTransactionState state) {
+        self.changeTransactionStateInner(txId, state);
+    }
+
+    public void changeTransactionStateInner(String txId, SagaTransactionState state) {
+        log.info("State of transaction:{} will be changed to: {}", txId, state);
+        transactionRepository.findById(txId)
+            .map(it -> it.setSagaTransactionState(state))
             .ifPresentOrElse(transactionRepository::save,
                 () -> entityNotFound("Transaction with id " + txId + " not found"));
     }

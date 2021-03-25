@@ -45,6 +45,7 @@ import static com.icthh.xm.commons.lep.XmLepConstants.THREAD_CONTEXT_KEY_AUTH_CO
 import static com.icthh.xm.commons.lep.XmLepConstants.THREAD_CONTEXT_KEY_TENANT_CONTEXT;
 import static com.icthh.xm.tmf.ms.activation.domain.SagaEvent.SagaEventStatus.IN_QUEUE;
 import static com.icthh.xm.tmf.ms.activation.domain.SagaEvent.SagaEventStatus.ON_RETRY;
+import static com.icthh.xm.tmf.ms.activation.domain.SagaTransactionState.FAILED;
 import static com.icthh.xm.tmf.ms.activation.domain.SagaTransactionState.NEW;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.mockito.ArgumentMatchers.eq;
@@ -74,6 +75,8 @@ public class RetryServiceTest {
     private SagaEventRepository eventRepository;
     @MockBean
     private EventsSender eventsSender;
+    @MockBean
+    private SagaService sagaService;
     @Autowired
     private SagaSpecService sagaSpecService;
     @Mock
@@ -165,6 +168,7 @@ public class RetryServiceTest {
 
         Assert.assertThat(sagaEvent.getTaskContext(), IsMapContaining.hasEntry("test", "data"));
 
+        verify(sagaService).changeTransactionState(txId, FAILED);
         verifyNoMoreInteractions(eventsSender);
         verifyNoMoreInteractions(eventRepository);
     }
@@ -227,7 +231,7 @@ public class RetryServiceTest {
         countDownLatch.await(5, TimeUnit.SECONDS);
 
         Assert.assertThat(sagaEvent.getTaskContext(), IsMapContaining.hasEntry("test", "data"));
-
+        verify(sagaService).changeTransactionState(txId, FAILED);
     }
 
     @Test

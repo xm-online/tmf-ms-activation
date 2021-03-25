@@ -43,6 +43,7 @@ import static com.icthh.xm.tmf.ms.activation.domain.SagaLogType.EVENT_END;
 import static com.icthh.xm.tmf.ms.activation.domain.SagaLogType.EVENT_START;
 import static com.icthh.xm.tmf.ms.activation.domain.SagaLogType.REJECTED_BY_CONDITION;
 import static com.icthh.xm.tmf.ms.activation.domain.SagaTransactionState.CANCELED;
+import static com.icthh.xm.tmf.ms.activation.domain.SagaTransactionState.FAILED;
 import static com.icthh.xm.tmf.ms.activation.domain.SagaTransactionState.FINISHED;
 import static com.icthh.xm.tmf.ms.activation.domain.SagaTransactionState.NEW;
 import static com.icthh.xm.tmf.ms.activation.domain.spec.RetryPolicy.RETRY;
@@ -747,6 +748,17 @@ public class SagaServiceTest {
         verify(eventsManager, times(4)).sendEvent(any());
 
         noMoreInteraction();
+    }
+
+    @Test
+    public void testChangeTransactionState() {
+        String txId = UUID.randomUUID().toString();
+        SagaTransaction transaction = mockTx(txId, NEW).setTypeKey("TR-STATE-CHANGE");
+        when(transactionRepository.findById(txId)).thenReturn(of(transaction));
+
+        sagaService.changeTransactionState(txId, FAILED);
+
+        verify(transactionRepository).save(refEq(mockTx(txId, FAILED).setTypeKey("TR-STATE-CHANGE")));
     }
 
     private SagaTransaction mockTx() {
