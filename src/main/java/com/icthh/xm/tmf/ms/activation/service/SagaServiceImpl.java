@@ -105,7 +105,7 @@ public class SagaServiceImpl implements SagaService {
         sagaTransaction.setSagaTransactionState(NEW);
         sagaTransaction.setCreateDate(Instant.now(clock));
         SagaTransaction saved = transactionRepository.save(sagaTransaction);
-        log.info("Saga transaction created {}", sagaTransaction);
+        log.info("Saga transaction created {} with context {}", sagaTransaction, sagaTransaction.getContext());
         generateFirstEvents(saved);
         return saved;
     }
@@ -380,6 +380,11 @@ public class SagaServiceImpl implements SagaService {
     @Override
     public List<SagaEvent> getEventsByTransaction(String txId) {
         return sagaEventRepository.findByTransactionId(txId);
+    }
+
+    @Override
+    public Optional<SagaEvent> getEventById(String eventId) {
+        return sagaEventRepository.findById(eventId);
     }
 
     @Override

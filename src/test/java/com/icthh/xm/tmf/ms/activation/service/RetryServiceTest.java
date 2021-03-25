@@ -13,6 +13,7 @@ import com.icthh.xm.tmf.ms.activation.domain.SagaTransaction;
 import com.icthh.xm.tmf.ms.activation.domain.spec.SagaTaskSpec;
 import com.icthh.xm.tmf.ms.activation.events.EventsSender;
 import com.icthh.xm.tmf.ms.activation.repository.SagaEventRepository;
+import com.icthh.xm.tmf.ms.activation.repository.SagaTransactionRepository;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.IOUtils;
@@ -45,6 +46,7 @@ import static com.icthh.xm.commons.lep.XmLepConstants.THREAD_CONTEXT_KEY_AUTH_CO
 import static com.icthh.xm.commons.lep.XmLepConstants.THREAD_CONTEXT_KEY_TENANT_CONTEXT;
 import static com.icthh.xm.tmf.ms.activation.domain.SagaEvent.SagaEventStatus.IN_QUEUE;
 import static com.icthh.xm.tmf.ms.activation.domain.SagaEvent.SagaEventStatus.ON_RETRY;
+import static com.icthh.xm.tmf.ms.activation.domain.SagaTransactionState.FAILED;
 import static com.icthh.xm.tmf.ms.activation.domain.SagaTransactionState.NEW;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.mockito.ArgumentMatchers.eq;
@@ -74,6 +76,8 @@ public class RetryServiceTest {
     private SagaEventRepository eventRepository;
     @MockBean
     private EventsSender eventsSender;
+    @MockBean
+    private SagaTransactionRepository transactionRepository;
     @Autowired
     private SagaSpecService sagaSpecService;
     @Mock
@@ -123,6 +127,7 @@ public class RetryServiceTest {
 
         final String txId = UUID.randomUUID().toString();
         final String id = UUID.randomUUID().toString();
+        final SagaTransaction transaction = mockTx().setId(txId);
 
         CountDownLatch countDownLatch = new CountDownLatch(3);
 
@@ -133,6 +138,7 @@ public class RetryServiceTest {
             .setCreateDate(Instant.now())
             .setTaskContext(new HashMap<>());
 
+        when(transactionRepository.findById(eq(txId))).thenReturn(Optional.of(transaction));
 
         final String[] excludedFields = new String[]{"backOff", "taskContext", "createDate", "retryNumber", "status"};
 
@@ -144,12 +150,12 @@ public class RetryServiceTest {
 
         Mockito.doAnswer(invocation -> {
             SagaEvent event = (SagaEvent) invocation.getArguments()[0];
-            retryService.retry(event, mockTx(), task, ON_RETRY);
+            retryService.retry(event, transaction, task, ON_RETRY);
             countDownLatch.countDown();
             return event;
         }).when(eventsSender).sendEvent(refEq(sagaEvent, excludedFields));
 
-        retryService.retry(sagaEvent, mockTx(), task, ON_RETRY);
+        retryService.retry(sagaEvent, transaction, task, ON_RETRY);
         countDownLatch.await(5, TimeUnit.SECONDS);
 
         verify(eventRepository, atLeastOnce()).findByStatus(any());
@@ -164,6 +170,8 @@ public class RetryServiceTest {
             refEq(inQueueSagaEvent(txId, id), "backOff", "taskContext", "createDate", "retryNumber"));
 
         Assert.assertThat(sagaEvent.getTaskContext(), IsMapContaining.hasEntry("test", "data"));
+
+        verify(transactionRepository).save(mockTx().setId(txId).setSagaTransactionState(FAILED));
 
         verifyNoMoreInteractions(eventsSender);
         verifyNoMoreInteractions(eventRepository);
@@ -197,6 +205,7 @@ public class RetryServiceTest {
 
         final String txId = UUID.randomUUID().toString();
         final String id = UUID.randomUUID().toString();
+        final SagaTransaction transaction = mockTx().setId(txId);
 
         CountDownLatch countDownLatch = new CountDownLatch(3);
 
@@ -207,6 +216,7 @@ public class RetryServiceTest {
             .setCreateDate(Instant.now())
             .setTaskContext(new HashMap<>());
 
+        when(transactionRepository.findById(eq(txId))).thenReturn(Optional.of(transaction));
 
         final String[] excludedFields = new String[]{"backOff", "taskContext", "createDate", "retryNumber", "status"};
 
@@ -218,16 +228,16 @@ public class RetryServiceTest {
 
         Mockito.doAnswer(invocation -> {
             SagaEvent event = (SagaEvent) invocation.getArguments()[0];
-            retryService.retry(event, mockTx(), task, ON_RETRY);
+            retryService.retry(event, transaction, task, ON_RETRY);
             countDownLatch.countDown();
             return event;
         }).when(eventsSender).sendEvent(refEq(sagaEvent, excludedFields));
 
-        retryService.retry(sagaEvent, mockTx(), task, ON_RETRY);
+        retryService.retry(sagaEvent, transaction, task, ON_RETRY);
         countDownLatch.await(5, TimeUnit.SECONDS);
 
         Assert.assertThat(sagaEvent.getTaskContext(), IsMapContaining.hasEntry("test", "data"));
-
+        verify(transactionRepository).save(mockTx().setId(txId).setSagaTransactionState(FAILED));
     }
 
     @Test

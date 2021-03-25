@@ -16,12 +16,14 @@ import javax.persistence.Id;
 import javax.persistence.Table;
 import javax.validation.constraints.NotNull;
 import lombok.Data;
+import lombok.ToString;
 import lombok.experimental.Accessors;
 import org.hibernate.annotations.GenericGenerator;
 
 @Data
 @Entity
 @Table(name = "saga_transaction")
+@ToString(exclude = "context")
 @Accessors(chain = true)
 public class SagaTransaction implements Serializable {
 
