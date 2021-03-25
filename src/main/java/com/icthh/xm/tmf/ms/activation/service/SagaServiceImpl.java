@@ -126,9 +126,9 @@ public class SagaServiceImpl implements SagaService {
     private void handleSagaEvent(SagaEvent sagaEvent) {
         DraftContext draftContext = initContext(sagaEvent);
         if (!isAllConditionalsValid(draftContext, sagaEvent,
-            this::isTransactionExists,
-            this::isTransactionInCorrectState,
-            this::isValidSpec)) {
+                this::isTransactionExists,
+                this::isTransactionInCorrectState,
+                this::isValidSpec)) {
             return;
         }
 
@@ -275,7 +275,7 @@ public class SagaServiceImpl implements SagaService {
 
     @SafeVarargs
     private <T> boolean isAllConditionalsValid(T context, SagaEvent sagaEvent,
-                                               BiFunction<SagaEvent, T, Boolean>... conditionals) {
+                                               BiFunction<SagaEvent, T, Boolean> ...conditionals) {
         for (var condition : conditionals) {
             if (!condition.apply(sagaEvent, context)) {
                 return false;
@@ -295,8 +295,8 @@ public class SagaServiceImpl implements SagaService {
 
     private boolean isTransactionInCorrectState(SagaEvent sagaEvent, DraftContext context) {
         boolean isNew = context.getTransaction()
-            .map(SagaTransaction::getSagaTransactionState)
-            .map(NEW::equals).orElse(false);
+                .map(SagaTransaction::getSagaTransactionState)
+                .map(NEW::equals).orElse(false);
         if (!isNew) {
             log.warn("Transaction in context {} in incorrect state. Event {} skipped.", context, sagaEvent);
             return false;

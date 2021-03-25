@@ -1,6 +1,7 @@
 package com.icthh.xm.tmf.ms.activation.service;
 
 import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
 import com.icthh.xm.commons.lep.LogicExtensionPoint;
 import com.icthh.xm.commons.lep.spring.LepService;
 import com.icthh.xm.tmf.ms.activation.domain.SagaEvent;
@@ -107,7 +108,6 @@ public class RetryService {
             .schedule(() -> doResend(savedSagaEvent), Instant.now().plusSeconds(sagaEvent.getBackOff()));
     }
 
-
     public void doResend(SagaEvent sagaEvent) {
         doResend(sagaEvent, self::removeAndSend);
     }
@@ -149,6 +149,7 @@ public class RetryService {
         this.self = self;
     }
 
+
     @Transactional
     @LogicExtensionPoint("RetryLimitExceeded")
     public Map<String, Object> retryLimitExceeded(SagaEvent sagaEvent, SagaTaskSpec task, SagaEvent.SagaEventStatus eventStatus) {
@@ -156,6 +157,7 @@ public class RetryService {
         sagaService.changeTransactionState(sagaEvent.getTransactionId(), FAILED);
         return new HashMap<>();
     }
+
 
     @Transactional
     @LogicExtensionPoint(value = "RetryLimitExceeded", resolver = TaskTypeKeyResolver.class)
