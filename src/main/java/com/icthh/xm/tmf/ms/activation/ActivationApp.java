@@ -29,7 +29,6 @@ import java.util.Collection;
 @EnableConfigurationProperties({LiquibaseProperties.class, ApplicationProperties.class})
 @EnableDiscoveryClient
 @SpringBootApplication(scanBasePackages = { "com.icthh.xm", "com.icthh.xm.tmf.ms.activation" })
-@EnableAutoConfiguration
 @Import({TenantContextConfiguration.class})
 public class ActivationApp {
 
