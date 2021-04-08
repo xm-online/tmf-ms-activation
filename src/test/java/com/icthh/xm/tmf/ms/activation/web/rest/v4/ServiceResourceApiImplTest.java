@@ -60,13 +60,16 @@ public class ServiceResourceApiImplTest {
         //given
         String msisdn = "380764563728";
         String iccid = "860000013242";
+        ServiceStateType state = ServiceStateType.ACTIVE;
 
         String msisdnKey = "msisdn";
+        String stateKey = "state";
         String iccidKey = "ICCID";
 
         String expectedTypeKey = "SOME_SERVICE";
         Map<String, Object> expectedContext = new HashMap<>();
         expectedContext.put(msisdnKey, msisdn);
+        expectedContext.put(stateKey, state);
         expectedContext.put(iccidKey, iccid);
 
         RelatedParty relatedParty = new RelatedParty();
@@ -81,7 +84,7 @@ public class ServiceResourceApiImplTest {
         serviceCreate.setRelatedParty(Collections.singletonList(relatedParty));
         serviceCreate.setServiceCharacteristic(Collections.singletonList(characteristic));
         serviceCreate.setServiceSpecification(serviceSpecification);
-        serviceCreate.setState(ServiceStateType.ACTIVE);
+        serviceCreate.setState(state);
 
         String id = UUID.randomUUID().toString();
         when(sagaService.createNewSaga(ArgumentMatchers.any()))
