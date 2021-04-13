@@ -133,8 +133,8 @@ public class RetryServiceTest {
         final String txId = UUID.randomUUID().toString();
         final String id = UUID.randomUUID().toString();
         final SagaTransaction transaction = mockTx().setId(txId);
-
-        CountDownLatch countDownLatch = new CountDownLatch(3);
+        final int maxRetryCount = 3;
+        CountDownLatch countDownLatch = new CountDownLatch(maxRetryCount);
 
         SagaEvent sagaEvent = newSagaEvent(txId, id);
 
@@ -157,10 +157,11 @@ public class RetryServiceTest {
 
         Mockito.doAnswer(invocation -> {
             SagaEvent event = (SagaEvent) invocation.getArguments()[0];
+            event.setRetryNumber(maxRetryCount - countDownLatch.getCount());
             retryService.retry(event, transaction, task, ON_RETRY);
             countDownLatch.countDown();
             return event;
-        }).when(eventsSender).sendEvent(refEq(inQueueSagaEvent(txId, txId), excludedFields));
+        }).when(eventsSender).sendEvent(refEq(inQueueSagaEvent(txId, id), excludedFields));
 
         retryService.retry(sagaEvent, transaction, task, ON_RETRY);
         countDownLatch.await(5, TimeUnit.SECONDS);
@@ -169,10 +170,10 @@ public class RetryServiceTest {
 
         verify(eventRepository, times(4)).findById(eq(id));
 
-//        verify(eventRepository, times(4)).save(
-//            refEq(inQueueSagaEvent(txId, id), "backOff", "taskContext", "retryNumber", "createDate"));
-        verify(eventRepository, times(8)).save(any()); //3 on retry 3 in qu 1 fa
-       // TODO FIXME verify(eventRepository).save(refEq(failedSagaEvent(txId, id), "backOff", "taskContext", "retryNumber", "createDate"));
+        verify(eventRepository, times(3)).save(
+            refEq(inQueueSagaEvent(txId, id), "backOff", "taskContext", "retryNumber", "createDate"));
+
+    verify(eventRepository).save(refEq(failedSagaEvent(txId, id), "backOff", "taskContext", "retryNumber", "createDate"));
 
         verify(eventsSender, times(3)).sendEvent(
             refEq(inQueueSagaEvent(txId, id), "backOff", "taskContext", "createDate", "retryNumber"));
