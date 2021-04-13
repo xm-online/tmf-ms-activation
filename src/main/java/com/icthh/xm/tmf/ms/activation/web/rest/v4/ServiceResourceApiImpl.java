@@ -1,5 +1,6 @@
 package com.icthh.xm.tmf.ms.activation.web.rest.v4;
 
+import static java.util.Optional.ofNullable;
 import static org.apache.commons.collections.CollectionUtils.isNotEmpty;
 import static org.springframework.http.ResponseEntity.status;
 
@@ -25,6 +26,7 @@ import org.springframework.stereotype.Component;
 public class ServiceResourceApiImpl implements ServiceResourceApiDelegate {
 
     private static final String MSISDN = "msisdn";
+    private static final String STATE = "state";
 
     private final ServiceMapper serviceMapper;
     private final SagaService sagaService;
@@ -45,6 +47,7 @@ public class ServiceResourceApiImpl implements ServiceResourceApiDelegate {
         if (isNotEmpty(service.getServiceCharacteristic())) {
             service.getServiceCharacteristic().forEach(ch -> params.put(ch.getName(), ch.getValue()));
         }
+        ofNullable(service.getState()).ifPresent(state -> params.put(STATE, state));
 
         SagaTransaction sagaTransaction =
             sagaTransactionFactory.createSagaTransaction(service.getServiceSpecification().getId(), params);
