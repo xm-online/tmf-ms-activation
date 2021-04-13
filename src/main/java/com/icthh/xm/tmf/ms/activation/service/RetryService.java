@@ -1,7 +1,6 @@
 package com.icthh.xm.tmf.ms.activation.service;
 
 import com.google.common.base.Predicate;
-import com.google.common.base.Predicates;
 import com.icthh.xm.commons.exceptions.EntityNotFoundException;
 import com.icthh.xm.commons.lep.LogicExtensionPoint;
 import com.icthh.xm.commons.lep.spring.LepService;
@@ -32,10 +31,10 @@ import java.util.function.Consumer;
 
 import static com.google.common.base.Predicates.alwaysTrue;
 import static com.google.common.base.Predicates.not;
+import static com.icthh.xm.tmf.ms.activation.domain.SagaEvent.SagaEventStatus.FAILED;
 import static com.icthh.xm.tmf.ms.activation.domain.SagaEvent.SagaEventStatus.ON_RETRY;
 import static com.icthh.xm.tmf.ms.activation.domain.SagaEvent.SagaEventStatus.WAIT_DEPENDS_TASK;
 import static com.icthh.xm.tmf.ms.activation.domain.SagaEvent.SagaEventStatus.WAIT_CONDITION_TASK;
-import static com.icthh.xm.tmf.ms.activation.domain.SagaTransactionState.FAILED;
 
 @Slf4j
 @Service
@@ -48,6 +47,7 @@ public class RetryService {
     private final SagaEventRepository sagaEventRepository;
     private final SagaTransactionRepository transactionRepository;
     private final TenantUtils tenantUtils;
+    private final SeparateTransactionExecutor separateTransactionExecutor;
 
     private final Map<String, Boolean> scheduledEventsId = new ConcurrentHashMap<>();
 
@@ -147,15 +147,26 @@ public class RetryService {
 
     @Transactional
     public void removeAndSend(SagaEvent sagaEvent, Predicate<SagaEvent> eventFilter) {
-        Optional<SagaEvent> actualSagaEvent = sagaEventRepository.findById(sagaEvent.getId());
-        if (actualSagaEvent.filter(eventFilter).isPresent()) {
-            SagaEvent event = actualSagaEvent.get();
-            event.markAsInQueue();
-            event = sagaEventRepository.save(event);
-            eventsSender.sendEvent(event);
-        } else {
-            log.warn("Event not found {}", sagaEvent);
-        }
+        sagaEventRepository.findById(sagaEvent.getId())
+            .filter(eventFilter)
+            .ifPresentOrElse(this::resendEvent,
+                () -> log.warn("Event not allowed for resend {}", sagaEvent)
+            );
+    }
+
+    private void resendEvent(SagaEvent event) {
+        log.info("Resend event: {}", event);
+        event.markAsInQueue();
+        event = sagaEventRepository.save(event);
+
+        //we need to commit saga transaction state to DB before send event to kafka
+        final String txId = event.getTransactionId();
+        separateTransactionExecutor.doInSeparateTransaction(() -> {
+            changeTransactionState(txId, SagaTransactionState.NEW);
+            return Optional.empty();
+        });
+
+        eventsSender.sendEvent(event);
     }
 
     @Autowired
@@ -168,7 +179,16 @@ public class RetryService {
     @LogicExtensionPoint("RetryLimitExceeded")
     public Map<String, Object> retryLimitExceeded(SagaEvent sagaEvent, SagaTaskSpec task, SagaEvent.SagaEventStatus eventStatus) {
         log.info("Retry limit exceeded for transaction {}, state will changed to {}", sagaEvent.getId(), FAILED);
-        self.changeTransactionState(sagaEvent.getTransactionId(), FAILED);
+        String eventId = sagaEvent.getId();
+        changeTransactionState(sagaEvent.getTransactionId(), SagaTransactionState.FAILED);
+
+        log.info("State of event:{} will be changed to: {}", sagaEvent.getId(), FAILED);
+        sagaEventRepository.findById(eventId)
+            .map(it -> it.setStatus(FAILED))
+            .ifPresentOrElse(sagaEventRepository::save,
+                () -> {
+                    throw new EntityNotFoundException("Event with id " + eventId + " not found");
+                });
         return new HashMap<>();
     }
 
