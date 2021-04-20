@@ -17,10 +17,12 @@ import javax.persistence.Enumerated;
 import javax.persistence.Id;
 import javax.persistence.Table;
 import lombok.Data;
+import lombok.ToString;
 import lombok.experimental.Accessors;
 
 @Data
 @Accessors(chain = true)
+@ToString(exclude = "taskContext")
 @Entity
 @Table(name = "saga_event")
 public class SagaEvent implements Serializable {
@@ -61,6 +63,6 @@ public class SagaEvent implements Serializable {
     }
 
     public enum SagaEventStatus {
-        ON_RETRY, SUSPENDED, WAIT_DEPENDS_TASK, IN_QUEUE, WAIT_CONDITION_TASK
+        ON_RETRY, SUSPENDED, WAIT_DEPENDS_TASK, IN_QUEUE, WAIT_CONDITION_TASK, INVALID_SPECIFICATION, FAILED;
     }
 }

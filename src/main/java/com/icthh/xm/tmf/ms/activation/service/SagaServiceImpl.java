@@ -15,13 +15,16 @@ import com.icthh.xm.tmf.ms.activation.repository.SagaEventRepository;
 import com.icthh.xm.tmf.ms.activation.repository.SagaLogRepository;
 import com.icthh.xm.tmf.ms.activation.repository.SagaTransactionRepository;
 import com.icthh.xm.tmf.ms.activation.resolver.TransactionTypeKeyResolver;
+import com.icthh.xm.tmf.ms.activation.service.SagaSpecService.InvalidSagaSpecificationException;
 import com.icthh.xm.tmf.ms.activation.utils.TenantUtils;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.NotImplementedException;
 import org.apache.commons.lang3.time.StopWatch;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -39,6 +42,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiFunction;
 
+import static com.icthh.xm.tmf.ms.activation.domain.SagaEvent.SagaEventStatus.INVALID_SPECIFICATION;
 import static com.icthh.xm.tmf.ms.activation.domain.SagaEvent.SagaEventStatus.IN_QUEUE;
 import static com.icthh.xm.tmf.ms.activation.domain.SagaEvent.SagaEventStatus.SUSPENDED;
 import static com.icthh.xm.tmf.ms.activation.domain.SagaLogType.EVENT_END;
@@ -80,6 +84,9 @@ public class SagaServiceImpl implements SagaService {
     private Clock clock = Clock.systemUTC();
     private Map<String, Boolean> executingTask = new ConcurrentHashMap<>();
 
+    @Setter(onMethod = @__(@Autowired))
+    private SagaServiceImpl self;
+
     @LogicExtensionPoint(value = "CreateNewSaga", resolver = TransactionTypeKeyResolver.class)
     @Override
     public SagaTransaction createNewSaga(SagaTransaction sagaTransaction) {
@@ -98,7 +105,7 @@ public class SagaServiceImpl implements SagaService {
         sagaTransaction.setSagaTransactionState(NEW);
         sagaTransaction.setCreateDate(Instant.now(clock));
         SagaTransaction saved = transactionRepository.save(sagaTransaction);
-        log.info("Saga transaction created {}", sagaTransaction);
+        log.info("Saga transaction created {} with context {}", sagaTransaction, sagaTransaction.getContext());
         generateFirstEvents(saved);
         return saved;
     }
@@ -106,19 +113,31 @@ public class SagaServiceImpl implements SagaService {
     @Override
     @IgnoreLogginAspect
     public void onSagaEvent(SagaEvent sagaEvent) {
+        try {
+            handleSagaEvent(sagaEvent);
+        } catch (Exception e) {
+            log.error("Error handle saga event", e);
+            // For avoid stop partition, in some crazy situation, send to end of the queue.
+            self.resendEvent(sagaEvent);
+        }
+    }
 
-        Context context = initContext(sagaEvent);
-        List<BiFunction<SagaEvent, Context, Boolean>> preconditions = asList(this::isTransactionExists,
-            this::isTransactionInCorrectState,
+    private void handleSagaEvent(SagaEvent sagaEvent) {
+        DraftContext draftContext = initContext(sagaEvent);
+        if (!isAllConditionalsValid(draftContext, sagaEvent,
+                this::isTransactionExists,
+                this::isTransactionInCorrectState,
+                this::isValidSpec)) {
+            return;
+        }
+
+        Context context = draftContext.createContext();
+        if (!isAllConditionalsValid(context, sagaEvent,
             this::isCurrentTaskNotFinished,
             this::isAllDependsTaskFinished,
             this::isCurrentTaskNotWaitForCondition,
-            this::isTaskNotSuspended);
-
-        for (var precondition : preconditions) {
-            if (!precondition.apply(sagaEvent, context)) {
-                return;
-            }
+            this::isTaskNotSuspended)) {
+            return;
         }
 
         /**
@@ -195,8 +214,14 @@ public class SagaServiceImpl implements SagaService {
         SagaEvent sagaEvent = sagaEventRepository.findById(taskId)
             .orElseThrow(
                 () -> entityNotFound("Task with id " + taskId + " not found"));
-        Context context = initContext(sagaEvent);
+        DraftContext draftContext = initContext(sagaEvent);
 
+        if (!draftContext.isValidSpec()) {
+            log.error("Can not continue task, specification is invalid. Context: {}", draftContext);
+            throw new InvalidSagaSpecificationException("Can not continue task, specification is invalid");
+        }
+
+        Context context = draftContext.createContext();
         sagaEvent.getTaskContext().putAll(taskContext);
 
         continuation(sagaEvent,
@@ -206,6 +231,15 @@ public class SagaServiceImpl implements SagaService {
             sagaEvent.getTaskContext());
 
         deleteSagaEvent(sagaEvent);
+    }
+
+    private boolean isValidSpec(SagaEvent sagaEvent, DraftContext context) {
+        if (!context.isValidSpec()) {
+            log.warn("Specification for event {} not found or invalid.", sagaEvent);
+            sagaEventRepository.save(sagaEvent.setStatus(INVALID_SPECIFICATION));
+            return false;
+        }
+        return true;
     }
 
     private void deleteSagaEvent(SagaEvent sagaEvent) {
@@ -225,25 +259,45 @@ public class SagaServiceImpl implements SagaService {
         updateTransactionStatus(transaction, transactionSpec);
     }
 
-    private Context initContext(SagaEvent sagaEvent) {
-        return transactionRepository.findById(sagaEvent.getTransactionId())
-            .map(tx -> transactionToContext(sagaEvent, tx))
-            .orElse(null);
+    @LogicExtensionPoint(value = "OnResendEvent")
+    public void resendEvent(SagaEvent sagaEvent) {
+        eventsManager.resendEvent(sagaEvent);
     }
 
-    private boolean isTransactionExists(SagaEvent sagaEvent, Context context) {
-        if (context == null) {
+    private DraftContext initContext(SagaEvent sagaEvent) {
+        var transaction = transactionRepository.findById(sagaEvent.getTransactionId());
+        var transactionSpec = transaction.flatMap(it -> specService.findTransactionSpec(it.getTypeKey()));
+        var taskSpec = transactionSpec.map(it -> it.getTask(sagaEvent.getTypeKey()));
+
+        return new DraftContext(transaction, transactionSpec, taskSpec);
+    }
+
+    @SafeVarargs
+    private <T> boolean isAllConditionalsValid(T context, SagaEvent sagaEvent,
+                                               BiFunction<SagaEvent, T, Boolean> ...conditionals) {
+        for (var condition : conditionals) {
+            if (!condition.apply(sagaEvent, context)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private boolean isTransactionExists(SagaEvent sagaEvent, DraftContext context) {
+        if (context.getTransaction().isEmpty()) {
             log.error("Transaction with id {} not found.", sagaEvent.getTransactionId());
-            eventsManager.resendEvent(sagaEvent);
+            self.resendEvent(sagaEvent);
             return false;
         }
         return true;
     }
 
-    private boolean isTransactionInCorrectState(SagaEvent sagaEvent, Context context) {
-        SagaTransaction transaction = context.getTransaction();
-        if (NEW != transaction.getSagaTransactionState()) {
-            log.warn("Transaction {} in incorrect state. Event {} skipped.", transaction, sagaEvent);
+    private boolean isTransactionInCorrectState(SagaEvent sagaEvent, DraftContext context) {
+        boolean isNew = context.getTransaction()
+                .map(SagaTransaction::getSagaTransactionState)
+                .map(NEW::equals).orElse(false);
+        if (!isNew) {
+            log.warn("Transaction in context {} in incorrect state. Event {} skipped.", context, sagaEvent);
             return false;
         }
         return true;
@@ -299,12 +353,6 @@ public class SagaServiceImpl implements SagaService {
         return true;
     }
 
-    private Context transactionToContext(SagaEvent sagaEvent, SagaTransaction transaction) {
-        SagaTransactionSpec transactionSpec = specService.getTransactionSpec(transaction.getTypeKey());
-        SagaTaskSpec taskSpec = transactionSpec.getTask(sagaEvent.getTypeKey());
-        return new Context(transaction, transactionSpec, taskSpec);
-    }
-
     private boolean isTaskFinished(String eventTypeKey, String txId) {
         return getNotFinishedTasks(txId, singletonList(eventTypeKey)).isEmpty();
     }
@@ -332,6 +380,11 @@ public class SagaServiceImpl implements SagaService {
     @Override
     public List<SagaEvent> getEventsByTransaction(String txId) {
         return sagaEventRepository.findByTransactionId(txId);
+    }
+
+    @Override
+    public Optional<SagaEvent> getEventById(String eventId) {
+        return sagaEventRepository.findById(eventId);
     }
 
     @Override
@@ -474,6 +527,22 @@ public class SagaServiceImpl implements SagaService {
 
         public String getTxId() {
             return transaction.getId();
+        }
+    }
+
+    @Data
+    @AllArgsConstructor
+    private static class DraftContext {
+        private Optional<SagaTransaction> transaction;
+        private Optional<SagaTransactionSpec> transactionSpec;
+        private Optional<SagaTaskSpec> taskSpec;
+
+        public boolean isValidSpec() {
+            return transactionSpec.isPresent() && taskSpec.isPresent();
+        }
+
+        public Context createContext() {
+            return new Context(transaction.get(), transactionSpec.get(), taskSpec.get());
         }
     }
 

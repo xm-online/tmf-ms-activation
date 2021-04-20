@@ -112,6 +112,7 @@ public class SagaServiceTest {
         sagaService = new SagaServiceImpl(logRepository, transactionRepository, specService, eventsManager,
             tenantUtils, taskExecutor, retryService, sagaEventRepository);
         sagaService.setClock(clock);
+        sagaService.setSelf(sagaService);
         specService.onRefresh("/config/tenants/XM/activation/activation-spec.yml", loadFile("spec/activation-spec.yml"));
         when(taskExecutor.onCheckWaitCondition(any(), any(), any())).thenReturn(true);
     }

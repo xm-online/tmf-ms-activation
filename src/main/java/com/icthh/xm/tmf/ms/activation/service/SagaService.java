@@ -25,6 +25,8 @@ public interface SagaService {
 
     List<SagaEvent> getEventsByTransaction(String txId);
 
+    Optional<SagaEvent> getEventById(String eventId);
+
     List<SagaLog> getLogsByTransaction(String txId);
 
     Page<SagaTransaction> getAllTransaction(Pageable pageable);
