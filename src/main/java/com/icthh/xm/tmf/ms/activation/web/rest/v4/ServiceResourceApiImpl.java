@@ -9,12 +9,14 @@ import com.icthh.xm.commons.permission.annotation.PrivilegeDescription;
 import com.icthh.xm.tmf.ms.activation.api.v4.ServiceResourceApiDelegate;
 import com.icthh.xm.tmf.ms.activation.domain.SagaTransaction;
 import com.icthh.xm.tmf.ms.activation.mapper.ServiceMapper;
+import com.icthh.xm.tmf.ms.activation.model.v4.RelatedParty;
 import com.icthh.xm.tmf.ms.activation.model.v4.Service;
 import com.icthh.xm.tmf.ms.activation.model.v4.ServiceCreate;
 import com.icthh.xm.tmf.ms.activation.service.SagaService;
 import com.icthh.xm.tmf.ms.activation.service.SagaTransactionFactory;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -27,6 +29,9 @@ public class ServiceResourceApiImpl implements ServiceResourceApiDelegate {
 
     private static final String MSISDN = "msisdn";
     private static final String STATE = "state";
+    private static final String RELATED_PARTY_ID = "relatedParty.id";
+    private static final String RELATED_PARTY_REFERRED_TYPE = "relatedParty.referredType";
+
 
     private final ServiceMapper serviceMapper;
     private final SagaService sagaService;
@@ -39,11 +44,21 @@ public class ServiceResourceApiImpl implements ServiceResourceApiDelegate {
     public ResponseEntity<Service> createService(ServiceCreate service) {
         Map<String, Object> params = new HashMap<>();
         if (isNotEmpty(service.getRelatedParty())) {
-            service.getRelatedParty().stream()
+            Optional<RelatedParty> party = service.getRelatedParty().stream()
                 .filter(relatedParty -> MSISDN.equals(relatedParty.getAtReferredType()))
-                .findAny()
-                .ifPresent(relatedParty -> params.put(relatedParty.getAtReferredType(), relatedParty.getId()));
+                .findAny();
+
+            if (party.isPresent()) {
+                RelatedParty relatedParty = party.get();
+                if (relatedParty.getAtReferredType().equals(MSISDN)) {
+                    params.put(relatedParty.getAtReferredType(), relatedParty.getId());
+                } else {
+                    params.put(RELATED_PARTY_ID, relatedParty.getId());
+                    params.put(RELATED_PARTY_REFERRED_TYPE, relatedParty.getAtReferredType());
+                }
+            }
         }
+
         if (isNotEmpty(service.getServiceCharacteristic())) {
             service.getServiceCharacteristic().forEach(ch -> params.put(ch.getName(), ch.getValue()));
         }
