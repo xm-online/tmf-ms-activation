@@ -57,7 +57,6 @@ public class ServiceResourceApiImplTest {
     @Test
     @SneakyThrows
     public void testCreateService() {
-
         //given
         String msisdn = "380764563728";
         String iccid = "860000013242";
