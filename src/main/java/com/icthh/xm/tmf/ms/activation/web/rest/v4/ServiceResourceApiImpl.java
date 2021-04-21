@@ -27,6 +27,9 @@ public class ServiceResourceApiImpl implements ServiceResourceApiDelegate {
 
     private static final String MSISDN = "msisdn";
     private static final String STATE = "state";
+    private static final String RELATED_PARTY_ID = "relatedParty.id";
+    private static final String RELATED_PARTY_REFERRED_TYPE = "relatedParty.referredType";
+
 
     private final ServiceMapper serviceMapper;
     private final SagaService sagaService;
@@ -43,6 +46,13 @@ public class ServiceResourceApiImpl implements ServiceResourceApiDelegate {
                 .filter(relatedParty -> MSISDN.equals(relatedParty.getAtReferredType()))
                 .findAny()
                 .ifPresent(relatedParty -> params.put(relatedParty.getAtReferredType(), relatedParty.getId()));
+
+            service.getRelatedParty().stream()
+                .findFirst()
+                .ifPresent(relatedParty -> {
+                        params.put(RELATED_PARTY_ID, relatedParty.getId());
+                        params.put(RELATED_PARTY_REFERRED_TYPE, relatedParty.getAtReferredType());
+                });
         }
         if (isNotEmpty(service.getServiceCharacteristic())) {
             service.getServiceCharacteristic().forEach(ch -> params.put(ch.getName(), ch.getValue()));
