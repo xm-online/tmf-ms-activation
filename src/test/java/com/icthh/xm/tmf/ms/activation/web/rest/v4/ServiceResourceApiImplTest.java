@@ -65,12 +65,16 @@ public class ServiceResourceApiImplTest {
         String msisdnKey = "msisdn";
         String stateKey = "state";
         String iccidKey = "ICCID";
+        String relatedPartyId = "relatedParty.id";
+        String relatedPartyReferredType = "relatedParty.referredType";
 
         String expectedTypeKey = "SOME_SERVICE";
         Map<String, Object> expectedContext = new HashMap<>();
         expectedContext.put(msisdnKey, msisdn);
         expectedContext.put(stateKey, state);
         expectedContext.put(iccidKey, iccid);
+        expectedContext.put(relatedPartyId, msisdn);
+        expectedContext.put(relatedPartyReferredType, msisdnKey);
 
         RelatedParty relatedParty = new RelatedParty();
         relatedParty.setId(msisdn);
