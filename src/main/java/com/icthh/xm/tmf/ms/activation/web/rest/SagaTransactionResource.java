@@ -1,6 +1,7 @@
 package com.icthh.xm.tmf.ms.activation.web.rest;
 
 import com.codahale.metrics.annotation.Timed;
+import com.icthh.xm.commons.lep.LogicExtensionPoint;
 import com.icthh.xm.commons.permission.annotation.PrivilegeDescription;
 import com.icthh.xm.tmf.ms.activation.domain.SagaEvent;
 import com.icthh.xm.tmf.ms.activation.domain.SagaLog;
@@ -109,6 +110,7 @@ public class SagaTransactionResource {
 
     @GetMapping("/transactions/{id}/logs")
     @PreAuthorize("hasPermission({'id': #id, 'eventId': #eventId}, 'ACTIVATION.TRANSACTION.GET_LOGS')")
+    @LogicExtensionPoint("GetTransactionLogs")
     @PrivilegeDescription("Privilege to get saga log records")
     public ResponseEntity<List<SagaLog>> getLogsByTransaction(@PathVariable("id") String id) {
         return ResponseEntity.ok(sagaService.getLogsByTransaction(id));
