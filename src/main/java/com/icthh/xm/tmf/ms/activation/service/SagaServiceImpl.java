@@ -398,6 +398,7 @@ public class SagaServiceImpl implements SagaService {
     }
 
     @Transactional(readOnly = true)
+    @LogicExtensionPoint("FindTransactionById")
     @Override
     public Optional<SagaTransaction> findTransactionById(String id) {
         return transactionRepository.findOneById(id);
