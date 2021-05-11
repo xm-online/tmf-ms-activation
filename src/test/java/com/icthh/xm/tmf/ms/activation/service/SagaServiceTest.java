@@ -56,6 +56,7 @@ import static java.util.Optional.empty;
 import static java.util.Optional.of;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.stream.Collectors.toList;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.hasSize;
 import static org.junit.Assert.assertEquals;
@@ -95,6 +96,14 @@ public class SagaServiceTest {
     private SagaEventRepository sagaEventRepository;
     @Captor
     private ArgumentCaptor<SagaLog> sagaLogArgumentCaptor;
+    @Captor
+    private ArgumentCaptor<String> sagaTransactionIdCaptor;
+    @Captor
+    private ArgumentCaptor<String> sagaEventIdCaptor;
+    @Captor
+    private ArgumentCaptor<String> sagaEventToDeleteIdCaptor;
+    @Captor
+    private ArgumentCaptor<String> sagaEventTypeKeyCaptor;
 
     private Clock clock = Clock.fixed(Instant.now(), UTC);
 
@@ -254,6 +263,44 @@ public class SagaServiceTest {
         assertThat(rejected, hasSize(2));
         assertThat(List.of("NEXT-REJECTED-TASK", "NEXT-REJECTED-INSIDE-REJECTED-TASK"),
             containsInAnyOrder(extractEventTypeKey(rejected).toArray(new String[rejected.size()])));
+    }
+
+    @Test
+    public void testRejectTasksByConditionAndDeleteEvents() {
+        when(tenantUtils.getTenantKey()).thenReturn("XM");
+        String txId = UUID.randomUUID().toString();
+
+        String typeKey = "TASK-WITH-REJECTED-BY-CONDITION-TASK-AND-DELETED-EVENT";
+        String firstTaskKey = "FIRST-TASK";
+
+        SagaTransaction transaction = mockTx(txId, NEW).setTypeKey(typeKey);
+        when(transactionRepository.findById(txId)).thenReturn(of(transaction));
+        when(sagaEventRepository.existsById(anyString())).thenReturn(true);
+
+        SagaTransactionSpec transactionSpec = specService.getTransactionSpec(typeKey);
+        SagaTaskSpec firstTaskSpec = transactionSpec.getTask(firstTaskKey);
+
+        generateEvent(txId, firstTaskKey, "SECOND-TASK", transaction, firstTaskSpec);
+
+        verify(transactionRepository).findById(eq(txId));
+        verify(sagaEventRepository, times(1))
+            .findByTransactionIdAndTypeKey(sagaTransactionIdCaptor.capture(), sagaEventTypeKeyCaptor.capture());
+        verify(sagaEventRepository, times(1)).existsById(sagaEventIdCaptor.capture());
+        verify(sagaEventRepository, times(1)).deleteById(sagaEventToDeleteIdCaptor.capture());
+
+        List<String> transactionIds = sagaTransactionIdCaptor.getAllValues();
+        assertThat(transactionIds, hasSize(1));
+        assertThat(transactionIds, contains(txId));
+
+        List<String> eventsToBeDeleted = sagaEventTypeKeyCaptor.getAllValues();
+        assertThat(eventsToBeDeleted, hasSize(1));
+        assertEquals("REJECTED-TASK", eventsToBeDeleted.get(0));
+
+        List<String> eventIds = sagaEventIdCaptor.getAllValues();
+        assertThat(eventIds, hasSize(1));
+        List<String> eventsToDeleteIds = sagaEventToDeleteIdCaptor.getAllValues();
+        assertThat(eventIds, hasSize(1));
+        assertEquals(eventIds.get(0), eventsToDeleteIds.get(0));
     }
 
     private List<String> extractEventTypeKey(final List<SagaLog> started) {

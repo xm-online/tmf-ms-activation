@@ -55,7 +55,6 @@ import static com.icthh.xm.tmf.ms.activation.domain.spec.RetryPolicy.RETRY;
 import static com.icthh.xm.tmf.ms.activation.domain.spec.RetryPolicy.ROLLBACK;
 import static java.lang.Boolean.FALSE;
 import static java.lang.Boolean.TRUE;
-import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonList;
@@ -171,7 +170,7 @@ public class SagaServiceImpl implements SagaService {
             Set<String> nextTasks = new HashSet<>(taskSpec.getNext());
             Map<String, Object> taskContext = taskExecutor.executeTask(taskSpec, sagaEvent, transaction, continuation);
             nextTasks.removeAll(taskSpec.getNext());
-            nextTasks.forEach(task -> rejectTask(taskSpec.getKey(), task, context));
+            nextTasks.forEach(task -> rejectTask(transaction.getId(), taskSpec.getKey(), task, context));
             if (TRUE.equals(taskSpec.getIsSuspendable()) && !continuation.isContinuationFlag()) {
                 log.info("Task by event {} suspended. Transaction: {}. Time: {}ms", sagaEvent, transaction, stopWatch.getTime());
                 sagaEventRepository.save(sagaEvent.setStatus(SUSPENDED));
@@ -186,14 +185,16 @@ public class SagaServiceImpl implements SagaService {
         }
     }
 
-    private void rejectTask(final String currentTaskKey, String rejectKey, Context context) {
+    private void rejectTask(String transactionId, final String currentTaskKey, String rejectKey, Context context) {
         if (isPresentInOtherNotFinishedTasks(currentTaskKey, rejectKey, context) ||
             isTaskFinished(rejectKey, context.getTxId())) {
             return;
         }
         markAsRejectedByCondition(rejectKey, context);
+        Optional<SagaEvent> eventToDelete = sagaEventRepository.findByTransactionIdAndTypeKey(transactionId, rejectKey);
+        eventToDelete.ifPresent(this::deleteSagaEvent);
         SagaTaskSpec currentTask = context.getTransactionSpec().getTask(rejectKey);
-        currentTask.getNext().forEach(nextTask -> rejectTask(rejectKey, nextTask, context));
+        currentTask.getNext().forEach(nextTask -> rejectTask(transactionId, rejectKey, nextTask, context));
     }
 
     private boolean isPresentInOtherNotFinishedTasks(final String currentTaskKey, String rejectKey, Context context) {
