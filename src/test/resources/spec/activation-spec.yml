@@ -54,3 +54,11 @@ transactions:
       next:
         - NEXT-REJECTED-INSIDE-REJECTED-TASK
     - key: NEXT-REJECTED-INSIDE-REJECTED-TASK
+- key: TASK-WITH-REJECTED-BY-CONDITION-TASK-AND-DELETED-EVENT
+  tasks:
+    - key: FIRST-TASK
+      next:
+        - SECOND-TASK
+        - REJECTED-TASK
+    - key: SECOND-TASK
+    - key: REJECTED-TASK
