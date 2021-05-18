@@ -32,7 +32,7 @@ public class ServiceResourceApiImpl implements ServiceResourceApiDelegate {
 
     private final SagaService sagaService;
     private final SagaTransactionFactory sagaTransactionFactory;
-    private final ResponseEnricherServiceImpl serviceResourceHelper;
+    private final ResponseEnricherServiceImpl responseEnricher;
 
     @Timed
     @PreAuthorize("hasPermission({'service': #service}, 'ACTIVATION.ACTION.SERVICE')")
@@ -62,7 +62,7 @@ public class ServiceResourceApiImpl implements ServiceResourceApiDelegate {
             sagaTransactionFactory.createSagaTransaction(service.getServiceSpecification().getId(), params);
         SagaTransaction saga = sagaService.createNewSaga(sagaTransaction);
 
-        Service createdService = serviceResourceHelper.enrichServiceResponse(service, saga);
+        Service createdService = responseEnricher.enrichServiceResponse(service, saga);
 
         return status(HttpStatus.CREATED).body(createdService);
     }
