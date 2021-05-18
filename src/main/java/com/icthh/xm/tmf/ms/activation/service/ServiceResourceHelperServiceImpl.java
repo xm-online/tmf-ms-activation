@@ -8,9 +8,7 @@ import com.icthh.xm.tmf.ms.activation.model.v4.Service;
 import com.icthh.xm.tmf.ms.activation.model.v4.ServiceCreate;
 import com.icthh.xm.tmf.ms.activation.resolver.TransactionTypeKeyResolver;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 
-@Slf4j
 @RequiredArgsConstructor
 @LepService(group = "service.resource")
 @org.springframework.stereotype.Service
