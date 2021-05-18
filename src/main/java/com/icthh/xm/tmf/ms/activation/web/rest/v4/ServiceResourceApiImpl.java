@@ -8,11 +8,11 @@ import com.codahale.metrics.annotation.Timed;
 import com.icthh.xm.commons.permission.annotation.PrivilegeDescription;
 import com.icthh.xm.tmf.ms.activation.api.v4.ServiceResourceApiDelegate;
 import com.icthh.xm.tmf.ms.activation.domain.SagaTransaction;
-import com.icthh.xm.tmf.ms.activation.mapper.ServiceMapper;
 import com.icthh.xm.tmf.ms.activation.model.v4.Service;
 import com.icthh.xm.tmf.ms.activation.model.v4.ServiceCreate;
 import com.icthh.xm.tmf.ms.activation.service.SagaService;
 import com.icthh.xm.tmf.ms.activation.service.SagaTransactionFactory;
+import com.icthh.xm.tmf.ms.activation.service.ResponseEnricherServiceImpl;
 import java.util.HashMap;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
@@ -30,10 +30,9 @@ public class ServiceResourceApiImpl implements ServiceResourceApiDelegate {
     private static final String RELATED_PARTY_ID = "relatedParty.id";
     private static final String RELATED_PARTY_REFERRED_TYPE = "relatedParty.referredType";
 
-
-    private final ServiceMapper serviceMapper;
     private final SagaService sagaService;
     private final SagaTransactionFactory sagaTransactionFactory;
+    private final ResponseEnricherServiceImpl responseEnricher;
 
     @Timed
     @PreAuthorize("hasPermission({'service': #service}, 'ACTIVATION.ACTION.SERVICE')")
@@ -63,8 +62,8 @@ public class ServiceResourceApiImpl implements ServiceResourceApiDelegate {
             sagaTransactionFactory.createSagaTransaction(service.getServiceSpecification().getId(), params);
         SagaTransaction saga = sagaService.createNewSaga(sagaTransaction);
 
-        Service createdService = serviceMapper.serviceCreateToService(service);
-        createdService.setId(saga.getId());
+        Service createdService = responseEnricher.enrichServiceResponse(service, saga);
+
         return status(HttpStatus.CREATED).body(createdService);
     }
 }

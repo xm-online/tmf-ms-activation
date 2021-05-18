@@ -19,6 +19,7 @@ import com.icthh.xm.tmf.ms.activation.model.v4.ServiceSpecificationRef;
 import com.icthh.xm.tmf.ms.activation.model.v4.ServiceStateType;
 import com.icthh.xm.tmf.ms.activation.service.SagaService;
 import com.icthh.xm.tmf.ms.activation.service.SagaTransactionFactory;
+import com.icthh.xm.tmf.ms.activation.service.ResponseEnricherServiceImpl;
 import com.icthh.xm.tmf.ms.activation.web.rest.TestUtil;
 import java.util.Collections;
 import java.util.HashMap;
@@ -39,7 +40,7 @@ import org.springframework.test.web.servlet.MockMvc;
 @RunWith(SpringRunner.class)
 @WebMvcTest(controllers = ServiceResourceApiController.class, secure = false)
 @ContextConfiguration(classes = {ServiceResourceApiController.class, ServiceResourceApiImpl.class,
-    ExceptionTranslator.class, ServiceMapperImpl.class})
+    ExceptionTranslator.class, ResponseEnricherServiceImpl.class, ServiceMapperImpl.class})
 public class ServiceResourceApiImplTest {
 
     @MockBean
