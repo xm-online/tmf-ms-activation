@@ -12,7 +12,7 @@ import com.icthh.xm.tmf.ms.activation.model.v4.Service;
 import com.icthh.xm.tmf.ms.activation.model.v4.ServiceCreate;
 import com.icthh.xm.tmf.ms.activation.service.SagaService;
 import com.icthh.xm.tmf.ms.activation.service.SagaTransactionFactory;
-import com.icthh.xm.tmf.ms.activation.service.ServiceResourceHelperService;
+import com.icthh.xm.tmf.ms.activation.service.ResponseEnricherServiceImpl;
 import java.util.HashMap;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
@@ -32,7 +32,7 @@ public class ServiceResourceApiImpl implements ServiceResourceApiDelegate {
 
     private final SagaService sagaService;
     private final SagaTransactionFactory sagaTransactionFactory;
-    private final ServiceResourceHelperService serviceResourceHelper;
+    private final ResponseEnricherServiceImpl serviceResourceHelper;
 
     @Timed
     @PreAuthorize("hasPermission({'service': #service}, 'ACTIVATION.ACTION.SERVICE')")
