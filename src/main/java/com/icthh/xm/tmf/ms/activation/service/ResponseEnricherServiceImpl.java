@@ -11,7 +11,6 @@ import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
 @LepService(group = "service.resource")
-@org.springframework.stereotype.Service
 public class ResponseEnricherServiceImpl implements ResponseEnricherService {
 
     private final ServiceMapper serviceMapper;
