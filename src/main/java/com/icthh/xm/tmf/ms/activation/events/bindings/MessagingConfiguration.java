@@ -31,6 +31,7 @@ import org.springframework.boot.actuate.health.HealthIndicatorRegistry;
 import org.springframework.cloud.stream.annotation.EnableBinding;
 import org.springframework.cloud.stream.binder.ConsumerProperties;
 import org.springframework.cloud.stream.binder.HeaderMode;
+import org.springframework.cloud.stream.binder.PollableMessageSource;
 import org.springframework.cloud.stream.binder.kafka.KafkaBinderHealthIndicator;
 import org.springframework.cloud.stream.binder.kafka.KafkaMessageChannelBinder;
 import org.springframework.cloud.stream.binder.kafka.config.KafkaBinderConfiguration;
@@ -38,7 +39,7 @@ import org.springframework.cloud.stream.binder.kafka.properties.KafkaBindingProp
 import org.springframework.cloud.stream.binder.kafka.properties.KafkaConsumerProperties.StartOffset;
 import org.springframework.cloud.stream.binder.kafka.properties.KafkaExtendedBindingProperties;
 import org.springframework.cloud.stream.binding.BindingService;
-import org.springframework.cloud.stream.binding.SubscribableChannelBindingTargetFactory;
+import org.springframework.cloud.stream.binding.MessageSourceBindingTargetFactory;
 import org.springframework.cloud.stream.config.BindingProperties;
 import org.springframework.cloud.stream.config.BindingServiceProperties;
 import org.springframework.context.annotation.Import;
@@ -46,7 +47,6 @@ import org.springframework.integration.config.EnableIntegration;
 import org.springframework.kafka.support.Acknowledgment;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageHeaders;
-import org.springframework.messaging.SubscribableChannel;
 import org.springframework.stereotype.Component;
 
 @Slf4j
@@ -60,10 +60,10 @@ public class MessagingConfiguration implements RefreshableConfiguration {
     public static final String SAGA_EVENTS_PREFIX = "saga-events-";
     private static final String KAFKA = "kafka";
     private final BindingServiceProperties bindingServiceProperties;
-    private final SubscribableChannelBindingTargetFactory bindingTargetFactory;
+    private final MessageSourceBindingTargetFactory bindingTargetFactory;
     private final BindingService bindingService;
     private final KafkaExtendedBindingProperties kafkaExtendedBindingProperties = new KafkaExtendedBindingProperties();
-    private final Map<String, SubscribableChannel> channels = new ConcurrentHashMap<>();
+    private final Map<String, PollableMessageSource> channels = new ConcurrentHashMap<>();
     private final ObjectMapper objectMapper;
     private final EventHandler eventHandler;
     private CompositeHealthIndicator bindersHealthIndicator;
@@ -75,7 +75,7 @@ public class MessagingConfiguration implements RefreshableConfiguration {
 
     @Autowired
     public MessagingConfiguration(BindingServiceProperties bindingServiceProperties,
-                                  SubscribableChannelBindingTargetFactory bindingTargetFactory,
+                                  MessageSourceBindingTargetFactory bindingTargetFactory,
                                   BindingService bindingService, KafkaMessageChannelBinder kafkaMessageChannelBinder,
                                   ObjectMapper objectMapper, EventHandler eventHandler,
                                   CompositeHealthIndicator bindersHealthIndicator,
@@ -131,7 +131,7 @@ public class MessagingConfiguration implements RefreshableConfiguration {
             bindingProperties.setGroup(consumerGroup);
             bindingServiceProperties.setBindings(Collections.singletonMap(chanelName, bindingProperties));
 
-            SubscribableChannel channel = bindingTargetFactory.createInput(chanelName);
+            PollableMessageSource channel = bindingTargetFactory.createInput(chanelName);
             bindingService.bindConsumer(channel, chanelName);
 
             HealthIndicatorRegistry registry = bindersHealthIndicator.getRegistry();
@@ -141,7 +141,7 @@ public class MessagingConfiguration implements RefreshableConfiguration {
 
             channels.put(chanelName, channel);
 
-            channel.subscribe(message -> {
+            channel.poll(message -> {
                 try {
                     MdcUtils.putRid(MdcUtils.generateRid() + ":" + tenantName);
                     handleEvent(tenantName, message);
