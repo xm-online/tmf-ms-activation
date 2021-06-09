@@ -59,6 +59,13 @@ spring:
                     autoCreateTopics: true
                     autoAddPartitions: true
                     minPartitionCount: 16
+                    headers:
+                      - X-B3-TraceId
+                      - X-B3-SpanId
+                      - X-B3-Sampled
+                      - X-B3-ParentSpanId
+                      - X-Span-Name
+                      - X-Span-Export
             # The maximum number of deployed instances of the application.
             # If we use the default or value less than real count of instances,
             # several instances won't have access to the Kafka at the same time
