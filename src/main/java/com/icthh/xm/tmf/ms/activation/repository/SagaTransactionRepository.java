@@ -8,11 +8,13 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
-public interface SagaTransactionRepository extends JpaRepository<SagaTransaction, String> {
+public interface SagaTransactionRepository extends JpaRepository<SagaTransaction, String>, ExtendedSagaTransactionRepository {
 
     Page<SagaTransaction> findAllBySagaTransactionState(SagaTransactionState sagaTransactionState, Pageable pageable);
 
     long countByCreateDateBeforeAndSagaTransactionState(Instant date, SagaTransactionState state);
+
+    long countByCreateDateBeforeAndSagaTransactionStateAndTypeKey(Instant date, SagaTransactionState state, String typeKey);
 
     Optional<SagaTransaction> findByKey(String key);
 

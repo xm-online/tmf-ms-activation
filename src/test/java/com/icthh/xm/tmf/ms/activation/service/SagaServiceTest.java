@@ -1,5 +1,6 @@
 package com.icthh.xm.tmf.ms.activation.service;
 
+import com.icthh.xm.tmf.ms.activation.config.SagaTransactionSpecificationMetric;
 import com.icthh.xm.tmf.ms.activation.domain.SagaEvent;
 import com.icthh.xm.tmf.ms.activation.domain.SagaLog;
 import com.icthh.xm.tmf.ms.activation.domain.SagaLogType;
@@ -94,6 +95,8 @@ public class SagaServiceTest {
     private RetryService retryService;
     @Mock
     private SagaEventRepository sagaEventRepository;
+    @Mock
+    private SagaTransactionSpecificationMetric sagaTransactionSpecificationMetric;
     @Captor
     private ArgumentCaptor<SagaLog> sagaLogArgumentCaptor;
     @Captor
@@ -117,13 +120,14 @@ public class SagaServiceTest {
 
     @Before
     public void before() throws IOException {
-        specService = new SagaSpecService(tenantUtils);
+        specService = new SagaSpecService(tenantUtils, sagaTransactionSpecificationMetric);
         sagaService = new SagaServiceImpl(logRepository, transactionRepository, specService, eventsManager,
             tenantUtils, taskExecutor, retryService, sagaEventRepository);
         sagaService.setClock(clock);
         sagaService.setSelf(sagaService);
         specService.onRefresh("/config/tenants/XM/activation/activation-spec.yml", loadFile("spec/activation-spec.yml"));
         when(taskExecutor.onCheckWaitCondition(any(), any(), any())).thenReturn(true);
+        verify(sagaTransactionSpecificationMetric).initMetrics(anyString(), any());
     }
 
     public static String loadFile(String path) throws IOException {
