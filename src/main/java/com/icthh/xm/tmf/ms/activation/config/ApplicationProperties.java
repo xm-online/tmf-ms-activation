@@ -39,6 +39,7 @@ public class ApplicationProperties {
     public static class Lep {
         private TenantScriptStorage tenantScriptStorage;
         private String lepResourcePathPattern;
+        private Boolean fullRecompileOnLepUpdate;
     }
 
     private int retryThreadCount;
