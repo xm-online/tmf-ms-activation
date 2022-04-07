@@ -7,6 +7,7 @@
     <include file="config/liquibase/changelog/00000000000000_initial_schema.xml" relativeToChangelogFile="false"/>
     <include file="config/liquibase/changelog/20190211122000_add_create_date.xml" relativeToChangelogFile="false"/>
     <include file="config/liquibase/changelog/20200123143900_add_uniq_key_to_transaction.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20220503154000_add_index_into_activation_sources.xml" relativeToChangelogFile="false"/>
 
     <!-- jhipster-needle-liquibase-add-changelog - JHipster will add liquibase changelogs here -->
     <!-- jhipster-needle-liquibase-add-constraints-changelog - JHipster will add liquibase constraints changelogs here -->
