@@ -44,6 +44,18 @@ public class ServiceResourceApiImpl implements ServiceResourceApiDelegate {
     @PrivilegeDescription("Privilege to create service")
     @Override
     public ResponseEntity<Service> createService(ServiceCreate service) {
+        Map<String, Object> params = collectContext(service);
+
+        SagaTransaction sagaTransaction = sagaTransactionFactory
+            .createSagaTransaction(service.getServiceSpecification().getId(), params);
+        SagaTransaction saga = sagaService.createNewSaga(sagaTransaction);
+
+        Service createdService = responseEnricher.enrichServiceResponse(service, saga);
+
+        return status(HttpStatus.CREATED).body(createdService);
+    }
+
+    private Map<String, Object> collectContext(ServiceCreate service) {
         Map<String, Object> params = new HashMap<>();
         if (isNotEmpty(service.getRelatedParty())) {
             service.getRelatedParty().stream()
@@ -54,14 +66,13 @@ public class ServiceResourceApiImpl implements ServiceResourceApiDelegate {
             service.getRelatedParty().stream()
                 .findFirst()
                 .ifPresent(relatedParty -> {
-                        params.put(RELATED_PARTY_ID, relatedParty.getId());
-                        params.put(RELATED_PARTY_REFERRED_TYPE, relatedParty.getAtReferredType());
+                    params.put(RELATED_PARTY_ID, relatedParty.getId());
+                    params.put(RELATED_PARTY_REFERRED_TYPE, relatedParty.getAtReferredType());
                 });
         }
         if (isNotEmpty(service.getServiceCharacteristic())) {
             service.getServiceCharacteristic().forEach(ch -> params.put(ch.getName(), ch.getValue()));
         }
-        ofNullable(service.getState()).ifPresent(state -> params.put(STATE, state));
         if (isNotEmpty(service.getServiceOrderItem())) {
             List<Map<String, String>> orderItems = service.getServiceOrderItem().stream()
                 .map(serviceOrderItem -> Map.of(ITEM_ID, serviceOrderItem.getItemId(),
@@ -69,13 +80,7 @@ public class ServiceResourceApiImpl implements ServiceResourceApiDelegate {
                 .collect(Collectors.toList());
             params.put(SERVICE_ORDER_ITEM, orderItems);
         }
-
-        SagaTransaction sagaTransaction =
-            sagaTransactionFactory.createSagaTransaction(service.getServiceSpecification().getId(), params);
-        SagaTransaction saga = sagaService.createNewSaga(sagaTransaction);
-
-        Service createdService = responseEnricher.enrichServiceResponse(service, saga);
-
-        return status(HttpStatus.CREATED).body(createdService);
+        ofNullable(service.getState()).ifPresent(state -> params.put(STATE, state));
+        return params;
     }
 }
