@@ -24,7 +24,7 @@ public class SagaTaskExecutor {
     }
 
     @LogicExtensionPoint(value = "OnFinish", resolver = TransactionTypeKeyResolver.class)
-    public void onFinish(SagaTransaction sagaTransaction) {
+    public void onFinish(SagaTransaction sagaTransaction, Map<String, Object> taskContext) {
         log.info("Script for finish not found. Transaction {}.", sagaTransaction);
     }
 
