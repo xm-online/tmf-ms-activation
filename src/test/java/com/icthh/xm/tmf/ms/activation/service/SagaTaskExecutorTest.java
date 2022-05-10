@@ -4,6 +4,7 @@ import static com.icthh.xm.commons.lep.XmLepConstants.THREAD_CONTEXT_KEY_AUTH_CO
 import static com.icthh.xm.commons.lep.XmLepConstants.THREAD_CONTEXT_KEY_TENANT_CONTEXT;
 import static java.lang.Boolean.parseBoolean;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.when;
 
@@ -20,6 +21,7 @@ import com.icthh.xm.tmf.ms.activation.domain.SagaTransaction;
 import com.icthh.xm.tmf.ms.activation.domain.spec.SagaTaskSpec;
 import com.icthh.xm.tmf.ms.activation.domain.spec.SagaTransactionSpec;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import lombok.SneakyThrows;
@@ -158,7 +160,7 @@ public class SagaTaskExecutorTest {
         var result = sagaTaskExecutor.executeTask(taskSpec, null, sagaTransaction, null);
         assertTrue("Task executed before lep created", result.isEmpty());
 
-        sagaTaskExecutor.onFinish(sagaTransaction);
+        sagaTaskExecutor.onFinish(sagaTransaction, Map.of());
         assertTrue("OnFinish executed before lep created", sagaTransaction.getContext().isEmpty());
 
         String translatedTypeKey = translateToLepConvention(typeKey);
@@ -171,13 +173,16 @@ public class SagaTaskExecutorTest {
         boolean isSuccess = parseBoolean(String.valueOf(taskResult.get("isSuccess")));
         assertTrue("Task not executed after lep created", isSuccess);
 
-        String onFinishBody = "lepContext.inArgs.sagaTransaction.context.isSuccess = true";
+        String onFinishBody = "lepContext.inArgs.sagaTransaction.context.isSuccess = true \n"
+            + "lepContext.inArgs.sagaTransaction.context.taskResult = lepContext.inArgs.taskContext.taskResult";
         String onFinishPath = basePath + path + "OnFinish$$" + translatedTypeKey + "$$around.groovy";
         log.info("On finish path {}", onFinishPath);
         lepResourceLoader.onRefresh(onFinishPath, onFinishBody);
-        sagaTaskExecutor.onFinish(sagaTransaction);
+        sagaTaskExecutor.onFinish(sagaTransaction, Map.of("taskResult", "success"));
         boolean isSuccessOnFinish = parseBoolean(String.valueOf(sagaTransaction.getContext().get("isSuccess")));
         assertTrue("OnFinish not executed after lep created", isSuccessOnFinish);
+        String taskResultOnFinish = String.valueOf(sagaTransaction.getContext().get("taskResult"));
+        assertEquals("OnFinish not executed after lep created", "success", taskResultOnFinish);
     }
 
     private static String translateToLepConvention(String xmEntitySpecKey) {

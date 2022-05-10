@@ -257,7 +257,7 @@ public class SagaServiceImpl implements SagaService {
         List<SagaTaskSpec> tasks = taskSpec.getNext().stream().map(transactionSpec::getTask).collect(toList());
         generateEvents(transaction.getId(), tasks, taskContext);
         writeLog(sagaEvent, transaction, EVENT_END);
-        updateTransactionStatus(transaction, transactionSpec);
+        updateTransactionStatus(transaction, transactionSpec, taskContext);
     }
 
     @LogicExtensionPoint(value = "OnResendEvent")
@@ -348,7 +348,7 @@ public class SagaServiceImpl implements SagaService {
         SagaTransactionSpec transactionSpec = context.getTransactionSpec();
         if (isTaskFinished(sagaEvent.getTypeKey(), context.getTxId())) {
             log.warn("Task is already finished. Event {} skipped. Transaction {}.", transaction, sagaEvent);
-            updateTransactionStatus(transaction, transactionSpec);
+            updateTransactionStatus(transaction, transactionSpec, sagaEvent.getTaskContext());
             return false;
         }
         return true;
@@ -462,12 +462,14 @@ public class SagaServiceImpl implements SagaService {
             .forEach(eventsManager::sendEvent);
     }
 
-    private void updateTransactionStatus(SagaTransaction transaction, SagaTransactionSpec transactionSpec) {
+    private void updateTransactionStatus(SagaTransaction transaction, SagaTransactionSpec transactionSpec,
+                                         Map<String, Object> taskContext) {
+
         List<String> txTasks = transactionSpec.getTasks().stream().map(SagaTaskSpec::getKey).collect(toList());
         Collection<String> notFinishedTasks = getNotFinishedTasks(transaction.getId(), txTasks);
         if (notFinishedTasks.isEmpty()) {
             transactionRepository.save(transaction.setSagaTransactionState(FINISHED));
-            taskExecutor.onFinish(transaction);
+            taskExecutor.onFinish(transaction, taskContext);
         }
     }
 
