@@ -65,6 +65,7 @@ public class RetryService {
         sagaEventRepository.findByStatus(WAIT_CONDITION_TASK).forEach(this::doResend);
     }
 
+    @LogicExtensionPoint(value = "OnRetry")
     public void retry(SagaEvent sagaEvent, SagaTransaction sagaTransaction, SagaTaskSpec sagaTaskSpec, SagaEvent.SagaEventStatus eventStatus) {
         long backOff = Math.min(sagaTaskSpec.getMaxBackOff(), sagaEvent.getBackOff() + sagaTaskSpec.getBackOff());
         sagaEvent.setBackOff(backOff);
@@ -155,18 +156,26 @@ public class RetryService {
     }
 
     private void resendEvent(SagaEvent event) {
+        final String txId = event.getTransactionId();
+        if (isTxCanceled(txId)) {
+            log.info("Resend event not allowed. Transaction:{} canceled", txId);
+            return;
+        }
         log.info("Resend event: {}", event);
         event.markAsInQueue();
         event = sagaEventRepository.save(event);
 
         //we need to commit saga transaction state to DB before send event to kafka
-        final String txId = event.getTransactionId();
         separateTransactionExecutor.doInSeparateTransaction(() -> {
             changeTransactionState(txId, SagaTransactionState.NEW);
             return Optional.empty();
         });
-
         eventsSender.sendEvent(event);
+    }
+
+    private boolean isTxCanceled(final String txId) {
+        SagaTransaction sagaTransaction = transactionRepository.findById(txId).orElseThrow();
+        return sagaTransaction.getSagaTransactionState().equals(SagaTransactionState.CANCELED);
     }
 
     @Autowired
