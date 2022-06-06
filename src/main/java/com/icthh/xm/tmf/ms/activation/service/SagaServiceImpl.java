@@ -491,7 +491,6 @@ public class SagaServiceImpl implements SagaService {
 
     private void exceptionFailHandler(SagaEvent sagaEvent, Exception e) {
         SagaEventError error = new SagaEventError().setDescription(e.getMessage());
-        error.setDescription(e.getMessage());
         if (e instanceof BusinessException) {
             BusinessException be = (BusinessException) e;
             error.setCode(be.getCode());
