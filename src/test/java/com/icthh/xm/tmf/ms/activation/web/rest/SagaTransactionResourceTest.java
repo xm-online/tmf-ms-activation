@@ -6,6 +6,7 @@ import static com.icthh.xm.tmf.ms.activation.domain.SagaLogType.EVENT_END;
 import static com.icthh.xm.tmf.ms.activation.domain.SagaLogType.EVENT_START;
 import static com.icthh.xm.tmf.ms.activation.domain.SagaTransactionState.NEW;
 import static java.util.Arrays.asList;
+import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasItem;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
@@ -25,6 +26,8 @@ import com.icthh.xm.tmf.ms.activation.domain.SagaTransaction;
 import com.icthh.xm.tmf.ms.activation.domain.SagaTransactionState;
 import com.icthh.xm.tmf.ms.activation.service.SagaService;
 import java.util.List;
+import java.util.Optional;
+
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.Before;
@@ -122,6 +125,24 @@ public class SagaTransactionResourceTest {
                .andExpect(status().isOk());
 
         verify(sagaService).getEventsByTransaction(eq("5"));
+    }
+
+    @Test
+    @SneakyThrows
+    public void getEventById() {
+
+        SagaEvent event = event("1", "TK", ON_RETRY);
+        when(sagaService.getEventById("1")).thenReturn(Optional.of(event));
+
+        mockMvc.perform(get("/api/internal/transaction/events/{id}", "1")
+                .contentType(TestUtil.APPLICATION_JSON_UTF8))
+            .andDo(print())
+            .andExpect(jsonPath("$.id").value(equalTo("1")))
+            .andExpect(jsonPath("$.typeKey").value(equalTo("TK")))
+            .andExpect(jsonPath("$.status").value(equalTo("ON_RETRY")))
+            .andExpect(status().isOk());
+
+        verify(sagaService).getEventById(eq("1"));
     }
 
     @Test

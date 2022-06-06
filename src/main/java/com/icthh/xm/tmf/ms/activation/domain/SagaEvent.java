@@ -11,6 +11,7 @@ import java.util.Map;
 import java.util.UUID;
 import javax.persistence.Column;
 import javax.persistence.Convert;
+import javax.persistence.Embedded;
 import javax.persistence.Entity;
 import javax.persistence.EnumType;
 import javax.persistence.Enumerated;
@@ -46,6 +47,9 @@ public class SagaEvent implements Serializable {
     @Column(name = "status")
     @Enumerated(EnumType.STRING)
     private SagaEventStatus status;
+
+    @Embedded
+    private SagaEventError error;
 
     @Column(name = "create_date")
     private Instant createDate;
