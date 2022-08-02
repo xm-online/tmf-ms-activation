@@ -198,6 +198,7 @@ application:
     lep:
         tenant-script-storage: XM_MS_CONFIG
         lep-resource-path-pattern: /config/tenants/{tenantName}/activation/lep/resources/**/*
+        full-recompile-on-lep-update: true
     retry:
         max-attempts: 3
         delay: 1000 #in milliseconds

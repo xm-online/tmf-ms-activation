@@ -134,8 +134,13 @@ public class RetryServiceTest {
         SagaEvent sagaEvent = newSagaEvent(txId, id);
 
         //return new TX object each time for state transition verifying
-        when(transactionRepository.findById(eq(txId))).thenReturn(Optional.of(newSagaTransaction(txId)),
-            Optional.of(newSagaTransaction(txId)), Optional.of(newSagaTransaction(txId)), Optional.of(newSagaTransaction(txId)));
+        when(transactionRepository.findById(eq(txId))).thenReturn(
+            //4 calls in RetryService.changeTransactionState
+            Optional.of(newSagaTransaction(txId)), Optional.of(newSagaTransaction(txId)),
+            Optional.of(newSagaTransaction(txId)), Optional.of(newSagaTransaction(txId)),
+            //3 calls in RetryService.isTxStateChangeAllowed
+            Optional.of(newSagaTransaction(txId)), Optional.of(newSagaTransaction(txId)),
+            Optional.of(newSagaTransaction(txId)));
 
         final String[] excludedFields = new String[]{"backOff", "taskContext", "createDate", "retryNumber"};
 
@@ -227,6 +232,10 @@ public class RetryServiceTest {
         return mockTx().setId(txId).setSagaTransactionState(SagaTransactionState.FAILED);
     }
 
+    private SagaTransaction canceledSagaTransaction(String txId) {
+        return mockTx().setId(txId).setSagaTransactionState(SagaTransactionState.CANCELED);
+    }
+
     @SneakyThrows
     public static String loadFile(String path) {
         InputStream cfgInputStream = new ClassPathResource(path).getInputStream();
@@ -264,9 +273,9 @@ public class RetryServiceTest {
 
         //create new TX object for state transition verifying
         when(transactionRepository.findById(eq(txId)))
-            .thenReturn(Optional.of(mockTx(txId)),
-                Optional.of(mockTx(txId)),
-                Optional.of(mockTx(txId)),
+            .thenReturn(Optional.of(mockTx(txId)), Optional.of(mockTx(txId)),
+                Optional.of(mockTx(txId)), Optional.of(mockTx(txId)),
+                Optional.of(mockTx(txId)), Optional.of(mockTx(txId)),
                 Optional.of(mockTx(txId)));
 
         final String[] excludedFields = new String[]{"backOff", "taskContext", "createDate", "retryNumber", "status"};
@@ -312,9 +321,9 @@ public class RetryServiceTest {
 
         //create new TX object for state transition verifying
         when(transactionRepository.findById(eq(txId)))
-            .thenReturn(Optional.of(mockTx(txId)),
-                Optional.of(mockTx(txId)),
-                Optional.of(mockTx(txId)),
+            .thenReturn(Optional.of(mockTx(txId)), Optional.of(mockTx(txId)),
+                Optional.of(mockTx(txId)), Optional.of(mockTx(txId)),
+                Optional.of(mockTx(txId)), Optional.of(mockTx(txId)),
                 Optional.of(mockTx(txId)));
 
         final String[] excludedFields = new String[]{"backOff", "taskContext", "createDate", "retryNumber", "status"};
@@ -376,4 +385,66 @@ public class RetryServiceTest {
         verifyNoMoreInteractions(eventsSender);
         verifyNoMoreInteractions(eventRepository);
     }
+
+    @Test
+    @SneakyThrows
+    public void shouldNotRetryIfTrxWasCanceled() {
+        lepResourceLoader.onRefresh("/config/tenants/XM/activation/lep/service/retry/RetryLimitExceeded$$around.groovy", loadFile("/lep/RetryLimitExceeded$$around.groovy"));
+
+        final String txId = UUID.randomUUID().toString();
+        final String id = UUID.randomUUID().toString();
+        final SagaTransaction transaction = mockTx().setId(txId);
+        final int maxRetryCount = 3;
+        CountDownLatch countDownLatch = new CountDownLatch(maxRetryCount);
+
+        SagaEvent sagaEvent = newSagaEvent(txId, id);
+
+        //return new TX object each time for state transition verifying
+        when(transactionRepository.findById(eq(txId))).thenReturn(
+            Optional.of(newSagaTransaction(txId)),
+            Optional.of(newSagaTransaction(txId)),
+            Optional.of(canceledSagaTransaction(txId)));
+
+        final String[] excludedFields = new String[]{"backOff", "taskContext", "createDate", "retryNumber"};
+
+        //return new event object each time for state transition verifying
+        when(eventRepository.save(refEq(onRetrySagaEvent(txId, id), excludedFields)))
+            .thenReturn(onRetrySagaEvent(txId, id), onRetrySagaEvent(txId, id));
+        when(eventRepository.save(refEq(inQueueSagaEvent(txId, id), excludedFields)))
+            .thenReturn(inQueueSagaEvent(txId, id));
+
+        //return new event object each time for state transition verifying
+        when(eventRepository.findById(eq(id))).thenReturn(
+            Optional.of(onRetrySagaEvent(txId, id)),
+            Optional.of(onRetrySagaEvent(txId, id)));
+
+        SagaTaskSpec task = sagaSpecService.getTransactionSpec(TYPE_KEY).getTask(FIRST_TASK_KEY);
+
+        Mockito.doAnswer(invocation -> {
+            SagaEvent event = (SagaEvent) invocation.getArguments()[0];
+            event.setRetryNumber(maxRetryCount - countDownLatch.getCount() + 1);
+            retryService.retry(event, transaction, task, ON_RETRY);
+            countDownLatch.countDown();
+            return event;
+        }).when(eventsSender).sendEvent(refEq(inQueueSagaEvent(txId, id), excludedFields));
+
+        retryService.retry(sagaEvent, transaction, task, ON_RETRY);
+        countDownLatch.await(5, TimeUnit.SECONDS);
+
+        verify(eventRepository, times(2)).findById(eq(id));
+
+        verify(eventRepository, times(1)).save(
+            refEq(inQueueSagaEvent(txId, id), "backOff", "taskContext", "retryNumber", "createDate"));
+
+        verify(eventRepository, times(2)).save(
+            refEq(onRetrySagaEvent(txId, id), "backOff", "taskContext", "retryNumber", "createDate"));
+
+        verify(eventsSender, times(1)).sendEvent(any());
+        //verify that TX was saved with state NEW 1 times
+        verify(transactionRepository, times(1)).save(newSagaTransaction(txId));
+
+        verifyNoMoreInteractions(eventsSender);
+        verifyNoMoreInteractions(eventRepository);
+    }
+
 }

@@ -11,6 +11,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.icthh.xm.commons.config.client.api.RefreshableConfiguration;
 import com.icthh.xm.commons.config.domain.TenantState;
+import com.icthh.xm.commons.logging.trace.SleuthWrapper;
 import com.icthh.xm.commons.logging.util.MdcUtils;
 import com.icthh.xm.tmf.ms.activation.config.ApplicationProperties;
 import com.icthh.xm.tmf.ms.activation.domain.SagaEvent;
@@ -70,6 +71,8 @@ public class MessagingConfiguration implements RefreshableConfiguration {
     private KafkaBinderHealthIndicator kafkaBinderHealthIndicator;
     private final ApplicationProperties applicationProperties;
 
+    private final SleuthWrapper sleuthWrapper;
+
     @Value("${spring.application.name}")
     private String appName;
 
@@ -80,7 +83,8 @@ public class MessagingConfiguration implements RefreshableConfiguration {
                                   ObjectMapper objectMapper, EventHandler eventHandler,
                                   CompositeHealthIndicator bindersHealthIndicator,
                                   KafkaBinderHealthIndicator kafkaBinderHealthIndicator,
-                                  ApplicationProperties applicationProperties) {
+                                  ApplicationProperties applicationProperties,
+                                  SleuthWrapper sleuthWrapper) {
         this.bindingServiceProperties = bindingServiceProperties;
         this.bindingTargetFactory = bindingTargetFactory;
         this.bindingService = bindingService;
@@ -89,6 +93,7 @@ public class MessagingConfiguration implements RefreshableConfiguration {
         this.bindersHealthIndicator = bindersHealthIndicator;
         this.kafkaBinderHealthIndicator = kafkaBinderHealthIndicator;
         this.applicationProperties = applicationProperties;
+        this.sleuthWrapper = sleuthWrapper;
 
         kafkaMessageChannelBinder.setExtendedBindingProperties(kafkaExtendedBindingProperties);
     }
@@ -144,7 +149,7 @@ public class MessagingConfiguration implements RefreshableConfiguration {
             channel.subscribe(message -> {
                 try {
                     MdcUtils.putRid(MdcUtils.generateRid() + ":" + tenantName);
-                    handleEvent(tenantName, message);
+                    sleuthWrapper.runWithSleuth(message, () -> handleEvent(tenantName, message));
                 } catch (Exception e) {
                     log.error("error processing event for tenant [{}]", tenantName, e);
                     throw e;
