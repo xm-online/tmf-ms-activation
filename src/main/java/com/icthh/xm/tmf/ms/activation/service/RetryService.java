@@ -1,6 +1,7 @@
 package com.icthh.xm.tmf.ms.activation.service;
 
 import com.google.common.base.Predicate;
+import com.icthh.xm.commons.config.client.repository.TenantListRepository;
 import com.icthh.xm.commons.exceptions.EntityNotFoundException;
 import com.icthh.xm.commons.lep.LogicExtensionPoint;
 import com.icthh.xm.commons.lep.spring.LepService;
@@ -49,13 +50,19 @@ public class RetryService {
     private final TenantUtils tenantUtils;
     private final SeparateTransactionExecutor separateTransactionExecutor;
 
+    private final TenantListRepository tenantListRepository;
+
     private final Map<String, Boolean> scheduledEventsId = new ConcurrentHashMap<>();
 
     private RetryService self;
 
     @PostConstruct
     public void postConstruct() {
-        self.rescheduleAllEvents();
+        tenantListRepository.getTenants().forEach(tenant -> {
+            tenantUtils.doInTenantContext(() -> {
+                self.rescheduleAllEvents();
+            }, tenant);
+        });
     }
 
     @Transactional
