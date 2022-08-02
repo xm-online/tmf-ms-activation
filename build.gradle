@@ -331,6 +331,7 @@ dependencies {
     //xm dependencies
     implementation "com.icthh.xm.commons:xm-commons-security:${xm_commons_version}"
     implementation "com.icthh.xm.commons:xm-commons-logging-web:${xm_commons_version}"
+    implementation "com.icthh.xm.commons:xm-commons-logging-configurable:${xm_commons_version}"
     implementation "com.icthh.xm.commons:xm-commons-i18n:${xm_commons_version}"
     implementation "com.icthh.xm.commons:xm-commons-tenant-endpoint:${xm_commons_version}"
     implementation "com.icthh.xm.commons:xm-commons-migration-db:${xm_commons_version}"
@@ -341,6 +342,7 @@ dependencies {
     implementation "com.icthh.xm.commons:xm-commons-metric:${xm_commons_version}"
     implementation "com.icthh.xm.commons:xm-commons-topic:${xm_commons_version}"
     implementation "com.icthh.xm.commons:xm-commons-scheduler:${xm_commons_version}"
+    implementation "com.icthh.xm.commons:xm-commons-logging-trace:${xm_commons_version}"
     implementation "org.openapitools:jackson-databind-nullable:0.2.0"
 
     implementation 'org.hibernate:hibernate-jpamodelgen'

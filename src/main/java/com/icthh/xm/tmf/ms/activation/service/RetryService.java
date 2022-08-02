@@ -1,6 +1,7 @@
 package com.icthh.xm.tmf.ms.activation.service;
 
 import com.google.common.base.Predicate;
+import com.icthh.xm.commons.config.client.repository.TenantListRepository;
 import com.icthh.xm.commons.exceptions.EntityNotFoundException;
 import com.icthh.xm.commons.lep.LogicExtensionPoint;
 import com.icthh.xm.commons.lep.spring.LepService;
@@ -49,13 +50,19 @@ public class RetryService {
     private final TenantUtils tenantUtils;
     private final SeparateTransactionExecutor separateTransactionExecutor;
 
+    private final TenantListRepository tenantListRepository;
+
     private final Map<String, Boolean> scheduledEventsId = new ConcurrentHashMap<>();
 
     private RetryService self;
 
     @PostConstruct
     public void postConstruct() {
-        self.rescheduleAllEvents();
+        tenantListRepository.getTenants().forEach(tenant -> {
+            tenantUtils.doInTenantContext(() -> {
+                self.rescheduleAllEvents();
+            }, tenant);
+        });
     }
 
     @Transactional
@@ -65,16 +72,17 @@ public class RetryService {
         sagaEventRepository.findByStatus(WAIT_CONDITION_TASK).forEach(this::doResend);
     }
 
-    public void retry(SagaEvent sagaEvent, SagaTransaction sagaTransaction, SagaTaskSpec sagaTaskSpec, SagaEvent.SagaEventStatus eventStatus) {
-        long backOff = Math.min(sagaTaskSpec.getMaxBackOff(), sagaEvent.getBackOff() + sagaTaskSpec.getBackOff());
+    @LogicExtensionPoint(value = "OnRetry", resolver = TaskTypeKeyResolver.class)
+    public void retry(SagaEvent sagaEvent, SagaTransaction sagaTransaction, SagaTaskSpec task, SagaEvent.SagaEventStatus eventStatus) {
+        long backOff = Math.min(task.getMaxBackOff(), sagaEvent.getBackOff() + task.getBackOff());
         sagaEvent.setBackOff(backOff);
         sagaEvent.setRetryNumber(sagaEvent.getRetryNumber() + 1);
 
-        if (sagaEvent.getRetryNumber() > sagaTaskSpec.getRetryCount() && sagaTaskSpec.getRetryCount() >= 0) {
+        if (sagaEvent.getRetryNumber() > task.getRetryCount() && task.getRetryCount() >= 0) {
             log.warn("Retry limit exceeded for event {}. {} > {}", sagaEvent, sagaEvent.getRetryNumber(),
-                sagaTaskSpec.getRetryCount());
+                task.getRetryCount());
             try {
-                self.retryLimitExceededWithTaskTypeResolver(sagaEvent, sagaTransaction, sagaTaskSpec, eventStatus);
+                self.retryLimitExceededWithTaskTypeResolver(sagaEvent, sagaTransaction, task, eventStatus);
             } catch (Throwable e) { // Because of fact that groovy code can have compilation errors
                 log.error("Error unable to start compensation lep: {}", e.getMessage(), e);
             }
@@ -85,15 +93,15 @@ public class RetryService {
     }
 
     public void retry(SagaEvent sagaEvent, SagaTransaction sagaTransaction, SagaTaskSpec sagaTaskSpec) {
-        retry(sagaEvent, sagaTransaction, sagaTaskSpec, ON_RETRY);
+        self.retry(sagaEvent, sagaTransaction, sagaTaskSpec, ON_RETRY);
     }
 
     public void retryForTaskWaitCondition(SagaEvent sagaEvent, SagaTransaction sagaTransaction, SagaTaskSpec sagaTaskSpec) {
-        retry(sagaEvent, sagaTransaction, sagaTaskSpec, WAIT_CONDITION_TASK);
+        self.retry(sagaEvent, sagaTransaction, sagaTaskSpec, WAIT_CONDITION_TASK);
     }
 
     public void retryForWaitDependsTask(SagaEvent sagaEvent, SagaTransaction sagaTransaction, SagaTaskSpec sagaTaskSpec) {
-        retry(sagaEvent, sagaTransaction, sagaTaskSpec, WAIT_DEPENDS_TASK);
+        self.retry(sagaEvent, sagaTransaction, sagaTaskSpec, WAIT_DEPENDS_TASK);
     }
 
     private void scheduleRetry(SagaEvent sagaEvent, SagaEvent.SagaEventStatus eventStatus) {
@@ -155,18 +163,26 @@ public class RetryService {
     }
 
     private void resendEvent(SagaEvent event) {
+        final String txId = event.getTransactionId();
+        if (isTxCanceled(txId)) {
+            log.info("Resend event not allowed. Transaction:{} canceled", txId);
+            return;
+        }
         log.info("Resend event: {}", event);
         event.markAsInQueue();
         event = sagaEventRepository.save(event);
 
         //we need to commit saga transaction state to DB before send event to kafka
-        final String txId = event.getTransactionId();
         separateTransactionExecutor.doInSeparateTransaction(() -> {
             changeTransactionState(txId, SagaTransactionState.NEW);
             return Optional.empty();
         });
-
         eventsSender.sendEvent(event);
+    }
+
+    private boolean isTxCanceled(final String txId) {
+        SagaTransaction sagaTransaction = transactionRepository.findById(txId).orElseThrow();
+        return sagaTransaction.getSagaTransactionState().equals(SagaTransactionState.CANCELED);
     }
 
     @Autowired

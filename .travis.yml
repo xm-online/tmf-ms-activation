@@ -9,6 +9,7 @@ addons:
       secure: ECxAG4LwK9L/6oFlYQtX5G4giil7YHRR6xaQfrZsoT54DiUmUOGeoNFOCCfWd0I3BeRZkB32gt+isNccwrEbE9JJb3A23lxg0vFaLdkvabmYc4yuCyIdA2IrBdrknoCHhlGIU1RN1V+kbXb9ZnZU90wNn+ECs4JwIHzPgqVoF3tsso89CQivlZjX/Btlpb5/WfMeXCjUNsArTx4JG6iLYtMfFYBppR8ASbkTRhSq6rXsmrTRT7GJa14OTAZ5uzBM5F4k6QFnJihIcLDH9kPDCpgW4ZLTJbeU6UmQS09FgV4hXbtTcu0YanHkV3zFSgTV9O0AY0oYzqxsyQTMY0cOprBCeDqeZj24ZEDnqZNlR/B9WIVaJvcbDx7vPnMVMBhW/KGZs9uz5WUGYcCBi7mZA7nUAP1jrh8p4ZDeNg9z5VZwktsEAuevRGvJZBqKoDPNAh+o6KTEMr7hNQueTOEDxrrU2XwIWV0rA5iGI5dTEud7gtUnbnL5gAw/TTgAhABMNbf9XYu0qbjKbwH43lxnDOD6vXBfU4gMbqUrssyj5OroENDt+AUO9IXUk65nizl1LX3PAaryuR5lADl/K5gq1xvCq0qzXp/o0+eW+kb9ygUOt9N0RRtjV5BYbV+VqP5DKIizFOZBvLoxeRdHLJdxoEZFwfRPdIyp+TUcNkDsTPk=
     branches:
     - master
+    - main
 
 script:
   - set -e
@@ -18,7 +19,7 @@ script:
   - export DOCKER_REPO=$(echo  -n $TRAVIS_REPO_SLUG | sed -e 's/^xm-online\//xmonline\//g')
   - export IMAGE_BRANCH=$(echo -n $TRAVIS_BRANCH | sed -e 's/\//-/g')
   - export PROJECT_VERSION="$IMAGE_BRANCH"
-  - if [ "$IMAGE_BRANCH" == "master" ]; 
+  - if [ "$IMAGE_BRANCH" == "master" ] || [ "$IMAGE_BRANCH" == "main" ]; 
     then 
         PROJECT_VERSION=$(./gradlew -q  getProjectVersion);
         export SONAR_PK=$(echo  -n $TRAVIS_REPO_SLUG | sed -e 's/\//:/g');
@@ -47,3 +48,7 @@ notifications:
   slack:
     rooms:
       secure: kA/wUEZNnML/PAzG/ISUicfOGvb/lYspRf3MLn7Xg+xwfH0CWaSbE/IB3GZQJOO8WngyBB0Mzs5H9DP23U1KLIpHzJBiAtclw9XbscPpO+fFObTfhyZv9uPHxhLf1rtChSCXQsA7n7MAdNy8j7PY8EvMD3xN2e7LjTH6GqadJk1O6Gss2K6D4N3adfxLwhalriAzImo0I2A+Je1j8Ws3Owi6rW/sMYtZPJBDQIKQpGGYSigvpOd1SPPPCYQDpALlyAgxFr/xMxyGOqlGx5iV3qJ45nUvOfosfx56APOQwluhr1URbVuJgUs2JzzEjhe+lI5w1b/q4X93uKxL2hPNhzuEn/fMSd7pCCzOgz87ztUs2xwmU6a+Bg2DPhfjxvxZ/wy3Ok/gaX37CaWD7ZMPFPvQx6O93KI3V7NagfsJ1Ke6NcodDBeRH1zTGpYUjdpDuc0oP4POlKuWupnuplp0LC6DdSqKrgnp7FCH1MowqHyp+d1f+SDvMVm85zTCLT+MxI/mYqYlW5gywaOE0xXy0fPJpRwqwuc1ZbQQGgvcBXc9H+pMpNtaYYumssynIsED6oNKlWjeRi/mjP9tJhrA6yBkvhisEfBBiycj+xaFKyLVurzd+Kls6HlZjgs5ixT66mNAMOY5hkMkJkZ0BvdHT0ZitLGNsy25w3stRGG0b1U=
+branches:
+       only:
+         - master
+         - main

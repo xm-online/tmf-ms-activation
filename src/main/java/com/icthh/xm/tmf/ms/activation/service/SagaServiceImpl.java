@@ -1,10 +1,12 @@
 package com.icthh.xm.tmf.ms.activation.service;
 
+import com.icthh.xm.commons.exceptions.BusinessException;
 import com.icthh.xm.commons.exceptions.EntityNotFoundException;
 import com.icthh.xm.commons.lep.LogicExtensionPoint;
 import com.icthh.xm.commons.lep.spring.LepService;
 import com.icthh.xm.commons.logging.aop.IgnoreLogginAspect;
 import com.icthh.xm.tmf.ms.activation.domain.SagaEvent;
+import com.icthh.xm.tmf.ms.activation.domain.SagaEventError;
 import com.icthh.xm.tmf.ms.activation.domain.SagaLog;
 import com.icthh.xm.tmf.ms.activation.domain.SagaLogType;
 import com.icthh.xm.tmf.ms.activation.domain.SagaTransaction;
@@ -42,6 +44,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiFunction;
 
+import static com.icthh.xm.tmf.ms.activation.config.Constants.GENERAL_ERROR_CODE;
 import static com.icthh.xm.tmf.ms.activation.domain.SagaEvent.SagaEventStatus.INVALID_SPECIFICATION;
 import static com.icthh.xm.tmf.ms.activation.domain.SagaEvent.SagaEventStatus.IN_QUEUE;
 import static com.icthh.xm.tmf.ms.activation.domain.SagaEvent.SagaEventStatus.SUSPENDED;
@@ -181,7 +184,7 @@ public class SagaServiceImpl implements SagaService {
             }
         } catch (Exception e) {
             log.error("Error execute task.", e);
-            failHandler(transaction, sagaEvent, taskSpec);
+            failHandler(transaction, sagaEvent, taskSpec, e);
         }
     }
 
@@ -257,7 +260,7 @@ public class SagaServiceImpl implements SagaService {
         List<SagaTaskSpec> tasks = taskSpec.getNext().stream().map(transactionSpec::getTask).collect(toList());
         generateEvents(transaction.getId(), tasks, taskContext);
         writeLog(sagaEvent, transaction, EVENT_END);
-        updateTransactionStatus(transaction, transactionSpec);
+        updateTransactionStatus(transaction, transactionSpec, taskContext);
     }
 
     @LogicExtensionPoint(value = "OnResendEvent")
@@ -348,7 +351,7 @@ public class SagaServiceImpl implements SagaService {
         SagaTransactionSpec transactionSpec = context.getTransactionSpec();
         if (isTaskFinished(sagaEvent.getTypeKey(), context.getTxId())) {
             log.warn("Task is already finished. Event {} skipped. Transaction {}.", transaction, sagaEvent);
-            updateTransactionStatus(transaction, transactionSpec);
+            updateTransactionStatus(transaction, transactionSpec, sagaEvent.getTaskContext());
             return false;
         }
         return true;
@@ -462,16 +465,20 @@ public class SagaServiceImpl implements SagaService {
             .forEach(eventsManager::sendEvent);
     }
 
-    private void updateTransactionStatus(SagaTransaction transaction, SagaTransactionSpec transactionSpec) {
+    private void updateTransactionStatus(SagaTransaction transaction, SagaTransactionSpec transactionSpec,
+                                         Map<String, Object> taskContext) {
+
         List<String> txTasks = transactionSpec.getTasks().stream().map(SagaTaskSpec::getKey).collect(toList());
         Collection<String> notFinishedTasks = getNotFinishedTasks(transaction.getId(), txTasks);
         if (notFinishedTasks.isEmpty()) {
             transactionRepository.save(transaction.setSagaTransactionState(FINISHED));
-            taskExecutor.onFinish(transaction);
+            taskExecutor.onFinish(transaction, taskContext);
         }
     }
 
-    private void failHandler(SagaTransaction transaction, SagaEvent sagaEvent, SagaTaskSpec taskSpec) {
+    private void failHandler(SagaTransaction transaction, SagaEvent sagaEvent, SagaTaskSpec taskSpec, Exception e) {
+        exceptionFailHandler(sagaEvent, e);
+
         if (taskSpec.getRetryPolicy() == RETRY) {
             log.info("Using retry strategy.");
             retryService.retry(sagaEvent, transaction, taskSpec);
@@ -480,6 +487,18 @@ public class SagaServiceImpl implements SagaService {
             // TODO implement rollback strategy
             throw new NotImplementedException("Rollback strategy unimplemented now.");
         }
+    }
+
+    private void exceptionFailHandler(SagaEvent sagaEvent, Exception e) {
+        SagaEventError error = new SagaEventError().setDescription(e.getMessage());
+        if (e instanceof BusinessException) {
+            BusinessException be = (BusinessException) e;
+            error.setCode(be.getCode());
+        } else {
+            error.setCode(GENERAL_ERROR_CODE);
+        }
+        sagaEvent.setError(error);
+        sagaEventRepository.save(sagaEvent);
     }
 
     private Collection<String> getNotFinishedTasks(String sagaTxId, List<String> taskKeys) {

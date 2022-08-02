@@ -114,6 +114,13 @@ public class SagaTransactionResource {
         return ResponseEntity.ok(sagaService.getLogsByTransaction(id));
     }
 
+    @GetMapping("/transaction/events/{eventId}")
+    @PreAuthorize("hasPermission({'eventId': #eventId}, 'ACTIVATION.TRANSACTION.EVENTS.FIND_ONE')")
+    @PrivilegeDescription("Privilege to get saga event by id")
+    public ResponseEntity<SagaEvent> getOneSagaEventById(@PathVariable("eventId") String eventId) {
+        return ResponseUtil.wrapOrNotFound(sagaService.getEventById(eventId));
+    }
+
     @Timed
     @PostMapping("/transaction/events/inqueue/resend")
     @PreAuthorize("hasPermission(null, 'ACTIVATION.TRANSACTION.IN_QUEUE_RESEND')")
