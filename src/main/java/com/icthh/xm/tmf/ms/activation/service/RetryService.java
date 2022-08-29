@@ -18,6 +18,7 @@ import com.icthh.xm.tmf.ms.activation.utils.TenantUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.DependsOn;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -41,6 +42,7 @@ import static com.icthh.xm.tmf.ms.activation.domain.SagaEvent.SagaEventStatus.WA
 @Service
 @LepService(group = "service.retry")
 @RequiredArgsConstructor
+@DependsOn("multiTenantLiquibase")
 public class RetryService {
 
     private final ThreadPoolTaskScheduler threadPoolTaskScheduler;
