@@ -229,5 +229,4 @@ public class RetryService {
     public void doResendInQueueEvent(SagaEvent sagaEvent) {
         doResend(sagaEvent, (event) -> self.removeAndSend(event, alwaysTrue()));
     }
-
 }
