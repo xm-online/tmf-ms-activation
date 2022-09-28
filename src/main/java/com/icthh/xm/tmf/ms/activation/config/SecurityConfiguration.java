@@ -5,8 +5,9 @@ import com.icthh.xm.commons.security.oauth2.ConfigSignatureVerifierClient;
 import com.icthh.xm.commons.security.oauth2.OAuth2JwtAccessTokenConverter;
 import com.icthh.xm.commons.security.oauth2.OAuth2Properties;
 import com.icthh.xm.commons.security.oauth2.OAuth2SignatureVerifierClient;
-import com.icthh.xm.tmf.ms.activation.security.AuthoritiesConstants;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.cloud.client.loadbalancer.RestTemplateCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -23,12 +24,11 @@ import org.springframework.web.client.RestTemplate;
 @Configuration
 @EnableResourceServer
 @EnableGlobalMethodSecurity(prePostEnabled = true, securedEnabled = true)
+@RequiredArgsConstructor
 public class SecurityConfiguration extends ResourceServerConfigurerAdapter {
-    private final OAuth2Properties oAuth2Properties;
 
-    public SecurityConfiguration(OAuth2Properties oAuth2Properties) {
-        this.oAuth2Properties = oAuth2Properties;
-    }
+    private final OAuth2Properties oAuth2Properties;
+    private final ApplicationProperties applicationProperties;
 
     @Override
     public void configure(HttpSecurity http) throws Exception {
@@ -64,9 +64,12 @@ public class SecurityConfiguration extends ResourceServerConfigurerAdapter {
     }
 
     @Bean
-	@Qualifier("loadBalancedRestTemplate")
-    public RestTemplate loadBalancedRestTemplate(RestTemplateCustomizer customizer) {
-        RestTemplate restTemplate = new RestTemplate();
+    @Qualifier("loadBalancedRestTemplate")
+    public RestTemplate loadBalancedRestTemplate(RestTemplateBuilder restTemplateBuilder, RestTemplateCustomizer customizer) {
+        RestTemplate restTemplate = restTemplateBuilder
+            .setConnectTimeout(applicationProperties.getLoadBalancedRestTemplate().getConnectTimeout())
+            .setReadTimeout(applicationProperties.getLoadBalancedRestTemplate().getReadTimeout())
+            .build();
         customizer.customize(restTemplate);
         return restTemplate;
     }

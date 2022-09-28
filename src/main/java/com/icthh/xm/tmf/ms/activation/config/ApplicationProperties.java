@@ -1,6 +1,7 @@
 package com.icthh.xm.tmf.ms.activation.config;
 
 import com.icthh.xm.commons.lep.TenantScriptStorage;
+import java.time.Duration;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -27,6 +28,7 @@ public class ApplicationProperties {
     private int kafkaConcurrencyCount;
     private int kafkaOffsetsMetricTimeout;
     private long expectedTransactionCompletionTimeSeconds;
+    private RestTemplateProperties loadBalancedRestTemplate = new RestTemplateProperties();
 
     private final Lep lep = new Lep();
     private final Retry retry = new Retry();
@@ -56,5 +58,12 @@ public class ApplicationProperties {
         private int maxAttempts;
         private long delay;
         private int multiplier;
+    }
+
+    @Getter
+    @Setter
+    public static class RestTemplateProperties {
+        private Duration connectTimeout;
+        private Duration readTimeout;
     }
 }
