@@ -1,7 +1,6 @@
 package com.icthh.xm.tmf.ms.activation.config;
 
 import com.icthh.xm.commons.lep.TenantScriptStorage;
-import java.time.Duration;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -63,7 +62,8 @@ public class ApplicationProperties {
     @Getter
     @Setter
     public static class RestTemplateProperties {
-        private Duration connectTimeout;
-        private Duration readTimeout;
+        private int connectionRequestTimeout;
+        private int connectTimeout;
+        private int readTimeout;
     }
 }
