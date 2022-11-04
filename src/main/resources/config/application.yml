@@ -208,3 +208,7 @@ application:
             max-attempts: 10
             delay: 100 #in milliseconds
             multiplier: 2
+    load-balanced-rest-template:
+        connection-request-timeout: 0
+        connect-timeout: 0
+        read-timeout: 0

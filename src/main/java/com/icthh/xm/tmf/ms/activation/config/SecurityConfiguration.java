@@ -5,12 +5,13 @@ import com.icthh.xm.commons.security.oauth2.ConfigSignatureVerifierClient;
 import com.icthh.xm.commons.security.oauth2.OAuth2JwtAccessTokenConverter;
 import com.icthh.xm.commons.security.oauth2.OAuth2Properties;
 import com.icthh.xm.commons.security.oauth2.OAuth2SignatureVerifierClient;
+import com.icthh.xm.tmf.ms.activation.config.ApplicationProperties.RestTemplateProperties;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.cloud.client.loadbalancer.RestTemplateCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -38,10 +39,10 @@ public class SecurityConfiguration extends ResourceServerConfigurerAdapter {
             .headers()
             .frameOptions()
             .disable()
-        .and()
+            .and()
             .sessionManagement()
             .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-        .and()
+            .and()
             .authorizeRequests()
             .antMatchers("/api/**").authenticated()
             .antMatchers("/tmf-api/**").authenticated()
@@ -65,11 +66,15 @@ public class SecurityConfiguration extends ResourceServerConfigurerAdapter {
 
     @Bean
     @Qualifier("loadBalancedRestTemplate")
-    public RestTemplate loadBalancedRestTemplate(RestTemplateBuilder restTemplateBuilder, RestTemplateCustomizer customizer) {
-        RestTemplate restTemplate = restTemplateBuilder
-            .setConnectTimeout(applicationProperties.getLoadBalancedRestTemplate().getConnectTimeout())
-            .setReadTimeout(applicationProperties.getLoadBalancedRestTemplate().getReadTimeout())
-            .build();
+    public RestTemplate loadBalancedRestTemplate(RestTemplateCustomizer customizer) {
+        HttpComponentsClientHttpRequestFactory httpRequestFactory = new HttpComponentsClientHttpRequestFactory();
+        RestTemplateProperties restTemplateProperties = applicationProperties.getLoadBalancedRestTemplate();
+        httpRequestFactory.setConnectionRequestTimeout(restTemplateProperties.getConnectionRequestTimeout());
+        httpRequestFactory.setConnectTimeout(restTemplateProperties.getConnectTimeout());
+        httpRequestFactory.setReadTimeout(restTemplateProperties.getReadTimeout());
+
+        RestTemplate restTemplate = new RestTemplate();
+        restTemplate.setRequestFactory(httpRequestFactory);
         customizer.customize(restTemplate);
         return restTemplate;
     }
