@@ -2,6 +2,7 @@ package com.icthh.xm.tmf.ms.activation.service;
 
 import com.google.common.base.Predicate;
 import com.icthh.xm.commons.config.client.repository.TenantListRepository;
+import com.icthh.xm.commons.domainevent.outbox.repository.OutboxRepository;
 import com.icthh.xm.commons.exceptions.EntityNotFoundException;
 import com.icthh.xm.commons.lep.LogicExtensionPoint;
 import com.icthh.xm.commons.lep.spring.LepService;
@@ -49,6 +50,9 @@ public class RetryService {
     private final EventsSender eventsSender;
     private final SagaEventRepository sagaEventRepository;
     private final SagaTransactionRepository transactionRepository;
+
+    //TODO OutboxRepository should be autowired here to work, else app will not start
+    private final OutboxRepository outboxRepository;
     private final TenantUtils tenantUtils;
     private final SeparateTransactionExecutor separateTransactionExecutor;
 
