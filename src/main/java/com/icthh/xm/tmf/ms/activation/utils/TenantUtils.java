@@ -70,7 +70,7 @@ public class TenantUtils {
     }
 
 
-    private void init(String tenantKey) {
+    public void init(String tenantKey) {
         TenantContextUtils.setTenant(tenantContextHolder, tenantKey);
 
         lepManager.beginThreadContext(threadContext -> {

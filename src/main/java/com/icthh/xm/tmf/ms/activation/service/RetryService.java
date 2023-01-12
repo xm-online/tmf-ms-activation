@@ -61,14 +61,20 @@ public class RetryService {
 
     @PostConstruct
     public void postConstruct() {
-        //using new thread so tenantUtils.doInTenantContext() would not destroy current tenant context in main thread
-        new Thread(() ->
-                tenantListRepository.getTenants().forEach(tenant ->
-                        tenantUtils.doInTenantContext(() ->
-                                self.rescheduleAllEvents(), tenant
-                        )
+        String tenantBefore = null;
+        try {
+            tenantBefore = tenantUtils.getTenantKey();
+        } catch (Exception ignored) {
+        }
+        tenantListRepository.getTenants().forEach(tenant ->
+                tenantUtils.doInTenantContext(() ->
+                        self.rescheduleAllEvents(), tenant
                 )
-        ).start();
+        );
+        //tenantUtils.doInTenantContext() will destroy current tenant context, need to init it back
+        if (tenantBefore != null) {
+            tenantUtils.init(tenantBefore);
+        }
     }
 
     @Transactional
