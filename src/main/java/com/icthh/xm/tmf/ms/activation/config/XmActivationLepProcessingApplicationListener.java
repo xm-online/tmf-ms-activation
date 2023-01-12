@@ -1,6 +1,9 @@
 package com.icthh.xm.tmf.ms.activation.config;
 
 import com.icthh.xm.commons.config.client.service.TenantConfigService;
+import com.icthh.xm.commons.domainevent.outbox.service.OutboxTransportService;
+import com.icthh.xm.commons.domainevent.service.EventPublisher;
+import com.icthh.xm.commons.domainevent.service.builder.DomainEventFactory;
 import com.icthh.xm.commons.lep.commons.CommonsExecutor;
 import com.icthh.xm.commons.lep.commons.CommonsService;
 import com.icthh.xm.commons.lep.spring.SpringLepProcessingApplicationListener;
@@ -27,6 +30,9 @@ public class XmActivationLepProcessingApplicationListener extends SpringLepProce
     public static final String BINDING_SUB_KEY_SERVICE_MAIL = "mailService";
     public static final String BINDING_SUB_KEY_SERVICE_SAGA = "sagaService";
     public static final String BINDING_SUB_KEY_TEMPLATE_KAFKA  = "kafka";
+    public static final String BINDING_SUB_KEY_SERVICE_EVENT_PUBLISHER = "eventPublisher";
+    public static final String BINDING_SUB_KEY_SERVICE_OUTBOX_TRANSPORT = "outboxTransportService";
+    public static final String BINDING_SUB_KEY_SERVICE_DOMAIN_EVENT_FACTORY = "domainEventFactory";
 
     private final TenantConfigService tenantConfigService;
     private final RestTemplate restTemplate;
@@ -35,6 +41,9 @@ public class XmActivationLepProcessingApplicationListener extends SpringLepProce
     private final MailService mailService;
     private final SagaService sagaService;
     private final KafkaTemplateService kafkaTemplateService;
+    private final EventPublisher eventPublisher;
+    private final OutboxTransportService outboxTransportService;
+    private final DomainEventFactory domainEventFactory;
 
     public XmActivationLepProcessingApplicationListener(TenantConfigService tenantConfigService,
                                                         @Qualifier("loadBalancedRestTemplate") RestTemplate restTemplate,
@@ -42,7 +51,10 @@ public class XmActivationLepProcessingApplicationListener extends SpringLepProce
                                                         ApplicationContext applicationContext,
                                                         MailService mailService,
                                                         SagaService sagaService,
-                                                        KafkaTemplateService kafkaTemplateService) {
+                                                        KafkaTemplateService kafkaTemplateService,
+                                                        EventPublisher eventPublisher,
+                                                        OutboxTransportService outboxTransportService,
+                                                        DomainEventFactory domainEventFactory) {
         this.tenantConfigService = tenantConfigService;
         this.restTemplate = restTemplate;
         this.commonsService = commonsService;
@@ -50,6 +62,9 @@ public class XmActivationLepProcessingApplicationListener extends SpringLepProce
         this.mailService = mailService;
         this.sagaService = sagaService;
         this.kafkaTemplateService = kafkaTemplateService;
+        this.eventPublisher = eventPublisher;
+        this.outboxTransportService = outboxTransportService;
+        this.domainEventFactory = domainEventFactory;
     }
 
     @Override
@@ -59,6 +74,9 @@ public class XmActivationLepProcessingApplicationListener extends SpringLepProce
         services.put(BINDING_SUB_KEY_SERVICE_TENANT_CONFIG_SERVICE, tenantConfigService);
         services.put(BINDING_SUB_KEY_SERVICE_MAIL, mailService);
         services.put(BINDING_SUB_KEY_SERVICE_SAGA, sagaService);
+        services.put(BINDING_SUB_KEY_SERVICE_EVENT_PUBLISHER, eventPublisher);
+        services.put(BINDING_SUB_KEY_SERVICE_OUTBOX_TRANSPORT, outboxTransportService);
+        services.put(BINDING_SUB_KEY_SERVICE_DOMAIN_EVENT_FACTORY, domainEventFactory);
 
         executionContext.setValue(BINDING_KEY_COMMONS, new CommonsExecutor(commonsService));
         executionContext.setValue(BINDING_KEY_SERVICES, services);

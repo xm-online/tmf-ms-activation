@@ -25,6 +25,17 @@ public class TenantUtils {
         return TenantContextUtils.getRequiredTenantKeyValue(tenantContextHolder);
     }
 
+    /**
+     * Run code in context with specified tenant. Keep in mind, that after task is executed tenant context
+     * will be destroyed.
+     * NOTICE: If run before application start up: consider to run in new thread (or setting
+     * previous tenant after method call), otherwise tenant context for main thread
+     * (spring bean context initialization thread) will be destroyed, which will lead to
+     * errors in further beans initialization that rely on current tenant context.
+     *
+     * @param task task that will be run in context with specified tenant.
+     * @param tenant tenant name that will be set to tenant context.
+     */
     @SneakyThrows
     public void doInTenantContext(Task task, String tenant) {
         try {
@@ -35,6 +46,19 @@ public class TenantUtils {
         }
     }
 
+    /**
+     * Run code in context with specified tenant and return result of the task.
+     * Keep in mind, that after task is executed tenant context will be destroyed.
+     * NOTICE: If run before application start up: consider to run in new thread (or setting
+     * previous tenant after method call), otherwise tenant context for main thread
+     * (spring bean context initialization thread) will be destroyed, which will lead to
+     * errors in further beans initialization that rely on current tenant context.
+     *
+     * @param task task that will be run in context with specified tenant.
+     * @param tenant tenant name that will be set to tenant context.
+     * @param <R> type of the result.
+     * @return result of the task execution.
+     */
     @SneakyThrows
     public <R> R doInTenantContext(TaskWithResult<R> task, String tenant) {
         try {

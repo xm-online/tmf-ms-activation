@@ -50,9 +50,6 @@ public class RetryService {
     private final EventsSender eventsSender;
     private final SagaEventRepository sagaEventRepository;
     private final SagaTransactionRepository transactionRepository;
-
-    //TODO OutboxRepository should be autowired here to work, else app will not start
-    private final OutboxRepository outboxRepository;
     private final TenantUtils tenantUtils;
     private final SeparateTransactionExecutor separateTransactionExecutor;
 
@@ -64,11 +61,14 @@ public class RetryService {
 
     @PostConstruct
     public void postConstruct() {
-        tenantListRepository.getTenants().forEach(tenant -> {
-            tenantUtils.doInTenantContext(() -> {
-                self.rescheduleAllEvents();
-            }, tenant);
-        });
+        //using new thread so tenantUtils.doInTenantContext() would not destroy current tenant context in main thread
+        new Thread(() ->
+                tenantListRepository.getTenants().forEach(tenant ->
+                        tenantUtils.doInTenantContext(() ->
+                                self.rescheduleAllEvents(), tenant
+                        )
+                )
+        ).start();
     }
 
     @Transactional
