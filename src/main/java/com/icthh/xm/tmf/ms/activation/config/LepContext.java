@@ -32,13 +32,13 @@ public class LepContext {
     public LepTemplates templates;
 
     public ApplicationContext applicationContext;
+    private OutboxTransportService outboxTransportService;
 
     public static class LepServices {
         public TenantConfigService tenantConfigService;
         public MailService mailService;
         public SagaService sagaService;
         private EventPublisher eventPublisher;
-        private OutboxTransportService outboxTransportService;
         private DomainEventFactory domainEventFactory;
     }
 
