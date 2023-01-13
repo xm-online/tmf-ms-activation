@@ -6,11 +6,14 @@ import static com.icthh.xm.commons.lep.XmLepConstants.THREAD_CONTEXT_KEY_TENANT_
 import com.icthh.xm.commons.security.XmAuthenticationContextHolder;
 import com.icthh.xm.commons.tenant.TenantContextHolder;
 import com.icthh.xm.commons.tenant.TenantContextUtils;
+import com.icthh.xm.commons.tenant.TenantKey;
 import com.icthh.xm.lep.api.LepManager;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
+
+import java.util.Optional;
 
 @Slf4j
 @Component
@@ -69,8 +72,15 @@ public class TenantUtils {
         }
     }
 
+    public void setTenantKey(TenantKey tenantKey) {
+        TenantContextUtils.setTenant(tenantContextHolder, tenantKey);
+    }
 
-    public void init(String tenantKey) {
+    public Optional<TenantKey> getOptionalTenantKey() {
+        return TenantContextUtils.getTenantKey(tenantContextHolder);
+    }
+
+    private void init(String tenantKey) {
         TenantContextUtils.setTenant(tenantContextHolder, tenantKey);
 
         lepManager.beginThreadContext(threadContext -> {
