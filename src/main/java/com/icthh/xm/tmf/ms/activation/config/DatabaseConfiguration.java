@@ -39,7 +39,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 @Configuration
-@EnableJpaRepositories("com.icthh.xm.tmf.ms.activation.repository")
+@EnableJpaRepositories({"com.icthh.xm.tmf.ms.activation.repository",
+    "com.icthh.xm.commons.domainevent.outbox.repository"})
 @EnableTransactionManagement
 @Slf4j
 @RequiredArgsConstructor
