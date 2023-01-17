@@ -5,6 +5,7 @@ import com.icthh.xm.commons.config.client.repository.TenantListRepository;
 import com.icthh.xm.commons.exceptions.EntityNotFoundException;
 import com.icthh.xm.commons.lep.LogicExtensionPoint;
 import com.icthh.xm.commons.lep.spring.LepService;
+import com.icthh.xm.commons.tenant.TenantKey;
 import com.icthh.xm.tmf.ms.activation.domain.SagaEvent;
 import com.icthh.xm.tmf.ms.activation.domain.SagaTransaction;
 import com.icthh.xm.tmf.ms.activation.domain.SagaTransactionState;
@@ -58,13 +59,23 @@ public class RetryService {
 
     private RetryService self;
 
+    /**
+     * Will reschedule all saga events.
+     * In this method 'tenantUtils.doInTenantContext()' is used, which will destroy main thread tenant context,
+     * to not break bean initializations that will be executed after this method, need to set up
+     * main thread context again from tenant context before 'tenantUtils.doInTenantContext()' execution.
+     */
     @PostConstruct
     public void postConstruct() {
-        tenantListRepository.getTenants().forEach(tenant -> {
-            tenantUtils.doInTenantContext(() -> {
-                self.rescheduleAllEvents();
-            }, tenant);
-        });
+        Optional<TenantKey> tenantKeyBefore = tenantUtils.getOptionalTenantKey();
+
+        tenantListRepository.getTenants().forEach(tenant ->
+                tenantUtils.doInTenantContext(() ->
+                        self.rescheduleAllEvents(), tenant
+                )
+        );
+
+        tenantKeyBefore.ifPresent(tenantUtils::setTenantKey);
     }
 
     @Transactional

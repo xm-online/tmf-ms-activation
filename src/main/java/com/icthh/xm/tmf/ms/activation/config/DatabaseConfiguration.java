@@ -46,6 +46,7 @@ import java.util.Map;
 public class DatabaseConfiguration {
 
     private static final String JPA_PACKAGES = "com.icthh.xm.tmf.ms.activation.domain";
+    private static final String OUTBOX_PACKAGES = "com.icthh.xm.commons.domainevent.outbox";
 
     private final Environment env;
     private final TenantListRepository tenantListRepository;
@@ -133,7 +134,7 @@ public class DatabaseConfiguration {
 
         LocalContainerEntityManagerFactoryBean em = new LocalContainerEntityManagerFactoryBean();
         em.setDataSource(dataSource);
-        em.setPackagesToScan(JPA_PACKAGES);
+        em.setPackagesToScan(JPA_PACKAGES, OUTBOX_PACKAGES);
         em.setJpaVendorAdapter(jpaVendorAdapter());
         em.setJpaPropertyMap(properties);
         return em;
