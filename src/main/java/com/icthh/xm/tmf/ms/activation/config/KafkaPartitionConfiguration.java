@@ -15,7 +15,7 @@ import org.springframework.context.annotation.Configuration;
 public class KafkaPartitionConfiguration {
 
     public static final String PARTITION_KEY = "partitionKey";
-    private static final String TASKS_PARTITION_KEY_EXTRACTOR_STRATEGY = "tasksPartitionKeyExtractorStrategy";
+    public static final String TASKS_PARTITION_KEY_EXTRACTOR_STRATEGY = "tasksPartitionKeyExtractorStrategy";
 
     private final KafkaBinderConfigurationProperties properties;
 
