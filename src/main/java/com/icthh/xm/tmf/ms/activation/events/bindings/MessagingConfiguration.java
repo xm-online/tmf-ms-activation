@@ -1,6 +1,7 @@
 package com.icthh.xm.tmf.ms.activation.events.bindings;
 
 import static com.icthh.xm.commons.config.client.repository.TenantListRepository.TENANTS_LIST_CONFIG_KEY;
+import static com.icthh.xm.tmf.ms.activation.config.KafkaPartitionConfiguration.TASKS_PARTITION_KEY_EXTRACTOR_STRATEGY;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.commons.lang3.StringUtils.unwrap;
 import static org.apache.commons.lang3.StringUtils.upperCase;
@@ -32,9 +33,11 @@ import org.springframework.boot.actuate.health.HealthIndicatorRegistry;
 import org.springframework.cloud.stream.annotation.EnableBinding;
 import org.springframework.cloud.stream.binder.ConsumerProperties;
 import org.springframework.cloud.stream.binder.HeaderMode;
+import org.springframework.cloud.stream.binder.ProducerProperties;
 import org.springframework.cloud.stream.binder.kafka.KafkaBinderHealthIndicator;
 import org.springframework.cloud.stream.binder.kafka.KafkaMessageChannelBinder;
 import org.springframework.cloud.stream.binder.kafka.config.KafkaBinderConfiguration;
+import org.springframework.cloud.stream.binder.kafka.properties.KafkaBinderConfigurationProperties;
 import org.springframework.cloud.stream.binder.kafka.properties.KafkaBindingProperties;
 import org.springframework.cloud.stream.binder.kafka.properties.KafkaConsumerProperties.StartOffset;
 import org.springframework.cloud.stream.binder.kafka.properties.KafkaExtendedBindingProperties;
@@ -72,6 +75,7 @@ public class MessagingConfiguration implements RefreshableConfiguration {
     private final ApplicationProperties applicationProperties;
 
     private final SleuthWrapper sleuthWrapper;
+    private final KafkaBinderConfigurationProperties kafkaBinderConfigurationProperties;
 
     @Value("${spring.application.name}")
     private String appName;
@@ -84,7 +88,8 @@ public class MessagingConfiguration implements RefreshableConfiguration {
                                   CompositeHealthIndicator bindersHealthIndicator,
                                   KafkaBinderHealthIndicator kafkaBinderHealthIndicator,
                                   ApplicationProperties applicationProperties,
-                                  SleuthWrapper sleuthWrapper) {
+                                  SleuthWrapper sleuthWrapper,
+                                  KafkaBinderConfigurationProperties kafkaBinderConfigurationProperties) {
         this.bindingServiceProperties = bindingServiceProperties;
         this.bindingTargetFactory = bindingTargetFactory;
         this.bindingService = bindingService;
@@ -94,6 +99,7 @@ public class MessagingConfiguration implements RefreshableConfiguration {
         this.kafkaBinderHealthIndicator = kafkaBinderHealthIndicator;
         this.applicationProperties = applicationProperties;
         this.sleuthWrapper = sleuthWrapper;
+        this.kafkaBinderConfigurationProperties = kafkaBinderConfigurationProperties;
 
         kafkaMessageChannelBinder.setExtendedBindingProperties(kafkaExtendedBindingProperties);
     }
@@ -130,8 +136,13 @@ public class MessagingConfiguration implements RefreshableConfiguration {
             consumerProperties.setPartitioned(true);
             consumerProperties.setConcurrency(applicationProperties.getKafkaConcurrencyCount());
 
+            ProducerProperties producerProperties = new ProducerProperties();
+            producerProperties.setPartitionKeyExtractorName(TASKS_PARTITION_KEY_EXTRACTOR_STRATEGY);
+            producerProperties.setPartitionCount(kafkaBinderConfigurationProperties.getMinPartitionCount());
+
             BindingProperties bindingProperties = new BindingProperties();
             bindingProperties.setConsumer(consumerProperties);
+            bindingProperties.setProducer(producerProperties);
             bindingProperties.setDestination(chanelName);
             bindingProperties.setGroup(consumerGroup);
             bindingServiceProperties.setBindings(Collections.singletonMap(chanelName, bindingProperties));
