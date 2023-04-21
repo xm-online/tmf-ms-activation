@@ -88,7 +88,8 @@ public class MessagingConfiguration implements RefreshableConfiguration {
                                   CompositeHealthIndicator bindersHealthIndicator,
                                   KafkaBinderHealthIndicator kafkaBinderHealthIndicator,
                                   ApplicationProperties applicationProperties,
-                                  SleuthWrapper sleuthWrapper, KafkaBinderConfigurationProperties kafkaBinderConfigurationProperties) {
+                                  SleuthWrapper sleuthWrapper,
+                                  KafkaBinderConfigurationProperties kafkaBinderConfigurationProperties) {
         this.bindingServiceProperties = bindingServiceProperties;
         this.bindingTargetFactory = bindingTargetFactory;
         this.bindingService = bindingService;
