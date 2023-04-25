@@ -17,10 +17,12 @@ import org.springframework.cloud.stream.binding.BinderAwareChannelResolver;
 import org.springframework.messaging.MessageChannel;
 import org.springframework.retry.annotation.EnableRetry;
 import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.transaction.annotation.EnableTransactionManagement;
 
 @EnableRetry
 @RunWith(SpringRunner.class)
 @SpringBootTest(classes = {KafkaEventsSender.class})
+@EnableTransactionManagement(proxyTargetClass = true)
 public class KafkaEventsSenderTest {
 
     @Autowired
