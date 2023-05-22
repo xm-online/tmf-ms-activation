@@ -134,8 +134,13 @@ public class SagaServiceImpl implements SagaService {
         }
 
         Context context = draftContext.createContext();
+
+        if (isCurrentTaskFinished(sagaEvent, context)) {
+            deleteSagaEvent(sagaEvent);
+            return;
+        }
+
         if (!isAllConditionalsValid(context, sagaEvent,
-            this::isCurrentTaskNotFinished,
             this::isAllDependsTaskFinished,
             this::isCurrentTaskNotWaitForCondition,
             this::isTaskNotSuspended)) {
@@ -346,15 +351,15 @@ public class SagaServiceImpl implements SagaService {
         return !isTaskSuspended;
     }
 
-    private boolean isCurrentTaskNotFinished(SagaEvent sagaEvent, Context context) {
+    private boolean isCurrentTaskFinished(SagaEvent sagaEvent, Context context) {
         SagaTransaction transaction = context.getTransaction();
         SagaTransactionSpec transactionSpec = context.getTransactionSpec();
         if (isTaskFinished(sagaEvent.getTypeKey(), context.getTxId())) {
-            log.warn("Task is already finished. Event {} skipped. Transaction {}.", transaction, sagaEvent);
+            log.warn("Task is already finished. Event {} skipped. Transaction {}.", sagaEvent, transaction);
             updateTransactionStatus(transaction, transactionSpec, sagaEvent.getTaskContext());
-            return false;
+            return true;
         }
-        return true;
+        return false;
     }
 
     private boolean isTaskFinished(String eventTypeKey, String txId) {
@@ -518,11 +523,12 @@ public class SagaServiceImpl implements SagaService {
             .setCreateDate(Instant.now(clock))
             .setEventTypeKey(sagaEvent.getTypeKey())
             .setSagaTransaction(transaction);
-        if (logRepository.findLogs(eventType, transaction, sagaEvent.getTypeKey()).isEmpty()) {
+        List<SagaLog> logs = logRepository.findLogs(eventType, transaction, sagaEvent.getTypeKey());
+        if (logs.isEmpty()) {
             logRepository.save(sagaLog);
             log.info("Write saga log {}", sagaLog);
         } else {
-            log.warn("Saga log already exists {}", sagaLog);
+            log.warn("Saga logs already exist: {}", logs);
         }
     }
 
