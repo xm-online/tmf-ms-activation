@@ -368,20 +368,25 @@ public class SagaServiceTest {
     public void skipEventWhenEventFinishedButNotUpdateTxStateWhenTxHaveNotFinishedTasks() {
         when(tenantUtils.getTenantKey()).thenReturn("XM");
         String txId = UUID.randomUUID().toString();
+        SagaEvent sagaEvent = new SagaEvent().setTenantKey("XM")
+            .setId("SAGA-EVENT-ID")
+            .setTypeKey("FIRST-PARALEL-TASK")
+            .setTransactionId(txId);
 
+        when(sagaEventRepository.existsById(sagaEvent.getId())).thenReturn(true);
         when(transactionRepository.findById(txId)).thenReturn(of(mockTx(txId, NEW)));
         when(logRepository.getFinishLogs(eq(txId), eq(asList("FIRST-PARALEL-TASK"))))
             .thenReturn(asList(new SagaLog().setEventTypeKey("FIRST-PARALEL-TASK").setLogType(EVENT_END)));
         when(logRepository.getFinishLogs(eq(txId), eq(allTasks)))
             .thenReturn(asList(new SagaLog().setEventTypeKey("FIRST-PARALEL-TASK").setLogType(EVENT_END)));
 
-        sagaService.onSagaEvent(new SagaEvent().setTenantKey("XM")
-            .setTypeKey("FIRST-PARALEL-TASK")
-            .setTransactionId(txId));
+        sagaService.onSagaEvent(sagaEvent);
 
         verify(transactionRepository).findById(eq(txId));
         verify(logRepository).getFinishLogs(eq(txId), eq(asList("FIRST-PARALEL-TASK")));
         verify(logRepository).getFinishLogs(eq(txId), eq(allTasks));
+        verify(sagaEventRepository).existsById(sagaEvent.getId());
+        verify(sagaEventRepository).deleteById(sagaEvent.getId());
 
         noMoreInteraction();
     }
@@ -393,6 +398,7 @@ public class SagaServiceTest {
         String txId = UUID.randomUUID().toString();
         Map<String, Object> taskContext = Map.of("TASK-RESULT", "SUCCESS");
         SagaEvent sagaEvent = new SagaEvent().setTenantKey("XM")
+            .setId("SAGA-EVENT-ID")
             .setTaskContext(taskContext)
             .setTypeKey("FIRST-PARALEL-TASK")
             .setTransactionId(txId);
@@ -402,6 +408,8 @@ public class SagaServiceTest {
             .thenReturn(asList(new SagaLog().setEventTypeKey("FIRST-PARALEL-TASK").setLogType(EVENT_END)));
         when(logRepository.getFinishLogs(eq(txId), eq(allTasks)))
             .thenReturn(allTasks.stream().map(key -> new SagaLog().setEventTypeKey(key).setLogType(EVENT_END)).collect(toList()));
+        when(sagaEventRepository.existsById(sagaEvent.getId()))
+            .thenReturn(true);
 
         sagaService.onSagaEvent(sagaEvent);
 
@@ -410,6 +418,8 @@ public class SagaServiceTest {
         verify(logRepository).getFinishLogs(eq(txId), eq(allTasks));
         verify(transactionRepository).save(refEq(mockTx(txId, FINISHED)));
         verify(taskExecutor).onFinish(refEq(mockTx(txId, FINISHED)), eq(taskContext));
+        verify(sagaEventRepository).existsById(sagaEvent.getId());
+        verify(sagaEventRepository).deleteById(sagaEvent.getId());
 
         noMoreInteraction();
     }
