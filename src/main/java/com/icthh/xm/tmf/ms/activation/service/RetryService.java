@@ -53,30 +53,9 @@ public class RetryService {
     private final TenantUtils tenantUtils;
     private final SeparateTransactionExecutor separateTransactionExecutor;
 
-    private final TenantListRepository tenantListRepository;
-
     private final Map<String, Boolean> scheduledEventsId = new ConcurrentHashMap<>();
 
     private RetryService self;
-
-    /**
-     * Will reschedule all saga events.
-     * In this method 'tenantUtils.doInTenantContext()' is used, which will destroy main thread tenant context,
-     * to not break bean initializations that will be executed after this method, need to set up
-     * main thread context again from tenant context before 'tenantUtils.doInTenantContext()' execution.
-     */
-    @PostConstruct
-    public void postConstruct() {
-        Optional<TenantKey> tenantKeyBefore = tenantUtils.getOptionalTenantKey();
-
-        tenantListRepository.getTenants().forEach(tenant ->
-                tenantUtils.doInTenantContext(() ->
-                        self.rescheduleAllEvents(), tenant
-                )
-        );
-
-        tenantKeyBefore.ifPresent(tenantUtils::setTenantKey);
-    }
 
     @Transactional
     public void rescheduleAllEvents() {

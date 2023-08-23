@@ -3,35 +3,27 @@ package com.icthh.xm.tmf.ms.activation.service;
 import static com.icthh.xm.commons.lep.XmLepConstants.THREAD_CONTEXT_KEY_AUTH_CONTEXT;
 import static com.icthh.xm.commons.lep.XmLepConstants.THREAD_CONTEXT_KEY_TENANT_CONTEXT;
 import static com.icthh.xm.tmf.ms.activation.domain.SagaEvent.SagaEventStatus.INVALID_SPECIFICATION;
-import static java.lang.Boolean.parseBoolean;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.UUID.randomUUID;
-import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.refEq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
-import com.icthh.xm.commons.config.client.repository.TenantListRepository;
-import com.icthh.xm.commons.lep.XmLepScriptConfigServerResourceLoader;
 import com.icthh.xm.commons.security.XmAuthenticationContext;
 import com.icthh.xm.commons.security.XmAuthenticationContextHolder;
 import com.icthh.xm.commons.tenant.TenantContextHolder;
 import com.icthh.xm.commons.tenant.TenantContextUtils;
 import com.icthh.xm.lep.api.LepManager;
 import com.icthh.xm.tmf.ms.activation.ActivationApp;
+import com.icthh.xm.tmf.ms.activation.config.ApplicationStartup;
 import com.icthh.xm.tmf.ms.activation.config.SecurityBeanOverrideConfiguration;
 import com.icthh.xm.tmf.ms.activation.domain.SagaEvent;
 import com.icthh.xm.tmf.ms.activation.domain.SagaTransaction;
 import com.icthh.xm.tmf.ms.activation.domain.SagaTransactionState;
-import com.icthh.xm.tmf.ms.activation.domain.spec.SagaTaskSpec;
-import com.icthh.xm.tmf.ms.activation.domain.spec.SagaTransactionSpec;
 
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 
 import com.icthh.xm.tmf.ms.activation.events.EventsSender;
@@ -78,6 +70,9 @@ public class SagaServiceImplTest {
 
     @Mock
     private XmAuthenticationContext context;
+
+    @MockBean
+    private ApplicationStartup applicationStartup;
 
     @MockBean
     private RetryService retryService;
