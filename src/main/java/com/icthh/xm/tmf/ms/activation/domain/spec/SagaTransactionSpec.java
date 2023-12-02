@@ -1,5 +1,6 @@
 package com.icthh.xm.tmf.ms.activation.domain.spec;
 
+import com.carrotsearch.hppc.ByteArrayList;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.icthh.xm.tmf.ms.activation.service.SagaSpecService.InvalidSagaSpecificationException;
 import lombok.Data;
@@ -29,6 +30,10 @@ public class SagaTransactionSpec {
     private Long retryCount = -1L;
     private Integer backOff = 5;
     private Integer maxBackOff = 30;
+    private Boolean saveTaskContext;
+    // by default dependent task retries until all "depends" are completed
+    // if this flag is true, then dependent task retries only after finish "depends"
+    private Boolean checkDependsEventually;
     private List<SagaTaskSpec> tasks;
 
     public static Predicate<SagaTransactionSpec> isEqualsKey(String key) {
@@ -58,5 +63,11 @@ public class SagaTransactionSpec {
                 new InvalidSagaSpecificationException("error.no.task.by.type.key.found",
                         "No task by type key " + typeKey + " found")
             );
+    }
+
+    public List<SagaTaskSpec> findDependentTasks(String key) {
+        return getTasks().stream()
+                .filter(task -> task.getDepends() != null && task.getDepends().contains(key))
+                .collect(toList());
     }
 }

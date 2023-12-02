@@ -26,6 +26,7 @@ public class SagaTaskSpec implements Serializable {
     private List<String> next;
     private List<String> depends;
     private Boolean isSuspendable;
+    private Boolean saveTaskContext;
 
     public List<String> getNext() {
         if (next == null) {
@@ -46,6 +47,7 @@ public class SagaTaskSpec implements Serializable {
         setIfNull(this::getBackOff, this::setBackOff, tx.getBackOff());
         setIfNull(this::getMaxBackOff, this::setMaxBackOff, tx.getMaxBackOff());
         setIfNull(this::getRetryCount, this::setRetryCount, tx.getRetryCount());
+        setIfNull(this::getSaveTaskContext, this::setSaveTaskContext, tx.getSaveTaskContext());
     }
 
     private static <T> void setIfNull(Supplier<T> getter, Consumer<T> setter, T value) {

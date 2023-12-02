@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:ext="http://www.liquibase.org/xml/ns/dbchangelog-ext"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.5.xsd
+                        http://www.liquibase.org/xml/ns/dbchangelog-ext http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-ext.xsd">
+
+    <changeSet author="vkyrychenko" id="20220530154000-1">
+
+        <addColumn tableName="saga_event">
+            <column name="error_code" type="varchar(255)">
+                <constraints nullable="true"/>
+            </column>
+            <column name="error_description" type="${textType}">
+                <constraints nullable="true"/>
+            </column>
+        </addColumn>
+    </changeSet>
+
+    <changeSet author="vkyrychenko" id="20220530154000-2">
+
+        <createIndex indexName="saga_log_search_idx" tableName="saga_log">
+            <column name="event_type_key"/>
+            <column name="log_type"/>
+            <column name="saga_transaction_id"/>
+        </createIndex>
+
+        <createIndex indexName="saga_log_trx_idx" tableName="saga_log">
+            <column name="saga_transaction_id"/>
+        </createIndex>
+    </changeSet>
+
+</databaseChangeLog>

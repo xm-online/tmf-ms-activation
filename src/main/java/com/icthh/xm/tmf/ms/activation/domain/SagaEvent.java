@@ -34,6 +34,8 @@ public class SagaEvent implements Serializable {
     private String typeKey;
     @Column(name = "tenant_key")
     private String tenantKey;
+    @Column(name = "parent_tenant_key")
+    private String parentTenantKey;
     @Column(name = "transaction_id")
     private String transactionId;
     @Convert(converter = MapToStringConverter.class)
