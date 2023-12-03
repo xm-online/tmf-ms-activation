@@ -6,29 +6,20 @@
     xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.5.xsd
                         http://www.liquibase.org/xml/ns/dbchangelog-ext http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-ext.xsd">
 
-    <changeSet author="vkyrychenko" id="20220530154000-1">
-
-        <addColumn tableName="saga_event">
-            <column name="error_code" type="varchar(255)">
-                <constraints nullable="true"/>
-            </column>
-            <column name="error_description" type="${textType}">
-                <constraints nullable="true"/>
+    <changeSet author="ssenko" id="20231202193800-1">
+        <addColumn tableName="saga_log">
+            <column name="task_context" type="${textType}">
+                <constraints nullable="true" />
             </column>
         </addColumn>
     </changeSet>
 
-    <changeSet author="vkyrychenko" id="20220530154000-2">
-
-        <createIndex indexName="saga_log_search_idx" tableName="saga_log">
-            <column name="event_type_key"/>
-            <column name="log_type"/>
-            <column name="saga_transaction_id"/>
-        </createIndex>
-
-        <createIndex indexName="saga_log_trx_idx" tableName="saga_log">
-            <column name="saga_transaction_id"/>
-        </createIndex>
+    <changeSet author="ssenko" id="20231202193800-2">
+        <addColumn tableName="saga_event">
+            <column name="parent_type_key" type="${textType}">
+                <constraints nullable="true" />
+            </column>
+        </addColumn>
     </changeSet>
 
 </databaseChangeLog>

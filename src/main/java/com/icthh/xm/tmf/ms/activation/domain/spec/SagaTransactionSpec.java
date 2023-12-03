@@ -65,9 +65,10 @@ public class SagaTransactionSpec {
             );
     }
 
-    public List<SagaTaskSpec> findDependentTasks(String key) {
+    public List<String> findDependentTasks(String key) {
         return getTasks().stream()
                 .filter(task -> task.getDepends() != null && task.getDepends().contains(key))
+                .map(SagaTaskSpec::getKey)
                 .collect(toList());
     }
 }

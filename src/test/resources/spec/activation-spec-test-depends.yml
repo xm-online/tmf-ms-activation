@@ -1,0 +1,49 @@
+---
+transactions:
+- key: TEST-DEPENDS-RETRY-STRATEGY
+  retryPolicy: RETRY
+  retryCount: 1
+  backOff: 0
+  maxBackOff: 0
+  tasks:
+    - key: A
+      next:
+        - A1
+        - A2
+    - key: A1
+    - key: A2
+    - key: TARGET_TASK
+      depends:
+        - A1
+        - B2_SUSPENDABLE
+    - key: B
+      next:
+        - B1
+        - B2_SUSPENDABLE
+    - key: B1
+    - key: B2_SUSPENDABLE
+      isSuspendable: true
+- key: TEST-DEPENDS-EVENTUALLY-STRATEGY
+  checkDependsEventually: true
+  retryPolicy: RETRY
+  retryCount: 5
+  backOff: 0
+  maxBackOff: 0
+  tasks:
+    - key: A
+      next:
+        - A1
+        - A2
+    - key: A1
+    - key: A2
+    - key: TARGET_TASK
+      depends:
+        - A1
+        - B2_SUSPENDABLE
+    - key: B
+      next:
+        - B1
+        - B2_SUSPENDABLE
+    - key: B1
+    - key: B2_SUSPENDABLE
+      isSuspendable: true
