@@ -1,0 +1,16 @@
+---
+transactions:
+- key: TEST-CONTINUE-RESOLVER
+  retryPolicy: RETRY
+  retryCount: 1
+  backOff: 0
+  maxBackOff: 0
+  tasks:
+    - key: START
+      next: [FIRST_SUSPENDABLE]
+    - key: FIRST_SUSPENDABLE
+      isSuspendable: true
+      next: [SECOND_SUSPENDABLE]
+    - key: SECOND_SUSPENDABLE
+      isSuspendable: true
+

@@ -45,6 +45,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 
 import static com.icthh.xm.commons.lep.XmLepConstants.THREAD_CONTEXT_KEY_AUTH_CONTEXT;
@@ -221,7 +222,29 @@ public class SagaIntTest {
                 assertEquals(log.getEventTypeKey() + " in invalid state", EVENT_END, log.getLogType());
             }
         });
+    }
 
+    @Test
+    public void testContinueResolverByLepCondition() {
+        specService.onRefresh("/config/tenants/TEST_TENANT/activation/activation-spec.yml", loadFile("spec/activation-spec-test-continue-resolver.yml"));
+        resourceLoader.onRefresh("/config/tenants/TEST_TENANT/activation/lep/service/saga/ContinueTask$$TEST_CONTINUE_RESOLVER$$FIRST_SUSPENDABLE$$around.groovy",
+            "lepContext.inArgs.sagaEvent.taskContext.trigger.set(true); return lepContext.lep.proceed(lepContext.lep.getMethodArgValues());");
+
+        SagaTransaction saga = sagaService.createNewSaga(new SagaTransaction()
+            .setKey(UUID.randomUUID().toString())
+            .setTypeKey("TEST-CONTINUE-RESOLVER")
+            .setContext(Map.of())
+            .setSagaTransactionState(NEW)
+        );
+
+        AtomicBoolean trigger = new AtomicBoolean(false);
+        afterEvent("FIRST_SUSPENDABLE").accept(sagaEvent -> {
+            sagaService.continueTask(sagaEvent.getId(), Map.of("trigger", trigger));
+        });
+        beforeEvent("SECOND_SUSPENDABLE").accept(sagaEvent -> {
+            assertTrue(trigger.get());
+        });
+        testEventSender.startSagaProcessing();
     }
 
     private SagaEvent getEventByTypeKey(SagaTransaction saga, String targetTask) {
@@ -229,7 +252,6 @@ public class SagaIntTest {
         return events.stream().filter(e -> e.getTypeKey().equals(targetTask)).findFirst().orElse(null);
     }
 
-    @Configuration
     public static class SagaIntTestConfiguration {
 
 
