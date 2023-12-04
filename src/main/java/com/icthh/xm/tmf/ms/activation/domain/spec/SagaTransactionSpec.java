@@ -1,6 +1,5 @@
 package com.icthh.xm.tmf.ms.activation.domain.spec;
 
-import com.carrotsearch.hppc.ByteArrayList;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.icthh.xm.tmf.ms.activation.service.SagaSpecService.InvalidSagaSpecificationException;
 import lombok.Data;
