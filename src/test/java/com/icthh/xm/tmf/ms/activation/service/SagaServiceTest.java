@@ -142,19 +142,19 @@ public class SagaServiceTest {
         when(tenantUtils.getTenantKey()).thenReturn("XM");
         String txId = UUID.randomUUID().toString();
         when(transactionRepository.save(refEq(mockTx()))).thenReturn(mockTx(txId));
-        when(sagaEventRepository.save(refEq(inQueueEvent(txId, "FIRST-PARALEL-TASK", null), "id")))
-            .thenReturn(inQueueEvent(txId, "FIRST-PARALEL-TASK", "savedFirstTaskId"));
-        when(sagaEventRepository.save(refEq(inQueueEvent(txId, "SECOND-PARALEL-TASK", null), "id")))
-            .thenReturn(inQueueEvent(txId, "SECOND-PARALEL-TASK", "savedSecondTaskId"));
+        when(sagaEventRepository.save(refEq(inQueueEvent(txId, "FIRST-PARALEL-TASK", null, null), "id")))
+            .thenReturn(inQueueEvent(txId, "FIRST-PARALEL-TASK", "savedFirstTaskId", null));
+        when(sagaEventRepository.save(refEq(inQueueEvent(txId, "SECOND-PARALEL-TASK", null, null), "id")))
+            .thenReturn(inQueueEvent(txId, "SECOND-PARALEL-TASK", "savedSecondTaskId", null));
 
         sagaService.createNewSaga(mockTx());
 
         verify(transactionRepository).findByKey(anyString());
         verify(transactionRepository).save(refEq(mockTx()));
-        verify(sagaEventRepository).save(refEq(inQueueEvent(txId, "FIRST-PARALEL-TASK", null), "id"));
-        verify(sagaEventRepository).save(refEq(inQueueEvent(txId, "SECOND-PARALEL-TASK", null), "id"));
-        verify(eventsManager).sendEvent(refEq(inQueueEvent(txId, "FIRST-PARALEL-TASK", "savedFirstTaskId")));
-        verify(eventsManager).sendEvent(refEq(inQueueEvent(txId, "SECOND-PARALEL-TASK", "savedSecondTaskId")));
+        verify(sagaEventRepository).save(refEq(inQueueEvent(txId, "FIRST-PARALEL-TASK", null, null), "id"));
+        verify(sagaEventRepository).save(refEq(inQueueEvent(txId, "SECOND-PARALEL-TASK", null, null), "id"));
+        verify(eventsManager).sendEvent(refEq(inQueueEvent(txId, "FIRST-PARALEL-TASK", "savedFirstTaskId", null)));
+        verify(eventsManager).sendEvent(refEq(inQueueEvent(txId, "SECOND-PARALEL-TASK", "savedSecondTaskId", null)));
 
         noMoreInteraction();
     }
@@ -460,10 +460,10 @@ public class SagaServiceTest {
         when(logRepository.getFinishLogs(eq(txId), eq(asList("PARALEL-TASK1", "PARALEL-TASK2"))))
             .thenReturn(asList(new SagaLog().setEventTypeKey("PARALEL-TASK1").setLogType(EVENT_END),
                 new SagaLog().setEventTypeKey("PARALEL-TASK2").setLogType(EVENT_END)));
-        when(sagaEventRepository.save(refEq(inQueueEvent(txId, "SOME-OTHER-TASK", null), "id")))
-            .thenReturn(inQueueEvent(txId, "SOME-OTHER-TASK", "saved-event" + txId));
+        when(sagaEventRepository.save(refEq(inQueueEvent(txId, "SOME-OTHER-TASK", null, "NEXT-JOIN-TASK"), "id")))
+            .thenReturn(inQueueEvent(txId, "SOME-OTHER-TASK", "saved-event" + txId, "NEXT-JOIN-TASK"));
         when(sagaEventRepository.findById("saved-event" + txId))
-            .thenReturn(Optional.of(inQueueEvent(txId, "NEXT-JOIN-TASK", "saved-event" + txId)));
+            .thenReturn(Optional.of(inQueueEvent(txId, "NEXT-JOIN-TASK", "saved-event" + txId, null)));
         when(sagaEventRepository.existsById("saved-event" + txId)).thenReturn(true);
 
         SagaEvent sagaEvent = mockEvent(txId, "NEXT-JOIN-TASK", "saved-event" + txId);
@@ -479,8 +479,8 @@ public class SagaServiceTest {
         verify(sagaEventRepository).findById("saved-event" + txId);
         verify(sagaEventRepository).existsById("saved-event" + txId);
         verify(sagaEventRepository).deleteById("saved-event" + txId);
-        verify(sagaEventRepository).save(refEq(inQueueEvent(txId, "SOME-OTHER-TASK", null), "id"));
-        verify(eventsManager).sendEvent(refEq(inQueueEvent(txId, "SOME-OTHER-TASK", "saved-event" + txId)));
+        verify(sagaEventRepository).save(refEq(inQueueEvent(txId, "SOME-OTHER-TASK", null, "NEXT-JOIN-TASK"), "id"));
+        verify(eventsManager).sendEvent(refEq(inQueueEvent(txId, "SOME-OTHER-TASK", "saved-event" + txId, "NEXT-JOIN-TASK")));
         verify(logRepository).findLogs(eq(EVENT_END), eq(mockTx(txId, NEW)), eq("NEXT-JOIN-TASK"));
         verify(logRepository).save(refEq(createLog(txId, "NEXT-JOIN-TASK", EVENT_END)));
         verify(logRepository).getFinishLogs(eq(txId), eq(allTasks));
@@ -496,11 +496,12 @@ public class SagaServiceTest {
             .setTransactionId(txId);
     }
 
-    private SagaEvent inQueueEvent(String txId, String typeKey, String id) {
+    private SagaEvent inQueueEvent(String txId, String typeKey, String id, String parentTypeKey) {
         return new SagaEvent().setTenantKey("XM")
             .setId(id)
             .setStatus(IN_QUEUE)
             .setTypeKey(typeKey)
+            .setParentTypeKey(parentTypeKey)
             .setCreateDate(Instant.now(clock))
             .setTransactionId(txId);
     }

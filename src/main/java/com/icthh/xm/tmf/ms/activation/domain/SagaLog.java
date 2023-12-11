@@ -4,7 +4,10 @@ import static javax.persistence.EnumType.STRING;
 
 import java.io.Serializable;
 import java.time.Instant;
+import java.util.HashMap;
+import java.util.Map;
 import javax.persistence.Column;
+import javax.persistence.Convert;
 import javax.persistence.Entity;
 import javax.persistence.Enumerated;
 import javax.persistence.GeneratedValue;
@@ -14,6 +17,8 @@ import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
 import javax.persistence.SequenceGenerator;
 import javax.persistence.Table;
+
+import com.icthh.xm.tmf.ms.activation.repository.converter.MapToStringConverter;
 import lombok.Data;
 import lombok.experimental.Accessors;
 
@@ -38,4 +43,8 @@ public class SagaLog implements Serializable {
 
     @Column(name = "create_date")
     private Instant createDate;
+
+    @Convert(converter = MapToStringConverter.class)
+    @Column(name = "task_context")
+    private Map<String, Object> taskContext = new HashMap<>();
 }

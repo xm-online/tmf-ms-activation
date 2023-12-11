@@ -16,6 +16,7 @@ import com.icthh.xm.tmf.ms.activation.events.EventsSender;
 import com.icthh.xm.tmf.ms.activation.repository.SagaEventRepository;
 import com.icthh.xm.tmf.ms.activation.repository.SagaLogRepository;
 import com.icthh.xm.tmf.ms.activation.repository.SagaTransactionRepository;
+import com.icthh.xm.tmf.ms.activation.resolver.TaskTypeKeyResolver;
 import com.icthh.xm.tmf.ms.activation.resolver.TransactionTypeKeyResolver;
 import com.icthh.xm.tmf.ms.activation.service.SagaSpecService.InvalidSagaSpecificationException;
 import com.icthh.xm.tmf.ms.activation.utils.TenantUtils;
@@ -48,6 +49,7 @@ import static com.icthh.xm.tmf.ms.activation.config.Constants.GENERAL_ERROR_CODE
 import static com.icthh.xm.tmf.ms.activation.domain.SagaEvent.SagaEventStatus.INVALID_SPECIFICATION;
 import static com.icthh.xm.tmf.ms.activation.domain.SagaEvent.SagaEventStatus.IN_QUEUE;
 import static com.icthh.xm.tmf.ms.activation.domain.SagaEvent.SagaEventStatus.SUSPENDED;
+import static com.icthh.xm.tmf.ms.activation.domain.SagaEvent.SagaEventStatus.WAIT_DEPENDS_TASK;
 import static com.icthh.xm.tmf.ms.activation.domain.SagaLogType.EVENT_END;
 import static com.icthh.xm.tmf.ms.activation.domain.SagaLogType.EVENT_START;
 import static com.icthh.xm.tmf.ms.activation.domain.SagaLogType.REJECTED_BY_CONDITION;
@@ -169,9 +171,15 @@ public class SagaServiceImpl implements SagaService {
         SagaTransactionSpec transactionSpec = context.getTransactionSpec();
         SagaTaskSpec taskSpec = context.getTaskSpec();
 
-        writeLog(sagaEvent, transaction, EVENT_START);
+        writeLog(sagaEvent, transaction, EVENT_START, taskSpec);
 
         try {
+            if (!TRUE.equals(self.checkCondition(taskSpec, sagaEvent, transaction))) {
+                log.info("Task by event {} rejected by condition. Transaction: {}", sagaEvent, transaction);
+                rejectTask(transaction.getId(), sagaEvent.getParentTypeKey(), sagaEvent.getTypeKey(), context);
+                return;
+            }
+
             StopWatch stopWatch = StopWatch.createStarted();
             log.info("Start execute task by event {} transaction {}", sagaEvent, transaction);
             Continuation continuation = new Continuation();
@@ -193,6 +201,11 @@ public class SagaServiceImpl implements SagaService {
         }
     }
 
+    @LogicExtensionPoint(value = "Condition", resolver = TaskTypeKeyResolver.class)
+    public Boolean checkCondition(SagaTaskSpec task, SagaEvent sagaEvent, SagaTransaction sagaTransaction) {
+        return true;
+    }
+
     private void rejectTask(String transactionId, final String currentTaskKey, String rejectKey, Context context) {
         if (isPresentInOtherNotFinishedTasks(currentTaskKey, rejectKey, context) ||
             isTaskFinished(rejectKey, context.getTxId())) {
@@ -203,18 +216,18 @@ public class SagaServiceImpl implements SagaService {
         eventToDelete.ifPresent(this::deleteSagaEvent);
         SagaTaskSpec currentTask = context.getTransactionSpec().getTask(rejectKey);
         currentTask.getNext().forEach(nextTask -> rejectTask(transactionId, rejectKey, nextTask, context));
+        List<String> dependentTasks = context.getTransactionSpec().findDependentTasks(rejectKey);
+        dependentTasks.forEach(dependentTask -> rejectTask(transactionId, rejectKey, dependentTask, context));
     }
 
     private boolean isPresentInOtherNotFinishedTasks(final String currentTaskKey, String rejectKey, Context context) {
         List<SagaTaskSpec> tasksWithoutCurrent = context.getTransactionSpec().getTasks().stream()
             .filter(task -> !task.getKey().equals(currentTaskKey)).collect(toList());
-        return tasksWithoutCurrent.stream()
-            .filter(task -> !isTaskFinished(task.getKey(), context.getTxId()))
-            .anyMatch(task -> task.getNext().contains(rejectKey));
+        return tasksWithoutCurrent.stream().anyMatch(task -> task.getNext().contains(rejectKey));
     }
 
     private void markAsRejectedByCondition(String taskKey, Context context) {
-        writeLog(new SagaEvent().setTypeKey(taskKey), context.getTransaction(), REJECTED_BY_CONDITION);
+        writeLog(new SagaEvent().setTypeKey(taskKey), context.getTransaction(), REJECTED_BY_CONDITION, context.getTaskSpec());
     }
 
     @LogicExtensionPoint("ContinueTask")
@@ -233,10 +246,15 @@ public class SagaServiceImpl implements SagaService {
         Context context = draftContext.createContext();
         sagaEvent.getTaskContext().putAll(taskContext);
 
+        self.internalContinueTask(context.getTransaction(), sagaEvent, context.getTaskSpec(), context);
+    }
+
+    @LogicExtensionPoint(value = "ContinueTask", resolver = TaskTypeKeyResolver.class)
+    public void internalContinueTask(SagaTransaction sagaTransaction, SagaEvent sagaEvent, SagaTaskSpec task, Context context) {
         continuation(sagaEvent,
-            context.getTransaction(),
+            sagaTransaction,
             context.getTransactionSpec(),
-            context.getTaskSpec(),
+            task,
             sagaEvent.getTaskContext());
 
         deleteSagaEvent(sagaEvent);
@@ -262,9 +280,17 @@ public class SagaServiceImpl implements SagaService {
 
     private void continuation(SagaEvent sagaEvent, SagaTransaction transaction, SagaTransactionSpec transactionSpec,
                               SagaTaskSpec taskSpec, Map<String, Object> taskContext) {
-        List<SagaTaskSpec> tasks = taskSpec.getNext().stream().map(transactionSpec::getTask).collect(toList());
-        generateEvents(transaction.getId(), tasks, taskContext);
-        writeLog(sagaEvent, transaction, EVENT_END);
+        var tasks = taskSpec.getNext().stream().map(transactionSpec::getTask).collect(toList());
+        if (TRUE.equals(transactionSpec.getCheckDependsEventually())) {
+            List<String> dependentTasks = transactionSpec.findDependentTasks(taskSpec.getKey());
+            List<SagaEvent> dependentEvents = sagaEventRepository.findByTransactionIdAndTypeKeyIn(sagaEvent.getTransactionId(), dependentTasks);
+            dependentEvents.stream()
+                .peek(SagaEvent::markAsInQueue)
+                .map(sagaEventRepository::save)
+                .forEach(eventsManager::sendEvent);
+        }
+        generateEvents(transaction.getId(), sagaEvent.getTypeKey(), tasks, taskContext);
+        writeLog(sagaEvent, transaction, EVENT_END, taskSpec);
         updateTransactionStatus(transaction, transactionSpec, taskContext);
     }
 
@@ -334,13 +360,20 @@ public class SagaServiceImpl implements SagaService {
 
     private boolean isAllDependsTaskFinished(SagaEvent sagaEvent, Context context) {
         SagaTaskSpec taskSpec = context.getTaskSpec();
+        SagaTransactionSpec transactionSpec = context.getTransactionSpec();
         SagaTransaction sagaTransaction = context.getTransaction();
         String txId = context.getTxId();
         Collection<String> notFinishedTasks = getNotFinishedTasks(txId, taskSpec.getDepends());
         if (!notFinishedTasks.isEmpty()) {
             log.warn("Task will not execute. Depends tasks {} not finished. Transaction id {}.", notFinishedTasks,
                 txId);
-            retryService.retryForWaitDependsTask(sagaEvent, sagaTransaction, context.getTaskSpec());
+            if (TRUE.equals(transactionSpec.getCheckDependsEventually())) {
+                log.debug("Depends tasks will be checked eventually after finish \"depends\" tasks. Transaction id {}.", txId);
+                sagaEvent.setStatus(WAIT_DEPENDS_TASK);
+                sagaEventRepository.save(sagaEvent);
+            } else {
+                retryService.retryForWaitDependsTask(sagaEvent, sagaTransaction, context.getTaskSpec());
+            }
             return false;
         }
         return true;
@@ -452,15 +485,16 @@ public class SagaServiceImpl implements SagaService {
 
     private void generateFirstEvents(SagaTransaction sagaTransaction) {
         SagaTransactionSpec spec = specService.getTransactionSpec(sagaTransaction.getTypeKey());
-        generateEvents(sagaTransaction.getId(), spec.getFirstTasks(), emptyMap());
+        generateEvents(sagaTransaction.getId(), null, spec.getFirstTasks(), emptyMap());
     }
 
-    private void generateEvents(String sagaTransactionId, List<SagaTaskSpec> sagaTaskSpecs,
+    private void generateEvents(String sagaTransactionId, String parentTypeKey, List<SagaTaskSpec> sagaTaskSpecs,
                                 Map<String, Object> taskContext) {
 
         String tenantKey = tenantUtils.getTenantKey();
         sagaTaskSpecs.stream()
             .map(task -> new SagaEvent().setTypeKey(task.getKey())
+                .setParentTypeKey(parentTypeKey)
                 .setTenantKey(tenantKey)
                 .setCreateDate(Instant.now(clock))
                 .setTaskContext(taskContext)
@@ -518,11 +552,16 @@ public class SagaServiceImpl implements SagaService {
         return depends;
     }
 
-    private void writeLog(SagaEvent sagaEvent, SagaTransaction transaction, SagaLogType eventType) {
+    private void writeLog(SagaEvent sagaEvent, SagaTransaction transaction, SagaLogType eventType, SagaTaskSpec taskSpec) {
         SagaLog sagaLog = new SagaLog().setLogType(eventType)
             .setCreateDate(Instant.now(clock))
             .setEventTypeKey(sagaEvent.getTypeKey())
             .setSagaTransaction(transaction);
+
+        if (TRUE.equals(taskSpec.getSaveTaskContext())) {
+            sagaLog.setTaskContext(sagaEvent.getTaskContext());
+        }
+
         List<SagaLog> logs = logRepository.findLogs(eventType, transaction, sagaEvent.getTypeKey());
         if (logs.isEmpty()) {
             logRepository.save(sagaLog);

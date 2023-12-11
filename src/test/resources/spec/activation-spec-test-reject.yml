@@ -1,0 +1,38 @@
+---
+transactions:
+- key: TEST-REJECT
+  retryPolicy: RETRY
+  retryCount: 1
+  backOff: 0
+  maxBackOff: 0
+  tasks:
+    - key: A1
+    - key: A2
+    - key: TARGET_TASK
+      depends:
+        - A1
+        - B2
+      next:
+        - TARGET_CHILD
+    - key: TARGET_CHILD
+    - key: B
+      next:
+        - B1
+        - B2
+    - key: B1
+    - key: B2
+      next:
+        - B21
+        - B22
+    - key: B21
+    - key: B22
+      next:
+        - B221
+        - B222  # This is the task that will not be rejected, because it is in multiple next-s
+    - key: B221
+    - key: B222
+    - key: A
+      next:
+        - A1
+        - A2
+        - B222 # This is the task that will not be rejected, because it is in multiple next-s

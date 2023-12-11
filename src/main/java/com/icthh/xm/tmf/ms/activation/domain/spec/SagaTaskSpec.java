@@ -10,6 +10,7 @@ import org.apache.commons.lang3.SerializationUtils;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
@@ -26,6 +27,8 @@ public class SagaTaskSpec implements Serializable {
     private List<String> next;
     private List<String> depends;
     private Boolean isSuspendable;
+    private Boolean saveTaskContext;
+    private Map<String, Object> taskParameters;
 
     public List<String> getNext() {
         if (next == null) {
@@ -46,6 +49,7 @@ public class SagaTaskSpec implements Serializable {
         setIfNull(this::getBackOff, this::setBackOff, tx.getBackOff());
         setIfNull(this::getMaxBackOff, this::setMaxBackOff, tx.getMaxBackOff());
         setIfNull(this::getRetryCount, this::setRetryCount, tx.getRetryCount());
+        setIfNull(this::getSaveTaskContext, this::setSaveTaskContext, tx.getSaveTaskContext());
     }
 
     private static <T> void setIfNull(Supplier<T> getter, Consumer<T> setter, T value) {
