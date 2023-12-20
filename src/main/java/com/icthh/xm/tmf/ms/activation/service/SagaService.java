@@ -6,6 +6,8 @@ import com.icthh.xm.tmf.ms.activation.domain.SagaTransaction;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+
+import com.icthh.xm.tmf.ms.activation.domain.spec.SagaTransactionSpec;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
@@ -45,4 +47,9 @@ public interface SagaService {
 
     void updateTransactionContext(String id, Map<String, Object> context);
 
+    /**
+     * Don't change method signature. This method overrides in ee version of activation microservice
+     */
+    void updateTransactionStatus(SagaTransaction transaction, SagaTransactionSpec transactionSpec,
+                                 Map<String, Object> taskContext);
 }

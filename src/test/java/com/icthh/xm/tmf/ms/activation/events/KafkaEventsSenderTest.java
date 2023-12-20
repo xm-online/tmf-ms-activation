@@ -21,7 +21,7 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
 
 @EnableRetry
 @RunWith(SpringRunner.class)
-@SpringBootTest(classes = {KafkaEventsSender.class})
+@SpringBootTest(classes = {KafkaEventsSender.class, QueueNameResolverConfiguration.class})
 @EnableTransactionManagement(proxyTargetClass = true)
 public class KafkaEventsSenderTest {
 

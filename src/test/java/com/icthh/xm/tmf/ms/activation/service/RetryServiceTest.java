@@ -11,6 +11,7 @@ import com.icthh.xm.tmf.ms.activation.config.SecurityBeanOverrideConfiguration;
 import com.icthh.xm.tmf.ms.activation.domain.SagaEvent;
 import com.icthh.xm.tmf.ms.activation.domain.SagaTransaction;
 import com.icthh.xm.tmf.ms.activation.domain.SagaTransactionState;
+import com.icthh.xm.tmf.ms.activation.domain.SagaType;
 import com.icthh.xm.tmf.ms.activation.domain.spec.SagaTaskSpec;
 import com.icthh.xm.tmf.ms.activation.events.EventsSender;
 import com.icthh.xm.tmf.ms.activation.repository.SagaEventRepository;
@@ -47,6 +48,7 @@ import static com.icthh.xm.commons.lep.XmLepConstants.THREAD_CONTEXT_KEY_TENANT_
 import static com.icthh.xm.tmf.ms.activation.domain.SagaEvent.SagaEventStatus.FAILED;
 import static com.icthh.xm.tmf.ms.activation.domain.SagaEvent.SagaEventStatus.IN_QUEUE;
 import static com.icthh.xm.tmf.ms.activation.domain.SagaEvent.SagaEventStatus.ON_RETRY;
+import static com.icthh.xm.tmf.ms.activation.domain.spec.MockSagaType.fromTypeKey;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertThat;
 import static org.mockito.ArgumentMatchers.eq;
@@ -90,6 +92,7 @@ public class RetryServiceTest {
 
     private static final String TENANT = "XM";
     private static final String TYPE_KEY = "TEST-TYPE-KEY";
+    private static final SagaType TYPE = fromTypeKey("TEST-TYPE-KEY");
     private static final String FIRST_TASK_KEY = "TASK-1";
 
 
@@ -157,7 +160,7 @@ public class RetryServiceTest {
             Optional.of(onRetrySagaEvent(txId, id)),
             Optional.of(failedSagaEvent(txId, id)));
 
-        SagaTaskSpec task = sagaSpecService.getTransactionSpec(TYPE_KEY).getTask(FIRST_TASK_KEY);
+        SagaTaskSpec task = sagaSpecService.getTransactionSpec(TYPE).getTask(FIRST_TASK_KEY);
 
         Mockito.doAnswer(invocation -> {
             SagaEvent event = (SagaEvent) invocation.getArguments()[0];
@@ -283,7 +286,7 @@ public class RetryServiceTest {
         when(eventRepository.save(refEq(sagaEvent, excludedFields))).thenReturn(sagaEvent);
         when(eventRepository.findById(eq(id))).thenReturn(Optional.of(sagaEvent));
 
-        SagaTaskSpec task = sagaSpecService.getTransactionSpec(TYPE_KEY).getTask(FIRST_TASK_KEY);
+        SagaTaskSpec task = sagaSpecService.getTransactionSpec(TYPE).getTask(FIRST_TASK_KEY);
 
 
         Mockito.doAnswer(invocation -> {
@@ -331,7 +334,7 @@ public class RetryServiceTest {
         when(eventRepository.save(refEq(sagaEvent, excludedFields))).thenReturn(sagaEvent);
         when(eventRepository.findById(eq(id))).thenReturn(Optional.of(sagaEvent));
 
-        SagaTaskSpec task = sagaSpecService.getTransactionSpec(TYPE_KEY).getTask(FIRST_TASK_KEY);
+        SagaTaskSpec task = sagaSpecService.getTransactionSpec(TYPE).getTask(FIRST_TASK_KEY);
 
 
         Mockito.doAnswer(invocation -> {
@@ -418,7 +421,7 @@ public class RetryServiceTest {
             Optional.of(onRetrySagaEvent(txId, id)),
             Optional.of(onRetrySagaEvent(txId, id)));
 
-        SagaTaskSpec task = sagaSpecService.getTransactionSpec(TYPE_KEY).getTask(FIRST_TASK_KEY);
+        SagaTaskSpec task = sagaSpecService.getTransactionSpec(TYPE).getTask(FIRST_TASK_KEY);
 
         Mockito.doAnswer(invocation -> {
             SagaEvent event = (SagaEvent) invocation.getArguments()[0];

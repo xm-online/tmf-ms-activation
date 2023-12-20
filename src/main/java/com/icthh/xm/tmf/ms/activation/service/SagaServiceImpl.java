@@ -104,13 +104,14 @@ public class SagaServiceImpl implements SagaService {
             return existsTransaction.get();
         }
 
-        specService.getTransactionSpec(sagaTransaction.getTypeKey()); // check type key is exists in specification
+        SagaTransactionSpec transactionSpec = specService.getTransactionSpec(sagaTransaction);// check type key is exists in specification
         sagaTransaction.setId(null);
         sagaTransaction.setSagaTransactionState(NEW);
         sagaTransaction.setCreateDate(Instant.now(clock));
+        sagaTransaction.setSpecificationVersion(specService.getSpecVersion());
         SagaTransaction saved = transactionRepository.save(sagaTransaction);
         log.info("Saga transaction created {} with context {}", sagaTransaction, sagaTransaction.getContext());
-        generateFirstEvents(saved);
+        generateFirstEvents(saved, transactionSpec);
         return saved;
     }
 
@@ -301,7 +302,7 @@ public class SagaServiceImpl implements SagaService {
 
     private DraftContext initContext(SagaEvent sagaEvent) {
         var transaction = transactionRepository.findById(sagaEvent.getTransactionId());
-        var transactionSpec = transaction.flatMap(it -> specService.findTransactionSpec(it.getTypeKey()));
+        var transactionSpec = transaction.flatMap(specService::findTransactionSpec);
         var taskSpec = transactionSpec.map(it -> it.getTask(sagaEvent.getTypeKey()));
 
         return new DraftContext(transaction, transactionSpec, taskSpec);
@@ -483,8 +484,7 @@ public class SagaServiceImpl implements SagaService {
         log.warn("Event with id {} not found. No context will be updated.", eventId);
     }
 
-    private void generateFirstEvents(SagaTransaction sagaTransaction) {
-        SagaTransactionSpec spec = specService.getTransactionSpec(sagaTransaction.getTypeKey());
+    private void generateFirstEvents(SagaTransaction sagaTransaction, SagaTransactionSpec spec) {
         generateEvents(sagaTransaction.getId(), null, spec.getFirstTasks(), emptyMap());
     }
 
@@ -504,7 +504,11 @@ public class SagaServiceImpl implements SagaService {
             .forEach(eventsManager::sendEvent);
     }
 
-    private void updateTransactionStatus(SagaTransaction transaction, SagaTransactionSpec transactionSpec,
+    /**
+     * Don't change method signature. This method overrides in ee version of activation microservice
+     */
+    @Override
+    public void updateTransactionStatus(SagaTransaction transaction, SagaTransactionSpec transactionSpec,
                                          Map<String, Object> taskContext) {
 
         List<String> txTasks = transactionSpec.getTasks().stream().map(SagaTaskSpec::getKey).collect(toList());

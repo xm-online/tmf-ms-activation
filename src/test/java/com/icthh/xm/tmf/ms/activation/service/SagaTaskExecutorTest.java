@@ -2,6 +2,7 @@ package com.icthh.xm.tmf.ms.activation.service;
 
 import static com.icthh.xm.commons.lep.XmLepConstants.THREAD_CONTEXT_KEY_AUTH_CONTEXT;
 import static com.icthh.xm.commons.lep.XmLepConstants.THREAD_CONTEXT_KEY_TENANT_CONTEXT;
+import static com.icthh.xm.tmf.ms.activation.domain.spec.MockSagaType.fromTypeKey;
 import static java.lang.Boolean.parseBoolean;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
@@ -24,6 +25,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.IOUtils;
@@ -151,9 +153,8 @@ public class SagaTaskExecutorTest {
         testTaskGroup(typeKey, path);
     }
 
-
     private void testTaskGroup(String typeKey, String path) {
-        SagaTransactionSpec transactionSpec = sagaSpecService.getTransactionSpec(typeKey);
+        SagaTransactionSpec transactionSpec = sagaSpecService.getTransactionSpec(fromTypeKey(typeKey));
         SagaTaskSpec taskSpec = transactionSpec.getTask("TASK");
         SagaTransaction sagaTransaction = new SagaTransaction().setTypeKey(typeKey).setContext(new HashMap<>());
 

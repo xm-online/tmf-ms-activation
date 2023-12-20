@@ -6,6 +6,7 @@ import com.icthh.xm.commons.config.client.api.RefreshableConfiguration;
 import com.icthh.xm.commons.exceptions.BusinessException;
 import com.icthh.xm.commons.logging.aop.IgnoreLogginAspect;
 import com.icthh.xm.tmf.ms.activation.config.SagaTransactionSpecificationMetric;
+import com.icthh.xm.tmf.ms.activation.domain.SagaType;
 import com.icthh.xm.tmf.ms.activation.domain.spec.SagaSpec;
 import com.icthh.xm.tmf.ms.activation.domain.spec.SagaTransactionSpec;
 import com.icthh.xm.tmf.ms.activation.utils.TenantUtils;
@@ -93,22 +94,28 @@ public class SagaSpecService implements RefreshableConfiguration {
         return matcher.extractUriTemplateVariables(PATH_PATTERN, updatedKey).get(TENANT_NAME);
     }
 
-    @IgnoreLogginAspect
-    public SagaTransactionSpec getTransactionSpec(String typeKey) {
+    public String getSpecVersion() {
         String tenantKey = tenantUtils.getTenantKey();
         SagaSpec sagaSpec = sagaSpecs.get(tenantKey);
-        if (sagaSpec == null) {
-            throw new InvalidSagaSpecificationException("saga.spec.not.found",
-                "Saga spec for type " + typeKey + " and tenant " + tenantKey + " not found.");
-        }
-        return sagaSpec.getByType(typeKey);
+        return sagaSpec != null ? sagaSpec.getVersion() : null;
     }
 
     @IgnoreLogginAspect
-    public Optional<SagaTransactionSpec> findTransactionSpec(String typeKey) {
+    public SagaTransactionSpec getTransactionSpec(SagaType sagaType) {
+        return findTransactionSpec(sagaType).orElseThrow(() ->
+                new InvalidSagaSpecificationException("saga.spec.not.found",
+                    "Saga spec for type " + sagaType.getTypeKey() + " and tenant " + tenantUtils.getTenantKey() + " not found.")
+        );
+    }
+
+    /**
+     * Don't change method signature. This method overrides in ee version of activation microservice
+     */
+    @IgnoreLogginAspect
+    public Optional<SagaTransactionSpec> findTransactionSpec(SagaType sagaType) {
         String tenantKey = tenantUtils.getTenantKey();
         SagaSpec sagaSpec = sagaSpecs.get(tenantKey);
-        return Optional.ofNullable(sagaSpec).map(it -> it.getByType(typeKey));
+        return Optional.ofNullable(sagaSpec).map(it -> it.getByType(sagaType.getTypeKey()));
     }
 
     public static class InvalidSagaSpecificationException extends BusinessException {
