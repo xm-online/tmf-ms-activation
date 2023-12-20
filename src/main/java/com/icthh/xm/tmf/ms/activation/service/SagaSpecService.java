@@ -31,9 +31,10 @@ public class SagaSpecService implements RefreshableConfiguration {
 
     private final Map<String, SagaSpec> sagaSpecs = new ConcurrentHashMap<>();
     private final TenantUtils tenantUtils;
-    private AntPathMatcher matcher = new AntPathMatcher();
-    private ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
+    private final AntPathMatcher matcher = new AntPathMatcher();
+    private final ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
     private final SagaTransactionSpecificationMetric sagaTransactionSpecificationMetric;
+    private final SagaSpecResolver sagaSpecResolver;
 
     @Override
     public void onRefresh(String updatedKey, String config) {
@@ -108,14 +109,13 @@ public class SagaSpecService implements RefreshableConfiguration {
         );
     }
 
-    /**
-     * Don't change method signature. This method overrides in ee version of activation microservice
-     */
     @IgnoreLogginAspect
     public Optional<SagaTransactionSpec> findTransactionSpec(SagaType sagaType) {
         String tenantKey = tenantUtils.getTenantKey();
         SagaSpec sagaSpec = sagaSpecs.get(tenantKey);
-        return Optional.ofNullable(sagaSpec).map(it -> it.getByType(sagaType.getTypeKey()));
+        return sagaSpecResolver.findTransactionSpec(sagaType).or(() ->
+            Optional.ofNullable(sagaSpec).map(it -> it.getByType(sagaType.getTypeKey()))
+        );
     }
 
     public static class InvalidSagaSpecificationException extends BusinessException {
