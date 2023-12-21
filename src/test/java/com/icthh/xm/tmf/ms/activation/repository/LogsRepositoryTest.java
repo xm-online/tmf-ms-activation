@@ -48,6 +48,26 @@ public class LogsRepositoryTest extends BaseDaoTest {
     }
 
     @Test
+    public void finishedLogsTaskTypeKeysTest() {
+        List<String> finishLogs = sagaLogRepository.getLogs("1", asList("STARTED", "STARTED2", "FINISHED", "FINISHED2", "REJECTED"));
+        assertEquals(asList("FINISHED", "FINISHED2", "REJECTED"), finishLogs);
+    }
+
+    @Test
+    public void emptyListOfTaskTypeKeysIfTaskNotFinished() {
+        List<String> finished = sagaLogRepository.getLogs("1", asList("STARTED"));
+        assertEquals(0, finished.size());
+        assertEquals(emptyList(), finished);
+    }
+
+    @Test
+    public void oneTaskTypeKeyLogIfNotFinished() {
+        List<String> finished = sagaLogRepository.getLogs("1", asList("FINISHED"));
+        assertEquals(1, finished.size());
+        assertEquals(List.of("FINISHED"), finished);
+    }
+
+    @Test
     public void findLogs() {
         List<SagaLog> started = sagaLogRepository.findLogs(EVENT_START, sagaTransactionRepository.getOne("1"), "STARTED");
         assertEquals(1, started.size());
