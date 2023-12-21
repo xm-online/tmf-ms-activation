@@ -11,7 +11,7 @@ import com.icthh.xm.tmf.ms.activation.domain.SagaLog;
 import com.icthh.xm.tmf.ms.activation.domain.SagaLogType;
 import com.icthh.xm.tmf.ms.activation.domain.SagaTransaction;
 import java.util.List;
-import java.util.UUID;
+
 import lombok.extern.slf4j.Slf4j;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -49,20 +49,20 @@ public class LogsRepositoryTest extends BaseDaoTest {
 
     @Test
     public void finishedLogsTaskTypeKeysTest() {
-        List<String> finishLogs = sagaLogRepository.getLogs("1", asList("STARTED", "STARTED2", "FINISHED", "FINISHED2", "REJECTED"));
+        List<String> finishLogs = sagaLogRepository.getFinishLogsTypeKeys("1", asList("STARTED", "STARTED2", "FINISHED", "FINISHED2", "REJECTED"));
         assertEquals(asList("FINISHED", "FINISHED2", "REJECTED"), finishLogs);
     }
 
     @Test
     public void emptyListOfTaskTypeKeysIfTaskNotFinished() {
-        List<String> finished = sagaLogRepository.getLogs("1", asList("STARTED"));
+        List<String> finished = sagaLogRepository.getFinishLogsTypeKeys("1", asList("STARTED"));
         assertEquals(0, finished.size());
         assertEquals(emptyList(), finished);
     }
 
     @Test
     public void oneTaskTypeKeyLogIfNotFinished() {
-        List<String> finished = sagaLogRepository.getLogs("1", asList("FINISHED"));
+        List<String> finished = sagaLogRepository.getFinishLogsTypeKeys("1", asList("FINISHED"));
         assertEquals(1, finished.size());
         assertEquals(List.of("FINISHED"), finished);
     }
