@@ -63,6 +63,7 @@ public class SagaSpecService implements RefreshableConfiguration {
                 SagaSpec spec = mapper.readValue(config, SagaSpec.class);
                 sagaSpecs.put(tenant, spec);
                 updateRetryPolicy(spec);
+                sagaSpecResolver.update(tenant, spec);
                 log.info("Spec for tenant '{}' were updated: {}", tenant, updatedKey);
 
                 initMetrics(tenant, spec);
