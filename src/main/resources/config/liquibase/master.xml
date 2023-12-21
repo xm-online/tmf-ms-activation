@@ -11,6 +11,7 @@
     <include file="config/liquibase/changelog/20220530154000_add_error_fields.xml" relativeToChangelogFile="false"/>
     <include file="config/liquibase/changelog/20231202193800_add_context_to_log.xml" relativeToChangelogFile="false"/>
     <include file="config/liquibase/changelog/20231220153000_add_specification_version.xml" relativeToChangelogFile="false"/>
+    <includeAll path="classpath:config/liquibase/changelog/extended/" errorIfMissingOrEmpty="false"/>
 
     <!-- jhipster-needle-liquibase-add-changelog - JHipster will add liquibase changelogs here -->
     <!-- jhipster-needle-liquibase-add-constraints-changelog - JHipster will add liquibase constraints changelogs here -->
