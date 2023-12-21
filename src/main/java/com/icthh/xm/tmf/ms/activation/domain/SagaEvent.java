@@ -18,6 +18,7 @@ import javax.persistence.Enumerated;
 import javax.persistence.Id;
 import javax.persistence.Table;
 import lombok.Data;
+import lombok.RequiredArgsConstructor;
 import lombok.ToString;
 import lombok.experimental.Accessors;
 
@@ -68,7 +69,16 @@ public class SagaEvent implements Serializable {
         return SUSPENDED == status;
     }
 
+    @RequiredArgsConstructor
     public enum SagaEventStatus {
-        ON_RETRY, SUSPENDED, WAIT_DEPENDS_TASK, IN_QUEUE, WAIT_CONDITION_TASK, INVALID_SPECIFICATION, FAILED;
+        ON_RETRY(false),
+        SUSPENDED(false),
+        WAIT_DEPENDS_TASK(false),
+        IN_QUEUE(false),
+        WAIT_CONDITION_TASK(false),
+        INVALID_SPECIFICATION(true),
+        FAILED(true);
+
+        final boolean finalState;
     }
 }
