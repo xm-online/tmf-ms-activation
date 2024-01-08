@@ -10,16 +10,15 @@ import com.icthh.xm.tmf.ms.activation.domain.SagaType;
 import com.icthh.xm.tmf.ms.activation.domain.spec.SagaSpec;
 import com.icthh.xm.tmf.ms.activation.domain.spec.SagaTransactionSpec;
 import com.icthh.xm.tmf.ms.activation.utils.TenantUtils;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.util.AntPathMatcher;
+
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -29,7 +28,6 @@ public class SagaSpecService implements RefreshableConfiguration {
     private static final String TENANT_NAME = "tenantName";
     private static final String PATH_PATTERN = "/config/tenants/{tenantName}/activation/activation-spec.yml";
 
-    private final Map<String, SagaSpec> sagaSpecs = new ConcurrentHashMap<>();
     private final TenantUtils tenantUtils;
     private final AntPathMatcher matcher = new AntPathMatcher();
     private final ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
@@ -37,32 +35,21 @@ public class SagaSpecService implements RefreshableConfiguration {
     private final SagaSpecResolver sagaSpecResolver;
 
     @Override
-    public void onRefresh(String updatedKey, String config) {
-        refreshConfig(updatedKey, config);
-    }
-
-    @Override
     public boolean isListeningConfiguration(String updatedKey) {
         return matcher.match(PATH_PATTERN, updatedKey);
     }
 
     @Override
-    public void onInit(String key, String config) {
-        if (isListeningConfiguration(key)) {
-            refreshConfig(key, config);
-        }
-    }
-
-    private void refreshConfig(String updatedKey, String config) {
+    public void onRefresh(String updatedKey, String config) {
         try {
             String tenant = extractTenant(updatedKey);
             if (StringUtils.isBlank(config)) {
-                sagaSpecs.remove(tenant);
+                sagaSpecResolver.remove(tenant);
                 log.info("Spec for tenant '{}' were removed: {}", tenant, updatedKey);
             } else {
                 SagaSpec spec = mapper.readValue(config, SagaSpec.class);
-                sagaSpecs.put(tenant, spec);
                 updateRetryPolicy(spec);
+
                 sagaSpecResolver.update(tenant, spec);
                 log.info("Spec for tenant '{}' were updated: {}", tenant, updatedKey);
 
@@ -98,8 +85,7 @@ public class SagaSpecService implements RefreshableConfiguration {
 
     public String getSpecVersion() {
         String tenantKey = tenantUtils.getTenantKey();
-        SagaSpec sagaSpec = sagaSpecs.get(tenantKey);
-        return sagaSpec != null ? sagaSpec.getVersion() : null;
+        return sagaSpecResolver.getActualSpecVersion(tenantKey);
     }
 
     @IgnoreLogginAspect
@@ -112,11 +98,7 @@ public class SagaSpecService implements RefreshableConfiguration {
 
     @IgnoreLogginAspect
     public Optional<SagaTransactionSpec> findTransactionSpec(SagaType sagaType) {
-        String tenantKey = tenantUtils.getTenantKey();
-        SagaSpec sagaSpec = sagaSpecs.get(tenantKey);
-        return sagaSpecResolver.findTransactionSpec(sagaType).or(() ->
-            Optional.ofNullable(sagaSpec).map(it -> it.getByType(sagaType.getTypeKey()))
-        );
+        return sagaSpecResolver.findTransactionSpec(tenantUtils.getTenantKey(), sagaType);
     }
 
     public static class InvalidSagaSpecificationException extends BusinessException {

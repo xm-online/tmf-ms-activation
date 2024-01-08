@@ -17,6 +17,13 @@
 spring:
     application:
         name: activation
+    cloud:
+      discovery:
+        enabled: false
+      consul:
+        enabled: false
+        config:
+          enabled: false
     main:
       allow-bean-definition-overriding: true
     datasource:

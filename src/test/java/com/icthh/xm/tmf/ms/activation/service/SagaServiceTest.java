@@ -26,7 +26,6 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
-import org.mockito.Spy;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.springframework.core.io.ClassPathResource;
 import org.testcontainers.shaded.org.apache.commons.lang.mutable.MutableBoolean;
@@ -125,7 +124,7 @@ public class SagaServiceTest {
 
     @Before
     public void before() throws IOException {
-        specService = new SagaSpecService(tenantUtils, sagaTransactionSpecificationMetric, new EmptySpecResolver());
+        specService = new SagaSpecService(tenantUtils, sagaTransactionSpecificationMetric, new MapSpecResolver());
         var transactionStatusStrategy = new FinishTransactionStrategy(taskExecutor, transactionRepository, logRepository);
         sagaService = new SagaServiceImpl(logRepository, transactionRepository, specService, eventsManager,
             tenantUtils, taskExecutor, retryService, sagaEventRepository, transactionStatusStrategy);

@@ -2,7 +2,7 @@ package com.icthh.xm.tmf.ms.activation.config;
 
 import com.icthh.xm.tmf.ms.activation.repository.SagaLogRepository;
 import com.icthh.xm.tmf.ms.activation.repository.SagaTransactionRepository;
-import com.icthh.xm.tmf.ms.activation.service.EmptySpecResolver;
+import com.icthh.xm.tmf.ms.activation.service.MapSpecResolver;
 import com.icthh.xm.tmf.ms.activation.service.FinishTransactionStrategy;
 import com.icthh.xm.tmf.ms.activation.service.SagaSpecResolver;
 import com.icthh.xm.tmf.ms.activation.service.SagaTaskExecutor;
@@ -25,7 +25,7 @@ public class ActivationConfiguration {
     @Bean
     @ConditionalOnMissingBean(SagaSpecResolver.class)
     public SagaSpecResolver sagaSpecResolver() {
-        return new EmptySpecResolver();
+        return new MapSpecResolver();
     }
 
 }
