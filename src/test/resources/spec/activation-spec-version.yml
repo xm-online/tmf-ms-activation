@@ -1,0 +1,11 @@
+---
+version: 54321
+transactions:
+- key: TEST-VERSION
+  retryPolicy: RETRY
+  retryCount: 1
+  backOff: 0
+  maxBackOff: 0
+  tasks:
+    - key: EVENT
+

@@ -9,6 +9,8 @@ import com.icthh.xm.tmf.ms.activation.domain.SagaLogType;
 import com.icthh.xm.tmf.ms.activation.domain.SagaTransaction;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import javax.persistence.criteria.Predicate;
 import java.util.List;
@@ -33,6 +35,14 @@ public interface SagaLogRepository extends JpaRepository<SagaLog, Long>, JpaSpec
             return conjunction;
         }));
     }
+
+    @Query("SELECT s.eventTypeKey FROM SagaLog s " +
+        "WHERE (s.logType = 'REJECTED_BY_CONDITION' OR s.logType = 'EVENT_END') " +
+        "AND s.sagaTransaction.id = :sagaTransactionId AND s.eventTypeKey IN :eventTypeKeys")
+    List<String> getFinishLogsTypeKeys(
+        @Param("sagaTransactionId") String sagaTransactionId,
+        @Param("eventTypeKeys") List<String> eventTypeKeys
+    );
 
     List<SagaLog> findByLogTypeAndEventTypeKeyAndSagaTransaction(SagaLogType eventType, String typeKey,
                                                         SagaTransaction transaction);

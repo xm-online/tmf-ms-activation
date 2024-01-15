@@ -1,6 +1,13 @@
 liquibase:
     change-log: config/liquibase/master.xml
 spring:
+    cloud:
+      discovery:
+        enabled: false
+      consul:
+        enabled: false
+        config:
+          enabled: false
     liquibase:
         change-log: config/liquibase/master.xml
     datasource:

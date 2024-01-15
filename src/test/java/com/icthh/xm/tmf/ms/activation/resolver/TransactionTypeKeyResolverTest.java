@@ -24,6 +24,7 @@ import org.springframework.context.ApplicationContext;
 
 import java.lang.reflect.Method;
 
+import static com.icthh.xm.tmf.ms.activation.domain.spec.MockSagaType.fromTypeKey;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -67,12 +68,12 @@ public class TransactionTypeKeyResolverTest {
 
         when(applicationContext.getBean(LepManager.class)).thenReturn(lepManager);
 
-        when(sagaSpecService.getTransactionSpec(TYPE_KEY)).thenReturn(new SagaTransactionSpec());
-        TransactionTypeKeyResolver resolver = new TransactionTypeKeyResolver(sagaSpecService);
-        when(applicationContext.getBean(TransactionTypeKeyResolver.class)).thenReturn(resolver);
-
         SagaTransaction sagaTransaction = new SagaTransaction();
         sagaTransaction.setTypeKey(TYPE_KEY);
+
+        when(sagaSpecService.getTransactionSpec(sagaTransaction)).thenReturn(new SagaTransactionSpec());
+        TransactionTypeKeyResolver resolver = new TransactionTypeKeyResolver(sagaSpecService);
+        when(applicationContext.getBean(TransactionTypeKeyResolver.class)).thenReturn(resolver);
 
         lepServiceHandler.onMethodInvoke(SagaServiceImpl.class, sagaService, method, new Object[]{sagaTransaction});
 

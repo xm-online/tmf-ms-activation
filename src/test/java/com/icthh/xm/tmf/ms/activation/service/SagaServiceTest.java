@@ -49,6 +49,7 @@ import static com.icthh.xm.tmf.ms.activation.domain.SagaLogType.REJECTED_BY_COND
 import static com.icthh.xm.tmf.ms.activation.domain.SagaTransactionState.CANCELED;
 import static com.icthh.xm.tmf.ms.activation.domain.SagaTransactionState.FINISHED;
 import static com.icthh.xm.tmf.ms.activation.domain.SagaTransactionState.NEW;
+import static com.icthh.xm.tmf.ms.activation.domain.spec.MockSagaType.fromTypeKey;
 import static com.icthh.xm.tmf.ms.activation.domain.spec.RetryPolicy.RETRY;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.time.ZoneOffset.UTC;
@@ -123,9 +124,10 @@ public class SagaServiceTest {
 
     @Before
     public void before() throws IOException {
-        specService = new SagaSpecService(tenantUtils, sagaTransactionSpecificationMetric);
+        specService = new SagaSpecService(tenantUtils, sagaTransactionSpecificationMetric, new MapSpecResolver());
+        var transactionStatusStrategy = new FinishTransactionStrategy(taskExecutor, transactionRepository, logRepository);
         sagaService = new SagaServiceImpl(logRepository, transactionRepository, specService, eventsManager,
-            tenantUtils, taskExecutor, retryService, sagaEventRepository);
+            tenantUtils, taskExecutor, retryService, sagaEventRepository, transactionStatusStrategy);
         sagaService.setClock(clock);
         sagaService.setSelf(sagaService);
         specService.onRefresh("/config/tenants/XM/activation/activation-spec.yml", loadFile("spec/activation-spec.yml"));
@@ -202,7 +204,7 @@ public class SagaServiceTest {
         SagaTransaction transaction = mockTx(txId, NEW).setTypeKey(typeKey);
         when(transactionRepository.findById(txId)).thenReturn(of(transaction));
 
-        SagaTransactionSpec transactionSpec = specService.getTransactionSpec(typeKey);
+        SagaTransactionSpec transactionSpec = specService.getTransactionSpec(transaction);
         SagaTaskSpec firstTaskSpec = transactionSpec.getTask(firstTaskKey);
 
         generateEvent(txId, firstTaskKey, "NEXT-SECOND-TASK", transaction, firstTaskSpec);
@@ -238,7 +240,7 @@ public class SagaServiceTest {
         SagaTransaction transaction = mockTx(txId, NEW).setTypeKey(typeKey);
         when(transactionRepository.findById(txId)).thenReturn(of(transaction));
 
-        SagaTransactionSpec transactionSpec = specService.getTransactionSpec(typeKey);
+        SagaTransactionSpec transactionSpec = specService.getTransactionSpec(transaction);
 
         List<String> startedAndEndedEvents = List.of("FIRST-TASK", "NEXT-SECOND-TASK", "NEXT-THIRD-TASK");
         List<String> nextEvents = List.of("NEXT-SECOND-TASK", "NEXT-THIRD-TASK", StringUtils.EMPTY);
@@ -284,7 +286,7 @@ public class SagaServiceTest {
         when(transactionRepository.findById(txId)).thenReturn(of(transaction));
         when(sagaEventRepository.existsById(anyString())).thenReturn(true);
 
-        SagaTransactionSpec transactionSpec = specService.getTransactionSpec(typeKey);
+        SagaTransactionSpec transactionSpec = specService.getTransactionSpec(transaction);
         SagaTaskSpec firstTaskSpec = transactionSpec.getTask(firstTaskKey);
 
         generateEvent(txId, firstTaskKey, "SECOND-TASK", transaction, firstTaskSpec);
@@ -715,7 +717,7 @@ public class SagaServiceTest {
         specService.onRefresh("/config/tenants/XM/activation/activation-spec.yml", loadFile("spec/activation-spec-task-configuration.yml"));
         when(tenantUtils.getTenantKey()).thenReturn("XM");
 
-        SagaTransactionSpec transactionSpecWithConfiguration = specService.getTransactionSpec("TEST-TYPE-KEY");
+        SagaTransactionSpec transactionSpecWithConfiguration = specService.getTransactionSpec(fromTypeKey("TEST-TYPE-KEY"));
         SagaTaskSpec task = transactionSpecWithConfiguration.getTask("TASK-1");
         assertEquals(RETRY_POLICY_FROM_TRANSACTION, task.getRetryPolicy());
         assertEquals(RETRY_COUNT_FROM_TASK, task.getRetryCount());
@@ -736,7 +738,7 @@ public class SagaServiceTest {
         Continuation continuation = new Continuation();
 
         SagaTransaction transaction = mockTx(txId, NEW).setTypeKey(txTypeKey);
-        SagaTaskSpec taskSpec = specService.getTransactionSpec(txTypeKey).getTask(eventTypeKey);
+        SagaTaskSpec taskSpec = specService.getTransactionSpec(transaction).getTask(eventTypeKey);
 
         when(transactionRepository.findById(txId)).thenReturn(of(transaction));
         when(logRepository.getFinishLogs(eq(txId), eq(asList(eventTypeKey)))).thenReturn(emptyList());
@@ -786,7 +788,7 @@ public class SagaServiceTest {
         Continuation continuation = new Continuation();
 
         SagaTransaction transaction = mockTx(txId, NEW).setTypeKey(txTypeKey);
-        SagaTaskSpec taskSpec = specService.getTransactionSpec(txTypeKey).getTask(eventTypeKey);
+        SagaTaskSpec taskSpec = specService.getTransactionSpec(transaction).getTask(eventTypeKey);
 
         when(transactionRepository.findById(txId)).thenReturn(of(transaction));
         when(logRepository.getFinishLogs(eq(txId), eq(asList(eventTypeKey)))).thenReturn(emptyList());

@@ -15,6 +15,8 @@ import java.util.List;
 @Accessors(chain = true)
 public class SagaSpec {
 
+    private String version;
+
     private List<SagaTransactionSpec> transactions;
 
     public SagaTransactionSpec getByType(String typeKey) {

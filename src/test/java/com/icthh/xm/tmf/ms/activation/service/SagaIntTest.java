@@ -10,7 +10,6 @@ import com.icthh.xm.tmf.ms.activation.ActivationApp;
 import com.icthh.xm.tmf.ms.activation.config.SecurityBeanOverrideConfiguration;
 import com.icthh.xm.tmf.ms.activation.domain.SagaEvent;
 import com.icthh.xm.tmf.ms.activation.domain.SagaTransaction;
-import com.icthh.xm.tmf.ms.activation.domain.SagaTransactionState;
 import com.icthh.xm.tmf.ms.activation.domain.spec.SagaTaskSpec;
 import com.icthh.xm.tmf.ms.activation.events.EventsSender;
 import com.icthh.xm.tmf.ms.activation.events.bindings.EventHandler;
@@ -247,13 +246,33 @@ public class SagaIntTest {
         testEventSender.startSagaProcessing();
     }
 
+    @Test
+    public void testSagaTxVersion() {
+        specService.onRefresh("/config/tenants/TEST_TENANT/activation/activation-spec.yml", loadFile("spec/activation-spec-version.yml"));
+
+        sagaService.createNewSaga(new SagaTransaction()
+            .setKey(UUID.randomUUID().toString())
+            .setTypeKey("TEST-VERSION")
+            .setContext(Map.of())
+            .setSagaTransactionState(NEW)
+        );
+
+        AtomicBoolean trigger = new AtomicBoolean(false);
+        beforeEvent("EVENT").accept(sagaEvent -> {
+            trigger.set(true);
+            SagaTransaction sagaTransaction = sagaService.findTransactionById(sagaEvent.getTransactionId()).get();
+            assertEquals("54321", sagaTransaction.getSpecificationVersion());
+        });
+        testEventSender.startSagaProcessing();
+        assertTrue(trigger.get());
+    }
+
     private SagaEvent getEventByTypeKey(SagaTransaction saga, String targetTask) {
         List<SagaEvent> events = sagaService.getEventsByTransaction(saga.getId());
         return events.stream().filter(e -> e.getTypeKey().equals(targetTask)).findFirst().orElse(null);
     }
 
     public static class SagaIntTestConfiguration {
-
 
         @Primary
         @Bean

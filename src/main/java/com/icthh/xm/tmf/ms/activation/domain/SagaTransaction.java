@@ -25,7 +25,7 @@ import org.hibernate.annotations.GenericGenerator;
 @Table(name = "saga_transaction")
 @ToString(exclude = "context")
 @Accessors(chain = true)
-public class SagaTransaction implements Serializable {
+public class SagaTransaction implements SagaType, Serializable {
 
     @Id
     @GeneratedValue(generator = "uuid")
@@ -45,4 +45,7 @@ public class SagaTransaction implements Serializable {
 
     @Column(name = "create_date")
     private Instant createDate;
+
+    @Column(name = "specification_version")
+    private String specificationVersion;
 }

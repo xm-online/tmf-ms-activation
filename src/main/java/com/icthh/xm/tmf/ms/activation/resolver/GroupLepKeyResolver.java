@@ -39,7 +39,7 @@ public abstract class GroupLepKeyResolver extends SeparatorSegmentedLepKeyResolv
     }
 
     private String getTaskGroup(SagaTransaction sagaTransaction, String separator) {
-        SagaTransactionSpec spec = sagaSpecService.getTransactionSpec(sagaTransaction.getTypeKey());
+        SagaTransactionSpec spec = sagaSpecService.getTransactionSpec(sagaTransaction);
         String group = spec.getGroup();
         group = StringUtils.strip(group, "/");
         if (isBlank(group)) {

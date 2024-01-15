@@ -26,6 +26,7 @@ import org.springframework.stereotype.Component;
 public class KafkaEventsSender implements EventsSender {
 
     private final BinderAwareChannelResolver channelResolver;
+    private final QueueNameResolver queueNameResolver;
 
     @Setter(onMethod = @__(@Autowired))
     private KafkaEventsSender self;
@@ -37,7 +38,7 @@ public class KafkaEventsSender implements EventsSender {
     @Override
     public void sendEvent(SagaEvent sagaEvent) {
         boolean result = channelResolver
-            .resolveDestination(MessagingConfiguration.buildChanelName(sagaEvent.getTenantKey().toUpperCase()))
+            .resolveDestination(queueNameResolver.resolveQueueName(sagaEvent))
             .send(MessageBuilder.withPayload(sagaEvent)
                                 .setHeader(KafkaHeaders.MESSAGE_KEY, sagaEvent.getId())
                                 .setHeader(PARTITION_KEY, self.getPartitionKey(sagaEvent))
