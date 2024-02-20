@@ -71,6 +71,6 @@ public class ApplicationProperties {
     @Getter
     @Setter
     public static class CustomMetrics {
-        private Boolean sagaTransactionSpecificationMetricsEnabled = Boolean.TRUE;
+        private Boolean sagaTransactionSpecificationMetricsEnabled;
     }
 }
