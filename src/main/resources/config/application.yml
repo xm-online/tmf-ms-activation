@@ -212,3 +212,5 @@ application:
         connection-request-timeout: 0
         connect-timeout: 0
         read-timeout: 0
+    custom-metrics:
+        saga-transaction-specification-metrics-enabled: true

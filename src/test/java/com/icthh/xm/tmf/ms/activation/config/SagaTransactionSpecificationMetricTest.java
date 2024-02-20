@@ -2,6 +2,8 @@ package com.icthh.xm.tmf.ms.activation.config;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import com.codahale.metrics.Gauge;
 import com.codahale.metrics.Metric;
@@ -31,6 +33,10 @@ public class SagaTransactionSpecificationMetricTest {
     @Test
     public void shouldCreateTransactionMetrics() {
         // GIVEN
+        ApplicationProperties.CustomMetrics customMetricsMock = mock(ApplicationProperties.CustomMetrics.class);
+        when(customMetricsMock.getSagaTransactionSpecificationMetricsEnabled()).thenReturn(true);
+        when(applicationProperties.getCustomMetrics()).thenReturn(customMetricsMock);
+
         SagaTransactionSpecificationMetric sagaTransactionSpecificationMetric =
             new SagaTransactionSpecificationMetric(sagaTransactionRepository, applicationProperties,
                 tenantUtils, metricRegistry);
@@ -49,4 +55,23 @@ public class SagaTransactionSpecificationMetricTest {
         assertTrue(metrics.get("com.icthh.xm.tmf.ms.activation.specification.transactions.wait.XM.SPEC-2") instanceof Gauge);
     }
 
+    @Test
+    public void shouldNotCreateMetricsIfConfigurationPropertyIsDisabled() {
+        // GIVEN
+        ApplicationProperties.CustomMetrics customMetricsMock = mock(ApplicationProperties.CustomMetrics.class);
+        when(customMetricsMock.getSagaTransactionSpecificationMetricsEnabled()).thenReturn(false);
+        when(applicationProperties.getCustomMetrics()).thenReturn(customMetricsMock);
+
+        SagaTransactionSpecificationMetric sagaTransactionSpecificationMetric =
+            new SagaTransactionSpecificationMetric(sagaTransactionRepository, applicationProperties,
+                tenantUtils, metricRegistry);
+        metricRegistry.meter("com.icthh.xm.tmf.ms.activation.specification");
+
+        // WHEN
+        sagaTransactionSpecificationMetric.initMetrics("XM", List.of("SPEC-1", "SPEC-2"));
+
+        // THEN
+        Map<String, Metric> metrics = metricRegistry.getMetrics();
+        assertEquals(0, metrics.size());
+    }
 }
