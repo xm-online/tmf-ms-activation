@@ -56,7 +56,7 @@ public class SagaTransactionSpecificationMetric {
                 return metrics;
             });
         } else {
-            log.debug("initMetrics: metrics disabled via configuration property " +
+            log.info("initMetrics: metrics disabled via configuration property " +
                 "application.custom-metrics.saga-transaction-specification-metrics-enabled");
         }
     }
