@@ -65,7 +65,6 @@ public class SagaTransactionSpecificationMetricTest {
         SagaTransactionSpecificationMetric sagaTransactionSpecificationMetric =
             new SagaTransactionSpecificationMetric(sagaTransactionRepository, applicationProperties,
                 tenantUtils, metricRegistry);
-        metricRegistry.meter("com.icthh.xm.tmf.ms.activation.specification");
 
         // WHEN
         sagaTransactionSpecificationMetric.initMetrics("XM", List.of("SPEC-1", "SPEC-2"));
