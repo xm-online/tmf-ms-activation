@@ -40,20 +40,25 @@ public class SagaTransactionSpecificationMetric {
     }
 
     public void initMetrics(String tenant, List<String> specificationKeys) {
-        log.info("initMetrics: tenant: {}, specificationKeys: {}", tenant, specificationKeys);
+        Boolean metricsEnabled = applicationProperties.getCustomMetrics().getSagaTransactionSpecificationMetricsEnabled();
+        if (metricsEnabled) {
+            log.info("initMetrics: tenant: {}, specificationKeys: {}", tenant, specificationKeys);
+            metricRegistry.removeMatching((name, metric) -> name.startsWith(METRIC_GROUP_NAME));
+            metricRegistry.register(METRIC_GROUP_NAME, (MetricSet) () -> {
+                Map<String, Metric> metrics = new HashMap<>();
+                specificationKeys.forEach(specKey -> {
+                    metrics.put("transactions.wait." + tenant + "." + specKey,
+                        inTenant(() -> this.getWaitTransactionsCount(specKey), tenant));
+                    metrics.put("transactions.suspended." + tenant + "." + specKey,
+                        inTenant(() -> this.getTransactionsCountWithSuspendedTasks(specKey), tenant));
+                });
 
-        metricRegistry.removeMatching((name, metric) -> name.startsWith(METRIC_GROUP_NAME));
-        metricRegistry.register(METRIC_GROUP_NAME, (MetricSet) () -> {
-            Map<String, Metric> metrics = new HashMap<>();
-            specificationKeys.forEach(specKey -> {
-                metrics.put("transactions.wait." + tenant + "." + specKey,
-                    inTenant(() -> this.getWaitTransactionsCount(specKey), tenant));
-                metrics.put("transactions.suspended." + tenant + "." + specKey,
-                    inTenant(() -> this.getTransactionsCountWithSuspendedTasks(specKey), tenant));
+                return metrics;
             });
-
-            return metrics;
-        });
+        } else {
+            log.info("initMetrics: metrics disabled via configuration property " +
+                "application.custom-metrics.saga-transaction-specification-metrics-enabled");
+        }
     }
 
     private Gauge inTenant(Supplier<Long> metricSupplier, String tenant) {
