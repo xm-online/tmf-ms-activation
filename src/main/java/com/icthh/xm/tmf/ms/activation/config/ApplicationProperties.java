@@ -32,7 +32,6 @@ public class ApplicationProperties {
     private final Lep lep = new Lep();
     private final Retry retry = new Retry();
     private final KafkaEventSender kafkaEventSender = new KafkaEventSender();
-    private final CustomMetrics customMetrics = new CustomMetrics();
 
     private List<String> tenantIgnoredPathList = Collections.emptyList();
 
@@ -66,11 +65,5 @@ public class ApplicationProperties {
         private int connectionRequestTimeout;
         private int connectTimeout;
         private int readTimeout;
-    }
-
-    @Getter
-    @Setter
-    public static class CustomMetrics {
-        private Boolean sagaTransactionSpecificationMetricsEnabled;
     }
 }

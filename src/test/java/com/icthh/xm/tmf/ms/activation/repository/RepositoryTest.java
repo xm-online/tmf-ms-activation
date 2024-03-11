@@ -1,6 +1,5 @@
 package com.icthh.xm.tmf.ms.activation.repository;
 
-import static com.icthh.xm.tmf.ms.activation.domain.SagaEvent.SagaEventStatus.SUSPENDED;
 import static com.icthh.xm.tmf.ms.activation.domain.SagaTransactionState.CANCELED;
 import static com.icthh.xm.tmf.ms.activation.domain.SagaTransactionState.NEW;
 import static java.util.Arrays.asList;
@@ -61,12 +60,6 @@ public class RepositoryTest extends BaseDaoTest {
     @Test
     public void testCountOldTransaction() {
         assertEquals(2, sagaTransactionRepository.countByCreateDateBeforeAndSagaTransactionState(moveToSystemTime("2019-03-04T13:50:00"), NEW));
-    }
-
-    @Test
-    public void testCountOldTransactionWithSuspendedEvents() {
-        assertEquals(0,
-            sagaTransactionRepository.countByTypeKeyAndEventStatusAndCreatedDateBefore("A", SUSPENDED, moveToSystemTime("2019-03-04T13:50:00")));
     }
 
     public SagaTransaction tx(String id, String typeKey, SagaTransactionState sagaTransactionState, String date) {

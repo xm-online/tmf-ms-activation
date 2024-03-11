@@ -131,6 +131,3 @@ application:
       delay: 100 #in milliseconds
       multiplier: 2
   retryThreadCount: 3
-  custom-metrics:
-    saga-transaction-specification-metrics-enabled: true
-
