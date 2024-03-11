@@ -5,7 +5,6 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.icthh.xm.commons.config.client.api.RefreshableConfiguration;
 import com.icthh.xm.commons.exceptions.BusinessException;
 import com.icthh.xm.commons.logging.aop.IgnoreLogginAspect;
-import com.icthh.xm.tmf.ms.activation.config.SagaTransactionSpecificationMetric;
 import com.icthh.xm.tmf.ms.activation.domain.SagaType;
 import com.icthh.xm.tmf.ms.activation.domain.spec.SagaSpec;
 import com.icthh.xm.tmf.ms.activation.domain.spec.SagaTransactionSpec;
@@ -16,7 +15,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.util.AntPathMatcher;
 
-import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -31,7 +29,6 @@ public class SagaSpecService implements RefreshableConfiguration {
     private final TenantUtils tenantUtils;
     private final AntPathMatcher matcher = new AntPathMatcher();
     private final ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
-    private final SagaTransactionSpecificationMetric sagaTransactionSpecificationMetric;
     private final SagaSpecResolver sagaSpecResolver;
 
     @Override
@@ -52,22 +49,9 @@ public class SagaSpecService implements RefreshableConfiguration {
 
                 sagaSpecResolver.update(tenant, spec);
                 log.info("Spec for tenant '{}' were updated: {}", tenant, updatedKey);
-
-                initMetrics(tenant, spec);
             }
         } catch (Exception e) {
             log.error("Error read specification from path: {}", updatedKey, e);
-        }
-    }
-
-    private void initMetrics(String tenant, SagaSpec spec) {
-        try {
-            List<String> specificationKeys = spec.getTransactions().stream()
-                .map(SagaTransactionSpec::getKey)
-                .collect(Collectors.toList());
-            sagaTransactionSpecificationMetric.initMetrics(tenant, specificationKeys);
-        } catch (Exception e) {
-            log.error("Could not init metrics for tenant: {}", tenant, e);
         }
     }
 
