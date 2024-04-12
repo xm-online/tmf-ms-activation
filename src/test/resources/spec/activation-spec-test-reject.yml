@@ -1,6 +1,7 @@
 ---
 transactions:
 - key: TEST-REJECT
+  checkDependsEventually: true
   retryPolicy: RETRY
   retryCount: 1
   backOff: 0

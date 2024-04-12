@@ -9,6 +9,7 @@ import com.icthh.xm.lep.api.LepManager;
 import com.icthh.xm.tmf.ms.activation.ActivationApp;
 import com.icthh.xm.tmf.ms.activation.config.SecurityBeanOverrideConfiguration;
 import com.icthh.xm.tmf.ms.activation.domain.SagaEvent;
+import com.icthh.xm.tmf.ms.activation.domain.SagaLog;
 import com.icthh.xm.tmf.ms.activation.domain.SagaTransaction;
 import com.icthh.xm.tmf.ms.activation.domain.spec.SagaTaskSpec;
 import com.icthh.xm.tmf.ms.activation.events.EventsSender;
@@ -59,6 +60,7 @@ import static com.icthh.xm.tmf.ms.activation.domain.SagaTransactionState.NEW;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.stream.Collectors.toList;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
@@ -119,6 +121,37 @@ public class SagaIntTest {
         AFTER_EVENTS.clear();
         lepManager.endThreadContext();
         tenantContextHolder.getPrivilegedContext().destroyCurrentContext();
+    }
+
+    @Test
+    public void testRejectWhenTaskInManyNexts() {
+        specService.onRefresh("/config/tenants/TEST_TENANT/activation/activation-spec.yml", loadFile("spec/activation-spec-reject-when-task-in-many-nexts.yml"));
+        resourceLoader.onRefresh("/config/tenants/TEST_TENANT/activation/lep/tasks/Task$$TEST_FINISH_WHEN_REJECTED_TASK_IN_MANY_NEXTS$$FIRST$$around.groovy",
+            "lepContext.inArgs.task.next=['SECOND']; return [:]");
+        resourceLoader.onRefresh("/config/tenants/TEST_TENANT/activation/lep/tasks/Task$$TEST_FINISH_WHEN_REJECTED_TASK_IN_MANY_NEXTS$$SECOND$$around.groovy",
+            "lepContext.inArgs.task.next=['THIRD']; return [:]");
+
+
+        SagaTransaction saga = sagaService.createNewSaga(new SagaTransaction()
+            .setKey(UUID.randomUUID().toString())
+            .setTypeKey("TEST-FINISH-WHEN-REJECTED-TASK-IN-MANY-NEXTS")
+            .setContext(Map.of())
+            .setSagaTransactionState(NEW)
+        );
+
+        afterEvent("FIRST").accept(sagaEvent -> {
+            assertNull(getLogsByTypeKey(saga, "TO_REJECT"));
+        });
+        afterEvent("SECOND").accept(sagaEvent -> {
+            SagaLog toReject = getLogsByTypeKey(saga, "TO_REJECT");
+            assertNotNull(toReject);
+            assertEquals(REJECTED_BY_CONDITION, toReject.getLogType());
+        });
+        afterEvent("THIRD").accept(sagaEvent -> {
+            assertEquals(FINISHED, sagaService.getByKey(saga.getKey()).getSagaTransactionState());
+        });
+
+        testEventSender.startSagaProcessing();
     }
 
     @Test
@@ -221,6 +254,8 @@ public class SagaIntTest {
                 assertEquals(log.getEventTypeKey() + " in invalid state", EVENT_END, log.getLogType());
             }
         });
+
+        assertEquals(FINISHED, sagaService.getByKey(saga.getKey()).getSagaTransactionState());
     }
 
     @Test
@@ -270,6 +305,11 @@ public class SagaIntTest {
     private SagaEvent getEventByTypeKey(SagaTransaction saga, String targetTask) {
         List<SagaEvent> events = sagaService.getEventsByTransaction(saga.getId());
         return events.stream().filter(e -> e.getTypeKey().equals(targetTask)).findFirst().orElse(null);
+    }
+
+    private SagaLog getLogsByTypeKey(SagaTransaction saga, String targetTask) {
+        List<SagaLog> events = sagaService.getLogsByTransaction(saga.getId());
+        return events.stream().filter(e -> e.getEventTypeKey().equals(targetTask)).findFirst().orElse(null);
     }
 
     public static class SagaIntTestConfiguration {

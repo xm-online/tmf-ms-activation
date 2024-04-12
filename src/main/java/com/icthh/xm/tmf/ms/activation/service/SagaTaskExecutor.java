@@ -30,7 +30,6 @@ public class SagaTaskExecutor {
 
     @LogicExtensionPoint(value = "OnCheckWaitCondition", resolver = TaskTypeKeyResolver.class)
     public boolean onCheckWaitCondition(SagaTaskSpec task, SagaEvent sagaEvent, SagaTransaction sagaTransaction) {
-        log.info("Script for check wait condition not found. Event {}.", sagaEvent);
         return true;
     }
 }

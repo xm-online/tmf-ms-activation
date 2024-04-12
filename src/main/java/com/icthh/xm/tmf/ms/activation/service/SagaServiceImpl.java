@@ -10,6 +10,7 @@ import com.icthh.xm.tmf.ms.activation.domain.SagaEventError;
 import com.icthh.xm.tmf.ms.activation.domain.SagaLog;
 import com.icthh.xm.tmf.ms.activation.domain.SagaLogType;
 import com.icthh.xm.tmf.ms.activation.domain.SagaTransaction;
+import com.icthh.xm.tmf.ms.activation.domain.spec.DependsStrategy;
 import com.icthh.xm.tmf.ms.activation.domain.spec.SagaTaskSpec;
 import com.icthh.xm.tmf.ms.activation.domain.spec.SagaTransactionSpec;
 import com.icthh.xm.tmf.ms.activation.events.EventsSender;
@@ -55,12 +56,14 @@ import static com.icthh.xm.tmf.ms.activation.domain.SagaLogType.EVENT_START;
 import static com.icthh.xm.tmf.ms.activation.domain.SagaLogType.REJECTED_BY_CONDITION;
 import static com.icthh.xm.tmf.ms.activation.domain.SagaTransactionState.CANCELED;
 import static com.icthh.xm.tmf.ms.activation.domain.SagaTransactionState.NEW;
+import static com.icthh.xm.tmf.ms.activation.domain.spec.DependsStrategy.ALL_EXECUTED;
+import static com.icthh.xm.tmf.ms.activation.domain.spec.DependsStrategy.ANY_EXECUTED;
 import static com.icthh.xm.tmf.ms.activation.domain.spec.RetryPolicy.RETRY;
 import static com.icthh.xm.tmf.ms.activation.domain.spec.RetryPolicy.ROLLBACK;
 import static java.lang.Boolean.FALSE;
 import static java.lang.Boolean.TRUE;
-import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
+import static java.util.Collections.emptySet;
 import static java.util.Collections.singletonList;
 import static java.util.stream.Collectors.toList;
 import static org.apache.commons.lang3.StringUtils.isEmpty;
@@ -175,9 +178,15 @@ public class SagaServiceImpl implements SagaService {
         writeLog(sagaEvent, transaction, EVENT_START, taskSpec);
 
         try {
+            if (needRejectByDependedTasks(transaction.getId(), taskSpec, context)) {
+                log.info("Task by event {} rejected by depended tasks. Transaction: {}", sagaEvent, transaction);
+                rejectTask(transaction.getId(), sagaEvent.getTypeKey(), sagaEvent.getTypeKey(), context);
+                return;
+            }
+
             if (!TRUE.equals(self.checkCondition(taskSpec, sagaEvent, transaction))) {
                 log.info("Task by event {} rejected by condition. Transaction: {}", sagaEvent, transaction);
-                rejectTask(transaction.getId(), sagaEvent.getParentTypeKey(), sagaEvent.getTypeKey(), context);
+                rejectTask(transaction.getId(), sagaEvent.getTypeKey(), sagaEvent.getTypeKey(), context);
                 return;
             }
 
@@ -207,9 +216,29 @@ public class SagaServiceImpl implements SagaService {
         return true;
     }
 
+
+    private boolean needRejectByDependedTasks(String sagaTxId, SagaTaskSpec taskSpec, Context context) {
+        List<String> dependsTasks = taskSpec.getDepends();
+        if (dependsTasks.isEmpty()) {
+            return false;
+        }
+        List<SagaLog> finished = logRepository.getFinishLogs(sagaTxId, dependsTasks);
+        log.debug("Finished dependent tasks {} by keys {}", finished, dependsTasks);
+        long countRejected = finished.stream().filter(it -> REJECTED_BY_CONDITION.equals(it.getLogType())).count();
+        if (countRejected == 0) {
+            return false;
+        }
+        if (dependsTasks.size() == countRejected) {
+            return true;
+        }
+        if (ANY_EXECUTED.equals(context.transactionSpec.getDependsStrategy())) {
+            return false;
+        }
+        return true; // here countRejected > 0 and ALL_EXECUTED strategy or null
+    }
+
     private void rejectTask(String transactionId, final String currentTaskKey, String rejectKey, Context context) {
-        if (isPresentInOtherNotFinishedTasks(currentTaskKey, rejectKey, context) ||
-            isTaskFinished(rejectKey, context.getTxId())) {
+        if (canTaskBeExecutedLater(currentTaskKey, rejectKey, context) || isTaskFinished(rejectKey, context.getTxId())) {
             return;
         }
         markAsRejectedByCondition(rejectKey, context);
@@ -217,13 +246,29 @@ public class SagaServiceImpl implements SagaService {
         eventToDelete.ifPresent(this::deleteSagaEvent);
         SagaTaskSpec currentTask = context.getTransactionSpec().getTask(rejectKey);
         currentTask.getNext().forEach(nextTask -> rejectTask(transactionId, rejectKey, nextTask, context));
-        List<String> dependentTasks = context.getTransactionSpec().findDependentTasks(rejectKey);
-        dependentTasks.forEach(dependentTask -> rejectTask(transactionId, rejectKey, dependentTask, context));
+        resendEventsForDependentTasks(context.getTransactionSpec(), currentTask, transactionId);
+    }
+
+    private boolean canTaskBeExecutedLater(final String currentTaskKey, String rejectKey, Context context) {
+        // rejected task in on execution context must be rejected
+        if (currentTaskKey.equals(rejectKey)) {
+            return false;
+        }
+
+        // task can be already in progress or in queue by another branch, or just in another branch that will be executed
+        Optional<SagaEvent> event = sagaEventRepository.findByTransactionIdAndTypeKey(context.transaction.getId(), rejectKey);
+        event.ifPresent(e -> log.info("Found event {}", e));
+        boolean isInProgress = event.isPresent();
+        return isInProgress || isPresentInOtherNotFinishedTasks(currentTaskKey, rejectKey, context);
     }
 
     private boolean isPresentInOtherNotFinishedTasks(final String currentTaskKey, String rejectKey, Context context) {
         List<SagaTaskSpec> tasksWithoutCurrent = context.getTransactionSpec().getTasks().stream()
             .filter(task -> !task.getKey().equals(currentTaskKey)).collect(toList());
+        List<String> keys = tasksWithoutCurrent.stream().map(SagaTaskSpec::getKey).collect(toList());
+        Set<String> notFinishedTasks = getNotFinishedTasks(context.transaction.getId(), keys);
+        log.info("Not finished tasks: {}", notFinishedTasks);
+        tasksWithoutCurrent = tasksWithoutCurrent.stream().filter(task -> notFinishedTasks.contains(task.getKey())).collect(toList());
         return tasksWithoutCurrent.stream().anyMatch(task -> task.getNext().contains(rejectKey));
     }
 
@@ -282,17 +327,21 @@ public class SagaServiceImpl implements SagaService {
     private void continuation(SagaEvent sagaEvent, SagaTransaction transaction, SagaTransactionSpec transactionSpec,
                               SagaTaskSpec taskSpec, Map<String, Object> taskContext) {
         var tasks = taskSpec.getNext().stream().map(transactionSpec::getTask).collect(toList());
+        resendEventsForDependentTasks(transactionSpec, taskSpec, sagaEvent.getTransactionId());
+        generateEvents(transaction.getId(), sagaEvent.getTypeKey(), tasks, taskContext);
+        writeLog(sagaEvent, transaction, EVENT_END, taskSpec);
+        updateTransactionStrategy.updateTransactionStatus(transaction, transactionSpec, taskContext);
+    }
+
+    private void resendEventsForDependentTasks(SagaTransactionSpec transactionSpec, SagaTaskSpec taskSpec, String transactionId) {
         if (TRUE.equals(transactionSpec.getCheckDependsEventually())) {
             List<String> dependentTasks = transactionSpec.findDependentTasks(taskSpec.getKey());
-            List<SagaEvent> dependentEvents = sagaEventRepository.findByTransactionIdAndTypeKeyIn(sagaEvent.getTransactionId(), dependentTasks);
+            List<SagaEvent> dependentEvents = sagaEventRepository.findByTransactionIdAndTypeKeyIn(transactionId, dependentTasks);
             dependentEvents.stream()
                 .peek(SagaEvent::markAsInQueue)
                 .map(sagaEventRepository::save)
                 .forEach(eventsManager::sendEvent);
         }
-        generateEvents(transaction.getId(), sagaEvent.getTypeKey(), tasks, taskContext);
-        writeLog(sagaEvent, transaction, EVENT_END, taskSpec);
-        updateTransactionStrategy.updateTransactionStatus(transaction, transactionSpec, taskContext);
     }
 
     @LogicExtensionPoint(value = "OnResendEvent")
@@ -529,9 +578,9 @@ public class SagaServiceImpl implements SagaService {
         sagaEventRepository.save(sagaEvent);
     }
 
-    private Collection<String> getNotFinishedTasks(String sagaTxId, List<String> taskKeys) {
+    private Set<String> getNotFinishedTasks(String sagaTxId, List<String> taskKeys) {
         if (taskKeys.isEmpty()) {
-            return emptyList();
+            return emptySet();
         }
 
         List<SagaLog> finished = logRepository.getFinishLogs(sagaTxId, taskKeys);
