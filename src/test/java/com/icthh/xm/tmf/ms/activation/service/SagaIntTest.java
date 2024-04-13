@@ -157,6 +157,7 @@ public class SagaIntTest {
     public void testDependsRejectStrategy() {
         specService.onRefresh("/config/tenants/TEST_TENANT/activation/activation-spec.yml", loadFile("spec/activation-spec-test-depends.yml"));
 
+
         // ALL executed
         String path = "/config/tenants/TEST_TENANT/activation/lep/service/saga";
         resourceLoader.onRefresh(path + "/Condition$$TEST_DEPENDS_REJECT_STRATEGY$$B2$$around.groovy", "return true;");
