@@ -29,7 +29,7 @@ public class SagaTaskSpec implements Serializable {
     private Boolean isSuspendable;
     private Boolean saveTaskContext;
     private Map<String, Object> taskParameters;
-    private DependsStrategy dependsStrategy;
+    private DependsStrategy dependsStrategy = DependsStrategy.ALL_EXECUTED;
 
     public List<String> getNext() {
         if (next == null) {
