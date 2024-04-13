@@ -130,7 +130,6 @@ public class SagaIntTest {
         resourceLoader.onRefresh("/config/tenants/TEST_TENANT/activation/lep/tasks/Task$$TEST_FINISH_WHEN_REJECTED_TASK_IN_MANY_NEXTS$$SECOND$$around.groovy",
             "lepContext.inArgs.task.next=['THIRD']; return [:]");
 
-
         SagaTransaction saga = sagaService.createNewSaga(new SagaTransaction()
             .setKey(UUID.randomUUID().toString())
             .setTypeKey("TEST-FINISH-WHEN-REJECTED-TASK-IN-MANY-NEXTS")
@@ -156,7 +155,6 @@ public class SagaIntTest {
     @Test
     public void testDependsRejectStrategy() {
         specService.onRefresh("/config/tenants/TEST_TENANT/activation/activation-spec.yml", loadFile("spec/activation-spec-test-depends.yml"));
-
 
         // ALL executed
         String path = "/config/tenants/TEST_TENANT/activation/lep/service/saga";
