@@ -7,6 +7,7 @@ import com.icthh.xm.tmf.ms.activation.domain.SagaLog;
 import com.icthh.xm.tmf.ms.activation.domain.SagaLogType;
 import com.icthh.xm.tmf.ms.activation.domain.SagaTransaction;
 import com.icthh.xm.tmf.ms.activation.domain.SagaTransactionState;
+import com.icthh.xm.tmf.ms.activation.domain.spec.DependsStrategy;
 import com.icthh.xm.tmf.ms.activation.domain.spec.RetryPolicy;
 import com.icthh.xm.tmf.ms.activation.domain.spec.SagaTaskSpec;
 import com.icthh.xm.tmf.ms.activation.domain.spec.SagaTransactionSpec;
@@ -536,6 +537,7 @@ public class SagaServiceTest {
             .setKey("NEXT-JOIN-TASK")
             .setRetryCount(-1L)
             .setRetryPolicy(RETRY)
+            .setDependsStrategy(DependsStrategy.ALL_EXECUTED)
             .setNext(asList("SOME-OTHER-TASK"));
     }
 
