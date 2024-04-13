@@ -10,7 +10,6 @@ import com.icthh.xm.tmf.ms.activation.domain.SagaEventError;
 import com.icthh.xm.tmf.ms.activation.domain.SagaLog;
 import com.icthh.xm.tmf.ms.activation.domain.SagaLogType;
 import com.icthh.xm.tmf.ms.activation.domain.SagaTransaction;
-import com.icthh.xm.tmf.ms.activation.domain.spec.DependsStrategy;
 import com.icthh.xm.tmf.ms.activation.domain.spec.SagaTaskSpec;
 import com.icthh.xm.tmf.ms.activation.domain.spec.SagaTransactionSpec;
 import com.icthh.xm.tmf.ms.activation.events.EventsSender;
@@ -56,8 +55,8 @@ import static com.icthh.xm.tmf.ms.activation.domain.SagaLogType.EVENT_START;
 import static com.icthh.xm.tmf.ms.activation.domain.SagaLogType.REJECTED_BY_CONDITION;
 import static com.icthh.xm.tmf.ms.activation.domain.SagaTransactionState.CANCELED;
 import static com.icthh.xm.tmf.ms.activation.domain.SagaTransactionState.NEW;
-import static com.icthh.xm.tmf.ms.activation.domain.spec.DependsStrategy.ALL_EXECUTED;
-import static com.icthh.xm.tmf.ms.activation.domain.spec.DependsStrategy.ANY_EXECUTED;
+import static com.icthh.xm.tmf.ms.activation.domain.spec.DependsStrategy.ALL_EXECUTED_OR_REJECTED;
+import static com.icthh.xm.tmf.ms.activation.domain.spec.DependsStrategy.AT_LEAST_ONE_EXECUTED;
 import static com.icthh.xm.tmf.ms.activation.domain.spec.RetryPolicy.RETRY;
 import static com.icthh.xm.tmf.ms.activation.domain.spec.RetryPolicy.ROLLBACK;
 import static java.lang.Boolean.FALSE;
@@ -222,6 +221,10 @@ public class SagaServiceImpl implements SagaService {
         if (dependsTasks.isEmpty()) {
             return false;
         }
+        if (ALL_EXECUTED_OR_REJECTED.equals(taskSpec.getDependsStrategy())) {
+            return false;
+        }
+
         List<SagaLog> finished = logRepository.getFinishLogs(sagaTxId, dependsTasks);
         log.debug("Finished dependent tasks {} by keys {}", finished, dependsTasks);
         long countRejected = finished.stream().filter(it -> REJECTED_BY_CONDITION.equals(it.getLogType())).count();
@@ -231,7 +234,7 @@ public class SagaServiceImpl implements SagaService {
         if (dependsTasks.size() == countRejected) {
             return true;
         }
-        if (ANY_EXECUTED.equals(context.transactionSpec.getDependsStrategy())) {
+        if (AT_LEAST_ONE_EXECUTED.equals(taskSpec.getDependsStrategy())) {
             return false;
         }
         return true; // here countRejected > 0 and ALL_EXECUTED strategy or null

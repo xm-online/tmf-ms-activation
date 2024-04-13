@@ -10,6 +10,7 @@ import com.icthh.xm.tmf.ms.activation.ActivationApp;
 import com.icthh.xm.tmf.ms.activation.config.SecurityBeanOverrideConfiguration;
 import com.icthh.xm.tmf.ms.activation.domain.SagaEvent;
 import com.icthh.xm.tmf.ms.activation.domain.SagaLog;
+import com.icthh.xm.tmf.ms.activation.domain.SagaLogType;
 import com.icthh.xm.tmf.ms.activation.domain.SagaTransaction;
 import com.icthh.xm.tmf.ms.activation.domain.spec.SagaTaskSpec;
 import com.icthh.xm.tmf.ms.activation.events.EventsSender;
@@ -31,7 +32,6 @@ import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.cloud.stream.test.binder.MessageCollectorAutoConfiguration;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.context.annotation.Primary;
 import org.springframework.core.io.ClassPathResource;
@@ -64,7 +64,6 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @Slf4j
@@ -140,10 +139,10 @@ public class SagaIntTest {
         );
 
         afterEvent("FIRST").accept(sagaEvent -> {
-            assertNull(getLogsByTypeKey(saga, "TO_REJECT"));
+            assertNull(getLogByTypeKey(saga, "TO_REJECT"));
         });
         afterEvent("SECOND").accept(sagaEvent -> {
-            SagaLog toReject = getLogsByTypeKey(saga, "TO_REJECT");
+            SagaLog toReject = getLogByTypeKey(saga, "TO_REJECT");
             assertNotNull(toReject);
             assertEquals(REJECTED_BY_CONDITION, toReject.getLogType());
         });
@@ -152,6 +151,67 @@ public class SagaIntTest {
         });
 
         testEventSender.startSagaProcessing();
+    }
+
+    @Test
+    public void testDependsRejectStrategy() {
+        specService.onRefresh("/config/tenants/TEST_TENANT/activation/activation-spec.yml", loadFile("spec/activation-spec-test-depends.yml"));
+
+        // ALL executed
+        String path = "/config/tenants/TEST_TENANT/activation/lep/service/saga";
+        resourceLoader.onRefresh(path + "/Condition$$TEST_DEPENDS_REJECT_STRATEGY$$B2$$around.groovy", "return true;");
+        resourceLoader.onRefresh(path + "/Condition$$TEST_DEPENDS_REJECT_STRATEGY$$A1$$around.groovy", "return true;");
+        runSaga("TEST-DEPENDS-REJECT-STRATEGY", EVENT_END);
+        resourceLoader.onRefresh(path + "/Condition$$TEST_DEPENDS_REJECT_STRATEGY$$B2$$around.groovy", "return false;");
+        runSaga("TEST-DEPENDS-REJECT-STRATEGY", REJECTED_BY_CONDITION);
+        resourceLoader.onRefresh(path + "/Condition$$TEST_DEPENDS_REJECT_STRATEGY$$A1$$around.groovy", "return false;");
+        runSaga("TEST-DEPENDS-REJECT-STRATEGY", REJECTED_BY_CONDITION);
+
+        // ANY executed
+        resourceLoader.onRefresh(path + "/Condition$$TEST_DEPENDS_REJECT_STRATEGY_AT_LEAST_ONE$$B2$$around.groovy", "return true;");
+        resourceLoader.onRefresh(path + "/Condition$$TEST_DEPENDS_REJECT_STRATEGY_AT_LEAST_ONE$$A1$$around.groovy", "return true;");
+        runSaga("TEST-DEPENDS-REJECT-STRATEGY-AT-LEAST-ONE", EVENT_END);
+        resourceLoader.onRefresh(path + "/Condition$$TEST_DEPENDS_REJECT_STRATEGY_AT_LEAST_ONE$$B2$$around.groovy", "return false;");
+        runSaga("TEST-DEPENDS-REJECT-STRATEGY-AT-LEAST-ONE", EVENT_END);
+        resourceLoader.onRefresh(path + "/Condition$$TEST_DEPENDS_REJECT_STRATEGY_AT_LEAST_ONE$$A1$$around.groovy", "return false;");
+        runSaga("TEST-DEPENDS-REJECT-STRATEGY-AT-LEAST-ONE", REJECTED_BY_CONDITION);
+
+        // ALL_EXECUTED_OR_REJECTED executed
+        resourceLoader.onRefresh(path + "/Condition$$TEST_DEPENDS_REJECT_STRATEGY_ALL_EXECUTED_OR_REJECTED$$B2$$around.groovy", "return true;");
+        resourceLoader.onRefresh(path + "/Condition$$TEST_DEPENDS_REJECT_STRATEGY_ALL_EXECUTED_OR_REJECTED$$A1$$around.groovy", "return true;");
+        runSaga("TEST-DEPENDS-REJECT-STRATEGY-ALL-EXECUTED-OR-REJECTED", EVENT_END);
+        resourceLoader.onRefresh(path + "/Condition$$TEST_DEPENDS_REJECT_STRATEGY_ALL_EXECUTED_OR_REJECTED$$B2$$around.groovy", "return false;");
+        runSaga("TEST-DEPENDS-REJECT-STRATEGY-ALL-EXECUTED-OR-REJECTED", EVENT_END);
+        resourceLoader.onRefresh(path + "/Condition$$TEST_DEPENDS_REJECT_STRATEGY_ALL_EXECUTED_OR_REJECTED$$A1$$around.groovy", "return false;");
+        runSaga("TEST-DEPENDS-REJECT-STRATEGY-ALL-EXECUTED-OR-REJECTED", EVENT_END);
+    }
+
+    private void runSaga(String typeKey, SagaLogType sagaLogType) {
+        SagaTransaction saga = sagaService.createNewSaga(new SagaTransaction()
+            .setKey(UUID.randomUUID().toString())
+            .setTypeKey(typeKey)
+            .setContext(Map.of())
+            .setSagaTransactionState(NEW)
+        );
+
+
+        MutableInteger mutableInteger = new MutableInteger();
+        afterEvent("TARGET_TASK").accept(sagaEvent -> {
+            mutableInteger.increase();
+            log.info("Target task try: {}", mutableInteger.get());
+            if (mutableInteger.get() < 2) {
+                assertEquals(WAIT_DEPENDS_TASK, getEventByTypeKey(saga, "TARGET_TASK").getStatus());
+                assertEquals(NEW, sagaService.getByKey(saga.getKey()).getSagaTransactionState());
+            } else {
+                assertNull(getEventByTypeKey(saga, "TARGET_TASK"));
+                List<SagaLog> targetTask = getLogsByTypeKey(saga, "TARGET_TASK");
+                log.info("Target task logs: {}", targetTask);
+                assertTrue(targetTask.stream().anyMatch(it -> it.getLogType().equals(sagaLogType)));
+            }
+        });
+
+        testEventSender.startSagaProcessing();
+        assertEquals(FINISHED, sagaService.getByKey(saga.getKey()).getSagaTransactionState());
     }
 
     @Test
@@ -307,9 +367,14 @@ public class SagaIntTest {
         return events.stream().filter(e -> e.getTypeKey().equals(targetTask)).findFirst().orElse(null);
     }
 
-    private SagaLog getLogsByTypeKey(SagaTransaction saga, String targetTask) {
+    private SagaLog getLogByTypeKey(SagaTransaction saga, String targetTask) {
         List<SagaLog> events = sagaService.getLogsByTransaction(saga.getId());
         return events.stream().filter(e -> e.getEventTypeKey().equals(targetTask)).findFirst().orElse(null);
+    }
+
+    private List<SagaLog> getLogsByTypeKey(SagaTransaction saga, String targetTask) {
+        List<SagaLog> events = sagaService.getLogsByTransaction(saga.getId());
+        return events.stream().filter(e -> e.getEventTypeKey().equals(targetTask)).collect(toList());
     }
 
     public static class SagaIntTestConfiguration {
