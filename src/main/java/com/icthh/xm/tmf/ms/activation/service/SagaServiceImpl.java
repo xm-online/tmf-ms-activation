@@ -253,7 +253,7 @@ public class SagaServiceImpl implements SagaService {
     }
 
     private boolean canTaskBeExecutedLater(final String currentTaskKey, String rejectKey, Context context) {
-        // rejected task in on execution context must be rejected
+        // rejected task in own execution context have to be rejected
         if (currentTaskKey.equals(rejectKey)) {
             return false;
         }
