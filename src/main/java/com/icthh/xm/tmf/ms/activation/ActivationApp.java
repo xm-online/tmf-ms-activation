@@ -7,6 +7,7 @@ import com.icthh.xm.commons.tenant.TenantKey;
 import com.icthh.xm.commons.tenant.spring.config.TenantContextConfiguration;
 import com.icthh.xm.tmf.ms.activation.config.ApplicationProperties;
 import com.icthh.xm.tmf.ms.activation.config.DefaultProfileUtil;
+import com.icthh.xm.tmf.ms.activation.config.LepConfiguration;
 import io.github.jhipster.config.JHipsterConstants;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -28,8 +29,7 @@ import java.util.Collection;
 
 @EnableConfigurationProperties({LiquibaseProperties.class, ApplicationProperties.class})
 @EnableDiscoveryClient
-@SpringBootApplication(scanBasePackages = { "com.icthh.xm", "com.icthh.xm.tmf.ms.activation" })
-@EnableAutoConfiguration
+@SpringBootApplication(scanBasePackages = { "com.icthh.xm.tmf.ms.activation", "com.icthh.xm" })
 @Import({TenantContextConfiguration.class})
 public class ActivationApp {
 

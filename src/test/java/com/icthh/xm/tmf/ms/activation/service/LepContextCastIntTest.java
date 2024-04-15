@@ -2,14 +2,13 @@ package com.icthh.xm.tmf.ms.activation.service;
 
 import com.icthh.xm.commons.lep.LogicExtensionPoint;
 import com.icthh.xm.commons.lep.XmLepScriptConfigServerResourceLoader;
+import com.icthh.xm.commons.lep.api.LepManagementService;
 import com.icthh.xm.commons.lep.spring.LepService;
 import com.icthh.xm.commons.security.XmAuthenticationContextHolder;
 import com.icthh.xm.commons.tenant.TenantContextHolder;
 import com.icthh.xm.commons.tenant.TenantContextUtils;
-import com.icthh.xm.lep.api.LepManager;
-import com.icthh.xm.tmf.ms.activation.ActivationApp;
+import com.icthh.xm.tmf.ms.activation.AbstractSpringBootTest;
 import com.icthh.xm.tmf.ms.activation.config.LepContext;
-import com.icthh.xm.tmf.ms.activation.config.SecurityBeanOverrideConfiguration;
 import com.icthh.xm.tmf.ms.activation.events.EventsSender;
 import com.icthh.xm.tmf.ms.activation.repository.SagaEventRepository;
 import com.icthh.xm.tmf.ms.activation.repository.SagaTransactionRepository;
@@ -18,32 +17,20 @@ import lombok.extern.slf4j.Slf4j;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.cloud.stream.test.binder.MessageCollectorAutoConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.context.transaction.BeforeTransaction;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Map;
 
-import static com.icthh.xm.commons.lep.XmLepConstants.THREAD_CONTEXT_KEY_AUTH_CONTEXT;
-import static com.icthh.xm.commons.lep.XmLepConstants.THREAD_CONTEXT_KEY_TENANT_CONTEXT;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 @Slf4j
-@RunWith(SpringRunner.class)
-@SpringBootTest(classes = {
-        ActivationApp.class,
-        SecurityBeanOverrideConfiguration.class,
-        LepContextCastIntTest.TestLepConfiguration.class})
-@EnableAutoConfiguration(exclude = MessageCollectorAutoConfiguration.class)
-public class LepContextCastIntTest {
+public class LepContextCastIntTest extends AbstractSpringBootTest {
 
     @Autowired
     private TenantContextHolder tenantContextHolder;
@@ -52,7 +39,7 @@ public class LepContextCastIntTest {
     private XmAuthenticationContextHolder authContextHolder;
 
     @Autowired
-    private LepManager lepManager;
+    private LepManagementService lepManager;
 
     @Autowired
     private XmLepScriptConfigServerResourceLoader leps;
@@ -72,10 +59,7 @@ public class LepContextCastIntTest {
     public void setup() {
         TenantContextUtils.setTenant(tenantContextHolder, "TEST_TENANT");
 
-        lepManager.beginThreadContext(ctx -> {
-            ctx.setValue(THREAD_CONTEXT_KEY_TENANT_CONTEXT, tenantContextHolder.getContext());
-            ctx.setValue(THREAD_CONTEXT_KEY_AUTH_CONTEXT, authContextHolder.getContext());
-        });
+        lepManager.beginThreadContext();
     }
 
     @BeforeTransaction
@@ -100,6 +84,22 @@ public class LepContextCastIntTest {
         leps.onRefresh(key, body);
         Map<String, Object> result = testLepService.sayHello();
         assertTrue(result.get("context") instanceof LepContext);
+        leps.onRefresh(key, null);
+    }
+
+    @Test
+    @Transactional
+    @SneakyThrows
+    public void testLepContextCastToMap() {
+        String prefix = "/config/tenants/TEST_TENANT/activation/lep/test/";
+        String key = prefix + "ScriptWithAround$$around.groovy";
+        String body = "Map<String, Object> context = lepContext\nreturn ['context':context]";
+        leps.onRefresh(key, body);
+        Map<String, Object> result = testLepService.sayHello();
+        Object context = result.get("context");
+        assertEquals("GroovyMapLepContextWrapper", context.getClass().getSimpleName());
+        assertTrue(context instanceof Map);
+        assertTrue(context instanceof LepContext);
         leps.onRefresh(key, null);
     }
 

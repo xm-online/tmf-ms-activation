@@ -1,13 +1,12 @@
 package com.icthh.xm.tmf.ms.activation.service;
 
 import com.icthh.xm.commons.lep.XmLepScriptConfigServerResourceLoader;
+import com.icthh.xm.commons.lep.api.LepManagementService;
 import com.icthh.xm.commons.security.XmAuthenticationContext;
 import com.icthh.xm.commons.security.XmAuthenticationContextHolder;
 import com.icthh.xm.commons.tenant.TenantContextHolder;
 import com.icthh.xm.commons.tenant.TenantContextUtils;
-import com.icthh.xm.lep.api.LepManager;
-import com.icthh.xm.tmf.ms.activation.ActivationApp;
-import com.icthh.xm.tmf.ms.activation.config.SecurityBeanOverrideConfiguration;
+import com.icthh.xm.tmf.ms.activation.AbstractSpringBootTest;
 import com.icthh.xm.tmf.ms.activation.domain.SagaEvent;
 import com.icthh.xm.tmf.ms.activation.domain.SagaTransaction;
 import com.icthh.xm.tmf.ms.activation.domain.SagaTransactionState;
@@ -23,16 +22,11 @@ import org.hamcrest.collection.IsMapContaining;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.cloud.stream.test.binder.MessageCollectorAutoConfiguration;
 import org.springframework.core.io.ClassPathResource;
-import org.springframework.test.context.junit4.SpringRunner;
 
 import java.io.InputStream;
 import java.time.Instant;
@@ -43,8 +37,6 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 import static com.icthh.xm.commons.i18n.I18nConstants.LANGUAGE;
-import static com.icthh.xm.commons.lep.XmLepConstants.THREAD_CONTEXT_KEY_AUTH_CONTEXT;
-import static com.icthh.xm.commons.lep.XmLepConstants.THREAD_CONTEXT_KEY_TENANT_CONTEXT;
 import static com.icthh.xm.tmf.ms.activation.domain.SagaEvent.SagaEventStatus.FAILED;
 import static com.icthh.xm.tmf.ms.activation.domain.SagaEvent.SagaEventStatus.IN_QUEUE;
 import static com.icthh.xm.tmf.ms.activation.domain.SagaEvent.SagaEventStatus.ON_RETRY;
@@ -54,24 +46,21 @@ import static org.junit.Assert.assertThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.refEq;
 import static org.mockito.Mockito.any;
-import static org.mockito.Mockito.when;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.when;
 
 
 @Slf4j
-@RunWith(SpringRunner.class)
-@SpringBootTest(classes = {ActivationApp.class, SecurityBeanOverrideConfiguration.class})
-@EnableAutoConfiguration(exclude = MessageCollectorAutoConfiguration.class)
-public class RetryServiceTest {
+public class RetryServiceIntTest extends AbstractSpringBootTest {
 
 
     @Autowired
     private XmLepScriptConfigServerResourceLoader lepResourceLoader;
     @Autowired
-    private LepManager lepManager;
+    private LepManagementService lepManager;
     @Autowired
     private TenantContextHolder tenantContextHolder;
     @MockBean
@@ -95,13 +84,11 @@ public class RetryServiceTest {
     private static final SagaType TYPE = fromTypeKey("TEST-TYPE-KEY");
     private static final String FIRST_TASK_KEY = "TASK-1";
 
-
     @After
     public void destroy() {
         lepManager.endThreadContext();
         tenantContextHolder.getPrivilegedContext().destroyCurrentContext();
     }
-
 
     @Before
     public void init() {
@@ -114,13 +101,8 @@ public class RetryServiceTest {
 
         when(authContextHolder.getContext()).thenReturn(context);
 
-        lepManager.beginThreadContext(ctx -> {
-            ctx.setValue(THREAD_CONTEXT_KEY_TENANT_CONTEXT, tenantContextHolder.getContext());
-            ctx.setValue(THREAD_CONTEXT_KEY_AUTH_CONTEXT, authContextHolder.getContext());
-        });
-
+        lepManager.beginThreadContext();
         sagaSpecService.onRefresh("/config/tenants/XM/activation/activation-spec.yml", loadFile("spec/activation-spec-retry-service-test.yml"));
-
     }
 
     @Test

@@ -5,6 +5,8 @@ import com.icthh.xm.tmf.ms.activation.domain.SagaTransaction;
 import com.icthh.xm.tmf.ms.activation.service.SagaSpecService;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
+
 @Component
 public class TransactionTypeKeyResolver extends GroupLepKeyResolver {
 
@@ -13,8 +15,8 @@ public class TransactionTypeKeyResolver extends GroupLepKeyResolver {
     }
 
     @Override
-    protected String[] getAppendSegments(LepMethod method, SagaTransaction sagaTransaction) {
-        String translatedSagaTransactionKey = translateToLepConvention(sagaTransaction.getTypeKey());
-        return new String[] {translatedSagaTransactionKey};
+    public List<String> segments(LepMethod method) {
+        SagaTransaction sagaTransaction = method.getParameter("sagaTransaction", SagaTransaction.class);
+        return List.of(sagaTransaction.getTypeKey());
     }
 }

@@ -1,7 +1,33 @@
 package com.icthh.xm.tmf.ms.activation.service;
 
-import static com.icthh.xm.commons.lep.XmLepConstants.THREAD_CONTEXT_KEY_AUTH_CONTEXT;
-import static com.icthh.xm.commons.lep.XmLepConstants.THREAD_CONTEXT_KEY_TENANT_CONTEXT;
+import com.icthh.xm.commons.config.client.repository.TenantListRepository;
+import com.icthh.xm.commons.lep.XmLepScriptConfigServerResourceLoader;
+import com.icthh.xm.commons.lep.api.LepManagementService;
+import com.icthh.xm.commons.security.XmAuthenticationContext;
+import com.icthh.xm.commons.security.XmAuthenticationContextHolder;
+import com.icthh.xm.commons.tenant.TenantContextHolder;
+import com.icthh.xm.commons.tenant.TenantContextUtils;
+import com.icthh.xm.tmf.ms.activation.AbstractSpringBootTest;
+import com.icthh.xm.tmf.ms.activation.domain.SagaTransaction;
+import com.icthh.xm.tmf.ms.activation.domain.spec.SagaTaskSpec;
+import com.icthh.xm.tmf.ms.activation.domain.spec.SagaTransactionSpec;
+import lombok.SneakyThrows;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.io.IOUtils;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.core.io.ClassPathResource;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+
 import static com.icthh.xm.tmf.ms.activation.domain.spec.MockSagaType.fromTypeKey;
 import static java.lang.Boolean.parseBoolean;
 import static java.nio.charset.StandardCharsets.UTF_8;
@@ -9,45 +35,8 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.when;
 
-import com.icthh.xm.commons.config.client.repository.TenantListRepository;
-import com.icthh.xm.commons.lep.XmLepScriptConfigServerResourceLoader;
-import com.icthh.xm.commons.security.XmAuthenticationContext;
-import com.icthh.xm.commons.security.XmAuthenticationContextHolder;
-import com.icthh.xm.commons.tenant.TenantContextHolder;
-import com.icthh.xm.commons.tenant.TenantContextUtils;
-import com.icthh.xm.lep.api.LepManager;
-import com.icthh.xm.tmf.ms.activation.ActivationApp;
-import com.icthh.xm.tmf.ms.activation.config.SecurityBeanOverrideConfiguration;
-import com.icthh.xm.tmf.ms.activation.domain.SagaTransaction;
-import com.icthh.xm.tmf.ms.activation.domain.spec.SagaTaskSpec;
-import com.icthh.xm.tmf.ms.activation.domain.spec.SagaTransactionSpec;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-
-import lombok.SneakyThrows;
-import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.io.IOUtils;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.cloud.stream.test.binder.MessageCollectorAutoConfiguration;
-import org.springframework.core.io.ClassPathResource;
-import org.springframework.test.context.junit4.SpringRunner;
-
 @Slf4j
-@RunWith(SpringRunner.class)
-@SpringBootTest(classes = {ActivationApp.class, SecurityBeanOverrideConfiguration.class})
-@EnableAutoConfiguration(exclude = MessageCollectorAutoConfiguration.class)
-public class SagaTaskExecutorTest {
+public class SagaTaskExecutorIntTest extends AbstractSpringBootTest {
 
     @Autowired
     private XmLepScriptConfigServerResourceLoader lepResourceLoader;
@@ -59,7 +48,7 @@ public class SagaTaskExecutorTest {
     private SagaSpecService sagaSpecService;
 
     @Autowired
-    private LepManager lepManager;
+    private LepManagementService lepManager;
 
     @Autowired
     private TenantListRepository tenantListRepository;
@@ -84,11 +73,7 @@ public class SagaTaskExecutorTest {
         when(authContextHolder.getContext()).thenReturn(context);
         when(context.getUserKey()).thenReturn(Optional.of("userKey"));
 
-        lepManager.beginThreadContext(ctx -> {
-            ctx.setValue(THREAD_CONTEXT_KEY_TENANT_CONTEXT, tenantContextHolder.getContext());
-            ctx.setValue(THREAD_CONTEXT_KEY_AUTH_CONTEXT, authContextHolder.getContext());
-        });
-
+        lepManager.beginThreadContext();
         String config = loadFile("spec/activation-spec-group-test.yml");
         sagaSpecService.onRefresh("/config/tenants/XM/activation/activation-spec.yml", config);
     }

@@ -77,7 +77,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
-public class SagaServiceTest {
+public class SagaServiceUnitTest {
 
     public static final String TEST_TYPE_KEY = "TEST-SAGA-TYPE-KEY";
     public static final String MOCK_KEY = "mockKey";

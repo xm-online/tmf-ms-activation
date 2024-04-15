@@ -329,6 +329,8 @@ dependencies {
     annotationProcessor "org.projectlombok:lombok:${lombok_version}"
 
     //xm dependencies
+    implementation "com.icthh.xm.commons:xm-commons-lep-annotation-processor:${xm_commons_version}"
+    annotationProcessor "com.icthh.xm.commons:xm-commons-lep-annotation-processor:${xm_commons_version}"
     implementation "com.icthh.xm.commons:xm-commons-security:${xm_commons_version}"
     implementation "com.icthh.xm.commons:xm-commons-logging-web:${xm_commons_version}"
     implementation "com.icthh.xm.commons:xm-commons-logging-configurable:${xm_commons_version}"
@@ -338,6 +340,8 @@ dependencies {
     implementation "com.icthh.xm.commons:xm-commons-permission:${xm_commons_version}"
     implementation "com.icthh.xm.commons:xm-commons-ms-web:${xm_commons_version}"
     implementation "com.icthh.xm.commons:xm-commons-lep:${xm_commons_version}"
+    implementation "com.icthh.xm.commons:xm-commons-lep-groovy:${xm_commons_version}"
+    implementation "com.icthh.xm.commons:xm-commons-lep-js:${xm_commons_version}"
     implementation "com.icthh.xm.commons:xm-commons-ms-web:${xm_commons_version}"
     implementation "com.icthh.xm.commons:xm-commons-metric:${xm_commons_version}"
     implementation "com.icthh.xm.commons:xm-commons-topic:${xm_commons_version}"
@@ -364,6 +368,8 @@ dependencies {
         exclude group: "com.vaadin.external.google", module: "android-json"
     }
 
+    testCompileOnly "com.icthh.xm.commons:xm-commons-lep-annotation-processor:${xm_commons_version}"
+    testAnnotationProcessor "com.icthh.xm.commons:xm-commons-lep-annotation-processor:${xm_commons_version}"
     testImplementation "org.springframework.cloud:spring-cloud-stream-test-support"
     testImplementation "org.springframework.security:spring-security-test"
     testImplementation "org.springframework.boot:spring-boot-test"

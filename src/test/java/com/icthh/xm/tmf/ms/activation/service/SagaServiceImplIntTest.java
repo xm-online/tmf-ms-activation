@@ -1,31 +1,15 @@
 package com.icthh.xm.tmf.ms.activation.service;
 
-import static com.icthh.xm.commons.lep.XmLepConstants.THREAD_CONTEXT_KEY_AUTH_CONTEXT;
-import static com.icthh.xm.commons.lep.XmLepConstants.THREAD_CONTEXT_KEY_TENANT_CONTEXT;
-import static com.icthh.xm.tmf.ms.activation.domain.SagaEvent.SagaEventStatus.INVALID_SPECIFICATION;
-import static java.nio.charset.StandardCharsets.UTF_8;
-import static java.util.UUID.randomUUID;
-import static org.mockito.ArgumentMatchers.refEq;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.verifyZeroInteractions;
-import static org.mockito.Mockito.when;
-
+import com.icthh.xm.commons.lep.api.LepManagementService;
 import com.icthh.xm.commons.security.XmAuthenticationContext;
 import com.icthh.xm.commons.security.XmAuthenticationContextHolder;
 import com.icthh.xm.commons.tenant.TenantContextHolder;
 import com.icthh.xm.commons.tenant.TenantContextUtils;
-import com.icthh.xm.lep.api.LepManager;
-import com.icthh.xm.tmf.ms.activation.ActivationApp;
+import com.icthh.xm.tmf.ms.activation.AbstractSpringBootTest;
 import com.icthh.xm.tmf.ms.activation.config.ApplicationStartup;
-import com.icthh.xm.tmf.ms.activation.config.SecurityBeanOverrideConfiguration;
 import com.icthh.xm.tmf.ms.activation.domain.SagaEvent;
 import com.icthh.xm.tmf.ms.activation.domain.SagaTransaction;
 import com.icthh.xm.tmf.ms.activation.domain.SagaTransactionState;
-
-import java.util.Map;
-import java.util.Optional;
-
 import com.icthh.xm.tmf.ms.activation.events.EventsSender;
 import com.icthh.xm.tmf.ms.activation.repository.SagaEventRepository;
 import com.icthh.xm.tmf.ms.activation.repository.SagaTransactionRepository;
@@ -36,22 +20,26 @@ import org.apache.commons.io.IOUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.cloud.stream.test.binder.MessageCollectorAutoConfiguration;
 import org.springframework.core.io.ClassPathResource;
-import org.springframework.test.context.junit4.SpringRunner;
+
+import java.util.Map;
+import java.util.Optional;
+
+import static com.icthh.xm.tmf.ms.activation.domain.SagaEvent.SagaEventStatus.INVALID_SPECIFICATION;
+import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.UUID.randomUUID;
+import static org.mockito.ArgumentMatchers.refEq;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.when;
 
 @Slf4j
-@RunWith(SpringRunner.class)
-@SpringBootTest(classes = {ActivationApp.class, SecurityBeanOverrideConfiguration.class})
-@EnableAutoConfiguration(exclude = MessageCollectorAutoConfiguration.class)
-public class SagaServiceImplTest {
+public class SagaServiceImplIntTest extends AbstractSpringBootTest {
 
     @Autowired
     private SagaService sagaService;
@@ -60,7 +48,7 @@ public class SagaServiceImplTest {
     private SagaTaskExecutor sagaTaskExecutor;
 
     @Autowired
-    private LepManager lepManager;
+    private LepManagementService lepManager;
 
     @Autowired
     private TenantContextHolder tenantContextHolder;
@@ -94,10 +82,7 @@ public class SagaServiceImplTest {
         when(authContextHolder.getContext()).thenReturn(context);
         when(context.getUserKey()).thenReturn(Optional.of("userKey"));
 
-        lepManager.beginThreadContext(ctx -> {
-            ctx.setValue(THREAD_CONTEXT_KEY_TENANT_CONTEXT, tenantContextHolder.getContext());
-            ctx.setValue(THREAD_CONTEXT_KEY_AUTH_CONTEXT, authContextHolder.getContext());
-        });
+        lepManager.beginThreadContext();
     }
 
     @SneakyThrows
