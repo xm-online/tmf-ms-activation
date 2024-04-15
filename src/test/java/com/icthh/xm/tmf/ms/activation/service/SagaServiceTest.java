@@ -7,6 +7,7 @@ import com.icthh.xm.tmf.ms.activation.domain.SagaLog;
 import com.icthh.xm.tmf.ms.activation.domain.SagaLogType;
 import com.icthh.xm.tmf.ms.activation.domain.SagaTransaction;
 import com.icthh.xm.tmf.ms.activation.domain.SagaTransactionState;
+import com.icthh.xm.tmf.ms.activation.domain.spec.DependsStrategy;
 import com.icthh.xm.tmf.ms.activation.domain.spec.RetryPolicy;
 import com.icthh.xm.tmf.ms.activation.domain.spec.SagaTaskSpec;
 import com.icthh.xm.tmf.ms.activation.domain.spec.SagaTransactionSpec;
@@ -288,17 +289,17 @@ public class SagaServiceTest {
         generateEvent(txId, firstTaskKey, "SECOND-TASK", transaction, firstTaskSpec);
 
         verify(transactionRepository).findById(eq(txId));
-        verify(sagaEventRepository, times(1))
+        verify(sagaEventRepository, times(2))
             .findByTransactionIdAndTypeKey(sagaTransactionIdCaptor.capture(), sagaEventTypeKeyCaptor.capture());
         verify(sagaEventRepository, times(1)).existsById(sagaEventIdCaptor.capture());
         verify(sagaEventRepository, times(1)).deleteById(sagaEventToDeleteIdCaptor.capture());
 
         List<String> transactionIds = sagaTransactionIdCaptor.getAllValues();
-        assertThat(transactionIds, hasSize(1));
-        assertThat(transactionIds, contains(txId));
+        assertThat(transactionIds, hasSize(2));
+        assertEquals(txId, transactionIds.get(0));
 
         List<String> eventsToBeDeleted = sagaEventTypeKeyCaptor.getAllValues();
-        assertThat(eventsToBeDeleted, hasSize(1));
+        assertThat(eventsToBeDeleted, hasSize(2));
         assertEquals("REJECTED-TASK", eventsToBeDeleted.get(0));
 
         List<String> eventIds = sagaEventIdCaptor.getAllValues();
@@ -469,7 +470,7 @@ public class SagaServiceTest {
 
         verify(transactionRepository).findById(eq(txId));
         verify(logRepository).getFinishLogs(eq(txId), eq(asList("NEXT-JOIN-TASK")));
-        verify(logRepository).getFinishLogs(eq(txId), eq(asList("PARALEL-TASK1", "PARALEL-TASK2")));
+        verify(logRepository, times(2)).getFinishLogs(eq(txId), eq(asList("PARALEL-TASK1", "PARALEL-TASK2")));
         verify(logRepository).findLogs(eq(EVENT_START), eq(mockTx(txId, NEW)), eq("NEXT-JOIN-TASK"));
         verify(logRepository).save(refEq(createLog(txId, "NEXT-JOIN-TASK", EVENT_START)));
         verify(taskExecutor).onCheckWaitCondition(sagaTaskSpec, sagaEvent, mockTx(txId));
@@ -536,6 +537,7 @@ public class SagaServiceTest {
             .setKey("NEXT-JOIN-TASK")
             .setRetryCount(-1L)
             .setRetryPolicy(RETRY)
+            .setDependsStrategy(DependsStrategy.ALL_EXECUTED)
             .setNext(asList("SOME-OTHER-TASK"));
     }
 
@@ -571,7 +573,7 @@ public class SagaServiceTest {
 
         verify(transactionRepository).findById(eq(txId));
         verify(logRepository).getFinishLogs(eq(txId), eq(asList("NEXT-JOIN-TASK")));
-        verify(logRepository).getFinishLogs(eq(txId), eq(asList("PARALEL-TASK1", "PARALEL-TASK2")));
+        verify(logRepository, times(2)).getFinishLogs(eq(txId), eq(asList("PARALEL-TASK1", "PARALEL-TASK2")));
         verify(logRepository).findLogs(eq(EVENT_START), eq(mockTx(txId, NEW)), eq("NEXT-JOIN-TASK"));
         verify(logRepository).save(refEq(createLog(txId, "NEXT-JOIN-TASK", EVENT_START)));
         verify(taskExecutor).onCheckWaitCondition(sagaTaskSpec, sagaEvent, mockTx(txId));
@@ -616,7 +618,7 @@ public class SagaServiceTest {
 
         verify(transactionRepository).findById(eq(txId));
         verify(logRepository).getFinishLogs(eq(txId), eq(asList("NEXT-JOIN-TASK")));
-        verify(logRepository).getFinishLogs(eq(txId), eq(asList("PARALEL-TASK1", "PARALEL-TASK2")));
+        verify(logRepository, times(2)).getFinishLogs(eq(txId), eq(asList("PARALEL-TASK1", "PARALEL-TASK2")));
         verify(logRepository).findLogs(eq(EVENT_START), eq(mockTx(txId, NEW)), eq("NEXT-JOIN-TASK"));
         verify(logRepository).save(refEq(createLog(txId, "NEXT-JOIN-TASK", EVENT_START)));
         verify(taskExecutor).onCheckWaitCondition(sagaTaskSpec, sagaEvent, mockTx(txId));

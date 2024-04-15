@@ -1,0 +1,18 @@
+---
+transactions:
+- key: TEST-FINISH-WHEN-REJECTED-TASK-IN-MANY-NEXTS
+  retryPolicy: RETRY
+  retryCount: 1
+  backOff: 0
+  maxBackOff: 0
+  tasks:
+    - key: FIRST
+      next:
+        - SECOND
+        - TO_REJECT
+    - key: SECOND
+      next:
+        - TO_REJECT
+        - THIRD
+    - key: TO_REJECT
+    - key: THIRD

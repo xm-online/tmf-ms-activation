@@ -33,6 +33,7 @@ public class SagaTransactionSpec {
     // by default dependent task retries until all "depends" are completed
     // if this flag is true, then dependent task retries only after finish "depends"
     private Boolean checkDependsEventually;
+    private DependsStrategy dependsStrategy = DependsStrategy.ALL_EXECUTED;
     private List<SagaTaskSpec> tasks;
 
     public static Predicate<SagaTransactionSpec> isEqualsKey(String key) {
