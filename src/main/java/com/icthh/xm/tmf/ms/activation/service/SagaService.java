@@ -2,6 +2,7 @@ package com.icthh.xm.tmf.ms.activation.service;
 
 import com.icthh.xm.tmf.ms.activation.domain.SagaEvent;
 import com.icthh.xm.tmf.ms.activation.domain.SagaLog;
+import com.icthh.xm.tmf.ms.activation.domain.SagaLogType;
 import com.icthh.xm.tmf.ms.activation.domain.SagaTransaction;
 import java.util.List;
 import java.util.Map;
@@ -29,6 +30,8 @@ public interface SagaService {
     Optional<SagaEvent> getEventById(String eventId);
 
     List<SagaLog> getLogsByTransaction(String txId);
+
+    SagaLog getLogsByTransactionEventTypeAndLogType(String txId, String eventType, SagaLogType logType);
 
     Page<SagaTransaction> getAllTransaction(Pageable pageable);
 

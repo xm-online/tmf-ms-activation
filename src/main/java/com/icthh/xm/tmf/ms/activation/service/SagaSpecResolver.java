@@ -11,4 +11,5 @@ public interface SagaSpecResolver {
     void update(String tenant, SagaSpec spec);
     void remove(String tenant);
     String getActualSpecVersion(String tenantKey);
+    SagaSpec getActualSagaSpec(String tenantKey);
 }

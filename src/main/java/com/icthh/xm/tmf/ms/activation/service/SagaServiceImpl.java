@@ -488,6 +488,11 @@ public class SagaServiceImpl implements SagaService {
     }
 
     @Override
+    public SagaLog getLogsByTransactionEventTypeAndLogType(String txId, String eventType, SagaLogType logType) {
+        return logRepository.findBySagaTransactionIdAndEventTypeKeyAndLogType(txId, eventType, logType);
+    }
+
+    @Override
     public Page<SagaTransaction> getAllTransaction(Pageable pageable) {
         return transactionRepository.findAll(pageable);
     }
