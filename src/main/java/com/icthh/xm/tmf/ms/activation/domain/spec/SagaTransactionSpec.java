@@ -7,6 +7,7 @@ import lombok.experimental.Accessors;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -25,6 +26,7 @@ public class SagaTransactionSpec {
 
     private String key;
     private String group;
+    private Map<String, String> name;
     private RetryPolicy retryPolicy = RETRY;
     private Long retryCount = -1L;
     private Integer backOff = 5;
