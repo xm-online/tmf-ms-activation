@@ -52,4 +52,6 @@ public interface SagaLogRepository extends JpaRepository<SagaLog, Long>, JpaSpec
     }
 
     List<SagaLog> findBySagaTransactionId(String txId);
+
+    SagaLog findBySagaTransactionIdAndEventTypeKeyAndLogType(String txId, String eventTypeKey, SagaLogType logType);
 }

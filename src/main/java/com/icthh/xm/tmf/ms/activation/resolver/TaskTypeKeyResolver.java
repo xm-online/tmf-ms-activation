@@ -6,6 +6,8 @@ import com.icthh.xm.tmf.ms.activation.domain.spec.SagaTaskSpec;
 import com.icthh.xm.tmf.ms.activation.service.SagaSpecService;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
+
 @Component
 public class TaskTypeKeyResolver extends GroupLepKeyResolver {
 
@@ -13,10 +15,10 @@ public class TaskTypeKeyResolver extends GroupLepKeyResolver {
         super(sagaSpecService);
     }
 
-    protected String[] getAppendSegments(LepMethod method, SagaTransaction sagaTransaction) {
-        SagaTaskSpec task = getRequiredParam(method, "task", SagaTaskSpec.class);
-        String translatedSagaTransactionKey = translateToLepConvention(sagaTransaction.getTypeKey());
-        String translatedTaskKey = translateToLepConvention(task.getKey());
-        return new String[] {translatedSagaTransactionKey, translatedTaskKey};
+    @Override
+    public List<String> segments(LepMethod method) {
+        SagaTransaction sagaTransaction = method.getParameter("sagaTransaction", SagaTransaction.class);
+        SagaTaskSpec task = method.getParameter("task", SagaTaskSpec.class);
+        return List.of(sagaTransaction.getTypeKey(), task.getKey());
     }
 }

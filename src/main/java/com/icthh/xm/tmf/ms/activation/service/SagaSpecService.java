@@ -67,6 +67,10 @@ public class SagaSpecService implements RefreshableConfiguration {
         return matcher.extractUriTemplateVariables(PATH_PATTERN, updatedKey).get(TENANT_NAME);
     }
 
+    public SagaSpec getActualSagaSpec() {
+        return sagaSpecResolver.getActualSagaSpec(tenantUtils.getTenantKey());
+    }
+
     public String getSpecVersion() {
         String tenantKey = tenantUtils.getTenantKey();
         return sagaSpecResolver.getActualSpecVersion(tenantKey);

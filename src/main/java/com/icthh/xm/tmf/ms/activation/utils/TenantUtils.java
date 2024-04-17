@@ -3,6 +3,7 @@ package com.icthh.xm.tmf.ms.activation.utils;
 import static com.icthh.xm.commons.lep.XmLepConstants.THREAD_CONTEXT_KEY_AUTH_CONTEXT;
 import static com.icthh.xm.commons.lep.XmLepConstants.THREAD_CONTEXT_KEY_TENANT_CONTEXT;
 
+import com.icthh.xm.commons.lep.api.LepManagementService;
 import com.icthh.xm.commons.security.XmAuthenticationContextHolder;
 import com.icthh.xm.commons.tenant.TenantContextHolder;
 import com.icthh.xm.commons.tenant.TenantContextUtils;
@@ -22,7 +23,7 @@ public class TenantUtils {
 
     private final TenantContextHolder tenantContextHolder;
     private final XmAuthenticationContextHolder authContextHolder;
-    private final LepManager lepManager;
+    private final LepManagementService lepManager;
 
     public String getTenantKey() {
         return TenantContextUtils.getRequiredTenantKeyValue(tenantContextHolder);
@@ -42,7 +43,9 @@ public class TenantUtils {
     public void doInTenantContext(Task task, String tenant) {
         try {
             init(tenant);
-            task.doWork();
+            try (var context = lepManager.beginThreadContext()) {
+                task.doWork();
+            }
         } finally {
             destroy();
         }
@@ -64,7 +67,9 @@ public class TenantUtils {
     public <R> R doInTenantContext(TaskWithResult<R> task, String tenant) {
         try {
             init(tenant);
-            return task.doWork();
+            try (var context = lepManager.beginThreadContext()) {
+                return task.doWork();
+            }
         } finally {
             destroy();
         }
@@ -80,15 +85,9 @@ public class TenantUtils {
 
     private void init(String tenantKey) {
         TenantContextUtils.setTenant(tenantContextHolder, tenantKey);
-
-        lepManager.beginThreadContext(threadContext -> {
-            threadContext.setValue(THREAD_CONTEXT_KEY_TENANT_CONTEXT, tenantContextHolder.getContext());
-            threadContext.setValue(THREAD_CONTEXT_KEY_AUTH_CONTEXT, authContextHolder.getContext());
-        });
     }
 
     private void destroy() {
-        lepManager.endThreadContext();
         tenantContextHolder.getPrivilegedContext().destroyCurrentContext();
     }
 

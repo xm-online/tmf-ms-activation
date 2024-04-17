@@ -1,32 +1,27 @@
 package com.icthh.xm.tmf.ms.activation.resolver;
 
-import com.icthh.xm.commons.lep.XmLepConstants;
-import com.icthh.xm.commons.lep.spring.LepServiceHandler;
-import com.icthh.xm.lep.api.LepKey;
-import com.icthh.xm.lep.api.LepKeyResolver;
-import com.icthh.xm.lep.api.LepManager;
+import com.icthh.xm.commons.lep.LogicExtensionPoint;
+import com.icthh.xm.commons.lep.api.LepKey;
+import com.icthh.xm.commons.lep.impl.DefaultLepKey;
+import com.icthh.xm.commons.lep.impl.LepMethodImpl;
+import com.icthh.xm.commons.lep.impl.MethodSignatureImpl;
+import com.icthh.xm.commons.lep.spring.LepService;
 import com.icthh.xm.lep.api.LepMethod;
-import com.icthh.xm.lep.api.Version;
-import com.icthh.xm.lep.core.CoreLepManager;
+import com.icthh.xm.lep.api.MethodSignature;
 import com.icthh.xm.tmf.ms.activation.domain.SagaTransaction;
 import com.icthh.xm.tmf.ms.activation.domain.spec.SagaTransactionSpec;
-import com.icthh.xm.tmf.ms.activation.service.SagaService;
 import com.icthh.xm.tmf.ms.activation.service.SagaServiceImpl;
 import com.icthh.xm.tmf.ms.activation.service.SagaSpecService;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.ArgumentCaptor;
-import org.mockito.Captor;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
-import org.springframework.context.ApplicationContext;
 
 import java.lang.reflect.Method;
+import java.util.List;
 
-import static com.icthh.xm.tmf.ms.activation.domain.spec.MockSagaType.fromTypeKey;
+import static org.apache.commons.lang3.StringUtils.isNotBlank;
 import static org.junit.Assert.assertEquals;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -34,56 +29,37 @@ public class TransactionTypeKeyResolverTest {
 
     private static final String TYPE_KEY = "DDS_ACTIVATION";
 
-    @InjectMocks
-    private LepServiceHandler lepServiceHandler;
-
-    @Mock
-    private ApplicationContext applicationContext;
-
-    @Mock
-    private CoreLepManager lepManager;
-
-    @Captor
-    private ArgumentCaptor<LepKey> baseLepKey;
-
     @Mock
     private SagaSpecService sagaSpecService;
-
     @Mock
-    private SagaService sagaService;
-
-    @Captor
-    private ArgumentCaptor<LepKeyResolver> keyResolver;
-
-    @Captor
-    private ArgumentCaptor<LepMethod> lepMethod;
-
-    @Captor
-    private ArgumentCaptor<Version> version;
+    private SagaServiceImpl sagaService;
 
     @Test
     public void testResolveLepKeyByProfileAndChannelId() throws Throwable {
-
+        Class<?> targetType = SagaServiceImpl.class;
+        Object target = sagaService;
         Method method = SagaServiceImpl.class.getMethod("createNewSaga", SagaTransaction.class);
-
-        when(applicationContext.getBean(LepManager.class)).thenReturn(lepManager);
+        LogicExtensionPoint lep = method.getAnnotation(LogicExtensionPoint.class);
+        LepService typeLepService = targetType.getAnnotation(LepService.class);
+        String group = isNotBlank(lep.group()) ? lep.group() : typeLepService.group();
+        LepKey baseLepKey = new DefaultLepKey(group, lep.value());
 
         SagaTransaction sagaTransaction = new SagaTransaction();
         sagaTransaction.setTypeKey(TYPE_KEY);
 
+        Object[] args = new Object[1];
+        args[0] = sagaTransaction;
+
+        MethodSignature methodSignature = new MethodSignatureImpl(method, targetType);
+        LepMethod lepMethod = new LepMethodImpl(target, methodSignature, args, baseLepKey);
+
         when(sagaSpecService.getTransactionSpec(sagaTransaction)).thenReturn(new SagaTransactionSpec());
-        TransactionTypeKeyResolver resolver = new TransactionTypeKeyResolver(sagaSpecService);
-        when(applicationContext.getBean(TransactionTypeKeyResolver.class)).thenReturn(resolver);
+        TransactionTypeKeyResolver transactionTypeKeyResolver = new TransactionTypeKeyResolver(sagaSpecService);
+        String lepGroup = transactionTypeKeyResolver.group(lepMethod);
+        List<String> segments = transactionTypeKeyResolver.segments(lepMethod);
 
-        lepServiceHandler.onMethodInvoke(SagaServiceImpl.class, sagaService, method, new Object[]{sagaTransaction});
-
-        verify(lepManager)
-            .processLep(baseLepKey.capture(), version.capture(), keyResolver.capture(), lepMethod.capture());
-
-        LepKey resolvedKey = resolver.resolve(baseLepKey.getValue(), lepMethod.getValue(), null);
-
-        assertEquals(
-            String.join(XmLepConstants.EXTENSION_KEY_SEPARATOR,
-                "service.saga.CreateNewSaga", TYPE_KEY), resolvedKey.getId());
+        assertEquals("service.saga", lepGroup);
+        assertEquals(1, segments.size());
+        assertEquals(TYPE_KEY, segments.get(0));
     }
 }

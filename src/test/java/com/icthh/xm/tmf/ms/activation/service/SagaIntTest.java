@@ -1,11 +1,11 @@
 package com.icthh.xm.tmf.ms.activation.service;
 
 import com.icthh.xm.commons.lep.XmLepScriptConfigServerResourceLoader;
+import com.icthh.xm.commons.lep.api.LepManagementService;
 import com.icthh.xm.commons.security.XmAuthenticationContext;
 import com.icthh.xm.commons.security.XmAuthenticationContextHolder;
 import com.icthh.xm.commons.tenant.TenantContextHolder;
 import com.icthh.xm.commons.tenant.TenantContextUtils;
-import com.icthh.xm.lep.api.LepManager;
 import com.icthh.xm.tmf.ms.activation.ActivationApp;
 import com.icthh.xm.tmf.ms.activation.config.SecurityBeanOverrideConfiguration;
 import com.icthh.xm.tmf.ms.activation.domain.SagaEvent;
@@ -28,8 +28,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.cloud.stream.test.binder.MessageCollectorAutoConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Lazy;
@@ -48,8 +48,6 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 
-import static com.icthh.xm.commons.lep.XmLepConstants.THREAD_CONTEXT_KEY_AUTH_CONTEXT;
-import static com.icthh.xm.commons.lep.XmLepConstants.THREAD_CONTEXT_KEY_TENANT_CONTEXT;
 import static com.icthh.xm.tmf.ms.activation.domain.SagaEvent.SagaEventStatus.IN_QUEUE;
 import static com.icthh.xm.tmf.ms.activation.domain.SagaEvent.SagaEventStatus.WAIT_DEPENDS_TASK;
 import static com.icthh.xm.tmf.ms.activation.domain.SagaLogType.EVENT_END;
@@ -69,14 +67,13 @@ import static org.mockito.Mockito.when;
 @Slf4j
 @RunWith(SpringRunner.class)
 @SpringBootTest(classes = {SagaIntTest.SagaIntTestConfiguration.class, ActivationApp.class, SecurityBeanOverrideConfiguration.class})
-@EnableAutoConfiguration(exclude = MessageCollectorAutoConfiguration.class)
 public class SagaIntTest {
 
     @Autowired
     private SagaService sagaService;
 
     @Autowired
-    private LepManager lepManager;
+    private LepManagementService lepManager;
 
     @Autowired
     private TestEventSender testEventSender;
@@ -90,12 +87,15 @@ public class SagaIntTest {
     @Autowired
     private XmLepScriptConfigServerResourceLoader resourceLoader;
 
+    @MockBean
+    private MessageCollectorAutoConfiguration messageCollectorAutoConfiguration;
+
     @Before
     public void setup() {
         initContext(tenantContextHolder, lepManager);
     }
 
-    private static void initContext(TenantContextHolder tenantContextHolder, LepManager lepManager) {
+    private static void initContext(TenantContextHolder tenantContextHolder, LepManagementService lepManager) {
         TenantContextUtils.setTenant(tenantContextHolder, "TEST_TENANT");
 
         XmAuthenticationContextHolder authContextHolder = mock(XmAuthenticationContextHolder.class);
@@ -103,10 +103,7 @@ public class SagaIntTest {
 
         when(authContextHolder.getContext()).thenReturn(context);
         when(context.getUserKey()).thenReturn(Optional.of("userKey"));
-        lepManager.beginThreadContext(ctx -> {
-            ctx.setValue(THREAD_CONTEXT_KEY_TENANT_CONTEXT, tenantContextHolder.getContext());
-            ctx.setValue(THREAD_CONTEXT_KEY_AUTH_CONTEXT, authContextHolder.getContext());
-        });
+        lepManager.beginThreadContext();
     }
 
     @SneakyThrows
@@ -416,7 +413,7 @@ public class SagaIntTest {
 
         @Primary
         @Bean
-        public EventsSender eventsSender(@Lazy EventHandler eventHandler, TenantContextHolder tenantContextHolder, LepManager lepManager) {
+        public EventsSender eventsSender(@Lazy EventHandler eventHandler, TenantContextHolder tenantContextHolder, LepManagementService lepManager) {
             return new TestEventSender(eventHandler, () -> initContext(tenantContextHolder, lepManager));
         }
     }

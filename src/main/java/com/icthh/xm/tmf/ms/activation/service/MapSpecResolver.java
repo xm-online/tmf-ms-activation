@@ -33,4 +33,9 @@ public class MapSpecResolver implements SagaSpecResolver {
         SagaSpec sagaSpec = sagaSpecs.get(tenantKey);
         return sagaSpec != null ? sagaSpec.getVersion() : null;
     }
+
+    @Override
+    public SagaSpec getActualSagaSpec(String tenantKey) {
+        return sagaSpecs.get(tenantKey);
+    }
 }

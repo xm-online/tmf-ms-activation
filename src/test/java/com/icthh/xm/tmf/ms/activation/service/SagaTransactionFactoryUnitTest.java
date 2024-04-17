@@ -9,7 +9,7 @@ import java.util.UUID;
 import org.junit.Before;
 import org.junit.Test;
 
-public class SagaTransactionFactoryTest {
+public class SagaTransactionFactoryUnitTest {
 
     private SagaTransactionFactory sagaTransactionFactory;
 
