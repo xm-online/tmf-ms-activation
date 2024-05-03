@@ -1,7 +1,8 @@
 ---
-version: 54321
+version: "this field ignored"
 transactions:
 - key: TEST-VERSION
+  version: 54321
   retryPolicy: RETRY
   retryCount: 1
   backOff: 0

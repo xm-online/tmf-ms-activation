@@ -37,6 +37,7 @@ public class SagaTransactionSpec {
     private Boolean checkDependsEventually;
     private DependsStrategy dependsStrategy = DependsStrategy.ALL_EXECUTED;
     private List<SagaTaskSpec> tasks;
+    private String version;
 
     public static Predicate<SagaTransactionSpec> isEqualsKey(String key) {
         return it -> it != null && Objects.equals(key, it.getKey());
@@ -72,5 +73,28 @@ public class SagaTransactionSpec {
                 .filter(task -> task.getDepends() != null && task.getDepends().contains(key))
                 .map(SagaTaskSpec::getKey)
                 .collect(toList());
+    }
+
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("SagaTaskSpec{");
+        if (key != null) {
+            sb.append("key='").append(key).append('\'');
+        }
+        if (group != null) {
+            sb.append("group='").append(key).append('\'');
+        }
+        if (retryCount != null) {
+            sb.append(", retryCount=").append(retryCount);
+        }
+        if (saveTaskContext != null) {
+            sb.append(", saveTaskContext=").append(saveTaskContext);
+        }
+        if (dependsStrategy != null) {
+            sb.append(", dependsStrategy=").append(dependsStrategy);
+        }
+        sb.append('}');
+        return sb.toString();
     }
 }

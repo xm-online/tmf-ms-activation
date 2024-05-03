@@ -13,6 +13,7 @@ import com.icthh.xm.tmf.ms.activation.domain.SagaLog;
 import com.icthh.xm.tmf.ms.activation.domain.SagaLogType;
 import com.icthh.xm.tmf.ms.activation.domain.SagaTransaction;
 import com.icthh.xm.tmf.ms.activation.domain.spec.SagaTaskSpec;
+import com.icthh.xm.tmf.ms.activation.domain.spec.SagaTransactionSpec;
 import com.icthh.xm.tmf.ms.activation.events.EventsSender;
 import com.icthh.xm.tmf.ms.activation.events.bindings.EventHandler;
 import com.icthh.xm.tmf.ms.activation.repository.SagaEventRepository;
@@ -47,7 +48,9 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
+import static com.icthh.xm.tmf.ms.activation.domain.SagaEvent.SagaEventStatus.INVALID_SPECIFICATION;
 import static com.icthh.xm.tmf.ms.activation.domain.SagaEvent.SagaEventStatus.IN_QUEUE;
 import static com.icthh.xm.tmf.ms.activation.domain.SagaEvent.SagaEventStatus.WAIT_DEPENDS_TASK;
 import static com.icthh.xm.tmf.ms.activation.domain.SagaLogType.EVENT_END;
@@ -57,6 +60,7 @@ import static com.icthh.xm.tmf.ms.activation.domain.SagaTransactionState.FINISHE
 import static com.icthh.xm.tmf.ms.activation.domain.SagaTransactionState.NEW;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.stream.Collectors.toList;
+import static java.util.stream.Collectors.toSet;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -208,6 +212,9 @@ public class SagaIntTest {
 
         testEventSender.startSagaProcessing();
         assertEquals(FINISHED, sagaService.getByKey(saga.getKey()).getSagaTransactionState());
+
+        BEFORE_EVENTS.clear();
+        AFTER_EVENTS.clear();
     }
 
     @Test
@@ -258,33 +265,89 @@ public class SagaIntTest {
         );
 
         MutableInteger mutableInteger = new MutableInteger(1);
+        afterEvent("A1").accept(sagaEvent -> {
+            assertTrue(mutableInteger.get() == 2);
+            assertEquals(WAIT_DEPENDS_TASK, getEventByTypeKey(saga, "TARGET_TASK").getStatus());
+            assertEquals(NEW, sagaService.getByKey(saga.getKey()).getSagaTransactionState());
+            assertEquals(0, sagaEvent.getRetryNumber());
+            // after finish first task from "depends"
+            mutableInteger.increase();
+        });
+
+        afterEvent("B2_SUSPENDABLE").accept(sagaEvent -> {
+            assertTrue(mutableInteger.get() == 3);
+            assertEquals(WAIT_DEPENDS_TASK, getEventByTypeKey(saga, "TARGET_TASK").getStatus());
+            assertEquals(NEW, sagaService.getByKey(saga.getKey()).getSagaTransactionState());
+            assertEquals(0, sagaEvent.getRetryNumber());
+            assertTrue(testEventSender.sagaEvents.isEmpty());
+            sagaService.continueTask(getEventByTypeKey(saga, "B2_SUSPENDABLE").getId(), Map.of());
+            // after finish first task from "depends"
+            mutableInteger.increase();
+        });
+
         afterEvent("TARGET_TASK").accept(sagaEvent -> {
             log.info("Target task try: {}", mutableInteger.get());
-
-            // after start
-            if (mutableInteger.get() == 1) {
-                assertEquals(WAIT_DEPENDS_TASK, getEventByTypeKey(saga, "TARGET_TASK").getStatus());
-                assertEquals(NEW, sagaService.getByKey(saga.getKey()).getSagaTransactionState());
-                assertEquals(0, sagaEvent.getRetryNumber());
-                // after finish first task from "depends"
-            } else if (mutableInteger.get() == 2) {
-                assertEquals(WAIT_DEPENDS_TASK, getEventByTypeKey(saga, "TARGET_TASK").getStatus());
-                assertEquals(NEW, sagaService.getByKey(saga.getKey()).getSagaTransactionState());
-                assertEquals(0, sagaEvent.getRetryNumber());
-                assertTrue(testEventSender.sagaEvents.isEmpty());
-                sagaService.continueTask(getEventByTypeKey(saga, "B2_SUSPENDABLE").getId(), Map.of());
-                // after finish second task from "depends"
-            } else if (mutableInteger.get() == 3) {
+            assertTrue(mutableInteger.get() == 1 || mutableInteger.get() == 4);
+            if (mutableInteger.get() > 1) {
                 assertNull(getEventByTypeKey(saga, "TARGET_TASK"));
                 assertEquals(FINISHED, sagaService.getByKey(saga.getKey()).getSagaTransactionState());
                 assertEquals(0, sagaEvent.getRetryNumber());
             }
-
             mutableInteger.increase();
         });
 
         testEventSender.startSagaProcessing();
-        assertEquals(4, mutableInteger.get());
+        assertEquals(5, mutableInteger.get());
+        assertEquals(FINISHED, sagaService.getByKey(saga.getKey()).getSagaTransactionState());
+    }
+
+    @Test
+    public void testMultiFileSagaSpec() {
+        specService.onRefresh("/config/tenants/TEST_TENANT/activation/activation-spec.yml", loadFile("spec/activation-spec-test-reject.yml"));
+        resourceLoader.onRefresh("/config/tenants/TEST_TENANT/activation/lep/service/saga/Condition$$TEST_REJECT$$B2$$around.groovy", "return false;");
+
+        Set<String> txKeys = specService.getActualSagaSpec().getTransactions().stream().map(SagaTransactionSpec::getKey).collect(toSet());
+        assertEquals(Set.of("TEST-REJECT"), txKeys);
+
+        specService.onRefresh("/config/tenants/TEST_TENANT/activation/activation-specs/version.yml", loadFile("spec/activation-spec-version.yml"));
+
+        txKeys = specService.getActualSagaSpec().getTransactions().stream().map(SagaTransactionSpec::getKey).collect(toSet());
+        assertEquals(Set.of("TEST-REJECT", "TEST-VERSION"), txKeys);
+
+        specService.onRefresh("/config/tenants/TEST_TENANT/activation/activation-specs/anotherFile.yml", loadFile("spec/activation-spec.yml"));
+
+        txKeys = specService.getActualSagaSpec().getTransactions().stream().map(SagaTransactionSpec::getKey).collect(toSet());
+        assertEquals(Set.of(
+            "TEST-REJECT", "TEST-VERSION", "TASK-WITH-REJECTED-BY-CONDITION-TASK-AND-DELETED-EVENT",
+            "TASK-WITH-REJECTED-AND-NON-REJECTED", "TASK-WITH-REJECTED-BY-CONDITION-TASKS",
+            "TASK-AND-TASK-WITH-SUSPEND-TX", "TEST-SAGA-TYPE-KEY"
+        ), txKeys);
+
+        SagaTransaction saga = sagaService.createNewSaga(new SagaTransaction()
+            .setKey(UUID.randomUUID().toString())
+            .setTypeKey("TEST-REJECT")
+            .setContext(Map.of())
+            .setSagaTransactionState(NEW)
+        );
+        testEventSender.startSagaProcessing();
+        assertEquals(FINISHED, sagaService.getByKey(saga.getKey()).getSagaTransactionState());
+
+        SagaTransaction saga2 = sagaService.createNewSaga(new SagaTransaction()
+            .setKey(UUID.randomUUID().toString())
+            .setTypeKey("TEST-VERSION")
+            .setContext(Map.of())
+            .setSagaTransactionState(NEW)
+        );
+        testEventSender.startSagaProcessing();
+        assertEquals(FINISHED, sagaService.getByKey(saga2.getKey()).getSagaTransactionState());
+
+        specService.onRefresh("/config/tenants/TEST_TENANT/activation/activation-specs/anotherFile.yml", null);
+        txKeys = specService.getActualSagaSpec().getTransactions().stream().map(SagaTransactionSpec::getKey).collect(toSet());
+        assertEquals(Set.of("TEST-REJECT", "TEST-VERSION"), txKeys);
+
+        specService.onRefresh("/config/tenants/TEST_TENANT/activation/activation-specs/version.yml", null);
+        txKeys = specService.getActualSagaSpec().getTransactions().stream().map(SagaTransactionSpec::getKey).collect(toSet());
+        assertEquals(Set.of("TEST-REJECT"), txKeys);
     }
 
     @Test

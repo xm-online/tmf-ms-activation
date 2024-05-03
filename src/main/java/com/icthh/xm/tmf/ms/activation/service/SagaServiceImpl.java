@@ -64,6 +64,7 @@ import static java.lang.Boolean.TRUE;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.emptySet;
 import static java.util.Collections.singletonList;
+import static java.util.function.Predicate.not;
 import static java.util.stream.Collectors.toList;
 import static org.apache.commons.lang3.StringUtils.isEmpty;
 
@@ -110,7 +111,7 @@ public class SagaServiceImpl implements SagaService {
         sagaTransaction.setId(null);
         sagaTransaction.setSagaTransactionState(NEW);
         sagaTransaction.setCreateDate(Instant.now(clock));
-        sagaTransaction.setSpecificationVersion(specService.getSpecVersion());
+        sagaTransaction.setSpecificationVersion(transactionSpec.getVersion());
         SagaTransaction saved = transactionRepository.save(sagaTransaction);
         log.info("Saga transaction created {} with context {}", sagaTransaction, sagaTransaction.getContext());
         generateFirstEvents(saved, transactionSpec);
@@ -180,12 +181,14 @@ public class SagaServiceImpl implements SagaService {
             if (needRejectByDependedTasks(transaction.getId(), taskSpec, context)) {
                 log.info("Task by event {} rejected by depended tasks. Transaction: {}", sagaEvent, transaction);
                 rejectTask(transaction.getId(), sagaEvent.getTypeKey(), sagaEvent.getTypeKey(), context);
+                updateTransactionStrategy.updateTransactionStatus(transaction, transactionSpec, sagaEvent.getTaskContext());
                 return;
             }
 
             if (!TRUE.equals(self.checkCondition(taskSpec, sagaEvent, transaction))) {
                 log.info("Task by event {} rejected by condition. Transaction: {}", sagaEvent, transaction);
                 rejectTask(transaction.getId(), sagaEvent.getTypeKey(), sagaEvent.getTypeKey(), context);
+                updateTransactionStrategy.updateTransactionStatus(transaction, transactionSpec, sagaEvent.getTaskContext());
                 return;
             }
 
@@ -330,17 +333,32 @@ public class SagaServiceImpl implements SagaService {
     private void continuation(SagaEvent sagaEvent, SagaTransaction transaction, SagaTransactionSpec transactionSpec,
                               SagaTaskSpec taskSpec, Map<String, Object> taskContext) {
         var tasks = taskSpec.getNext().stream().map(transactionSpec::getTask).collect(toList());
-        resendEventsForDependentTasks(transactionSpec, taskSpec, sagaEvent.getTransactionId());
         generateEvents(transaction.getId(), sagaEvent.getTypeKey(), tasks, taskContext);
         writeLog(sagaEvent, transaction, EVENT_END, taskSpec);
+        resendEventsForDependentTasks(transactionSpec, taskSpec, sagaEvent.getTransactionId()); // after write end log
         updateTransactionStrategy.updateTransactionStatus(transaction, transactionSpec, taskContext);
     }
 
     private void resendEventsForDependentTasks(SagaTransactionSpec transactionSpec, SagaTaskSpec taskSpec, String transactionId) {
         if (TRUE.equals(transactionSpec.getCheckDependsEventually())) {
-            List<String> dependentTasks = transactionSpec.findDependentTasks(taskSpec.getKey());
-            List<SagaEvent> dependentEvents = sagaEventRepository.findByTransactionIdAndTypeKeyIn(transactionId, dependentTasks);
+            List<String> dependentTaskKeys = transactionSpec.findDependentTasks(taskSpec.getKey());
+            List<SagaTaskSpec> dependentTasks = transactionSpec.getTasks().stream()
+                .filter(task -> dependentTaskKeys.contains(task.getKey())).collect(toList());
+            List<String> logsThatNeedDependentTasks = dependentTasks.stream()
+                .map(SagaTaskSpec::getDepends)
+                .flatMap(Collection::stream)
+                .distinct().collect(toList());
+
+            Set<String> finishedTasks = new HashSet<>(logRepository.getFinishLogsTypeKeys(transactionId, logsThatNeedDependentTasks));
+
+            List<String> dependentTaskReadyToResend = dependentTasks.stream()
+                .filter(it -> finishedTasks.containsAll(it.getDepends()))
+                .map(SagaTaskSpec::getKey)
+                .collect(toList());
+
+            List<SagaEvent> dependentEvents = sagaEventRepository.findByTransactionIdAndTypeKeyIn(transactionId, dependentTaskReadyToResend);
             dependentEvents.stream()
+                .filter(not(SagaEvent::isInQueue))
                 .peek(SagaEvent::markAsInQueue)
                 .map(sagaEventRepository::save)
                 .forEach(eventsManager::sendEvent);

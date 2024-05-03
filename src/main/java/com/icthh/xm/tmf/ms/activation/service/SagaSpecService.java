@@ -18,6 +18,8 @@ import org.springframework.util.AntPathMatcher;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+import static com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES;
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -25,15 +27,16 @@ public class SagaSpecService implements RefreshableConfiguration {
 
     private static final String TENANT_NAME = "tenantName";
     private static final String PATH_PATTERN = "/config/tenants/{tenantName}/activation/activation-spec.yml";
+    private static final String FOLDER_PATH_PATTERN = "/config/tenants/{tenantName}/activation/activation-specs/*.yml";
 
     private final TenantUtils tenantUtils;
     private final AntPathMatcher matcher = new AntPathMatcher();
-    private final ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
+    private final ObjectMapper mapper = new ObjectMapper(new YAMLFactory()).configure(FAIL_ON_UNKNOWN_PROPERTIES, false);
     private final SagaSpecResolver sagaSpecResolver;
 
     @Override
     public boolean isListeningConfiguration(String updatedKey) {
-        return matcher.match(PATH_PATTERN, updatedKey);
+        return matcher.match(PATH_PATTERN, updatedKey) || matcher.match(FOLDER_PATH_PATTERN, updatedKey);
     }
 
     @Override
@@ -41,13 +44,13 @@ public class SagaSpecService implements RefreshableConfiguration {
         try {
             String tenant = extractTenant(updatedKey);
             if (StringUtils.isBlank(config)) {
-                sagaSpecResolver.remove(tenant);
+                sagaSpecResolver.remove(tenant, updatedKey);
                 log.info("Spec for tenant '{}' were removed: {}", tenant, updatedKey);
             } else {
                 SagaSpec spec = mapper.readValue(config, SagaSpec.class);
                 updateRetryPolicy(spec);
 
-                sagaSpecResolver.update(tenant, spec);
+                sagaSpecResolver.update(tenant, updatedKey, spec);
                 log.info("Spec for tenant '{}' were updated: {}", tenant, updatedKey);
             }
         } catch (Exception e) {
@@ -64,16 +67,17 @@ public class SagaSpecService implements RefreshableConfiguration {
     }
 
     private String extractTenant(final String updatedKey) {
-        return matcher.extractUriTemplateVariables(PATH_PATTERN, updatedKey).get(TENANT_NAME);
+        if (matcher.match(PATH_PATTERN, updatedKey)) {
+            return matcher.extractUriTemplateVariables(PATH_PATTERN, updatedKey).get(TENANT_NAME);
+        }
+        if (matcher.match(FOLDER_PATH_PATTERN, updatedKey)) {
+            return matcher.extractUriTemplateVariables(FOLDER_PATH_PATTERN, updatedKey).get(TENANT_NAME);
+        }
+        throw new BusinessException("error.invalid.path", "Invalid path: " + updatedKey);
     }
 
     public SagaSpec getActualSagaSpec() {
         return sagaSpecResolver.getActualSagaSpec(tenantUtils.getTenantKey());
-    }
-
-    public String getSpecVersion() {
-        String tenantKey = tenantUtils.getTenantKey();
-        return sagaSpecResolver.getActualSpecVersion(tenantKey);
     }
 
     @IgnoreLogginAspect
