@@ -70,11 +70,12 @@ public class SagaEvent implements Serializable {
         this.status = IN_QUEUE;
     }
 
-    public void setStatus(SagaEventStatus status) {
+    public SagaEvent setStatus(SagaEventStatus status) {
         if (log.isTraceEnabled()) {
             log.trace("Set event {} status to {}", id, status);
         }
         this.status = status;
+        return this;
     }
 
     public boolean isSuspended() {
