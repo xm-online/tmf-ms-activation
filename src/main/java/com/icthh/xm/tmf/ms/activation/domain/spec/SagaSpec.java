@@ -10,6 +10,7 @@ import lombok.Data;
 import lombok.experimental.Accessors;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 @Data
@@ -19,6 +20,13 @@ import java.util.List;
 public class SagaSpec {
 
     private List<SagaTransactionSpec> transactions;
+
+    public List<SagaTransactionSpec> getTransactions() {
+        if (transactions == null) {
+            return List.of();
+        }
+        return transactions;
+    }
 
     public SagaTransactionSpec getByType(String typeKey) {
         if (transactions == null) {
