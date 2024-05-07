@@ -188,6 +188,7 @@ application:
     kafka-enabled: true
     kafka-system-topic: system_topic
     kafka-system-queue: system_queue
+    tenant-with-creation-access-list: XM, MANAGER
     # The concurrency of the inbound consumer.
     # Shows how many messages the consumer can process at the same time.
     # The number of created partitions in the Kafka same topic is equal to

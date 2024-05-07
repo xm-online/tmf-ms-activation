@@ -5,7 +5,6 @@ import com.icthh.xm.commons.config.client.repository.TenantListRepository;
 import com.icthh.xm.commons.exceptions.BusinessException;
 import com.icthh.xm.commons.logging.aop.IgnoreLogginAspect;
 import com.icthh.xm.commons.tenant.TenantContextHolder;
-import com.icthh.xm.commons.tenant.TenantContextUtils;
 import com.icthh.xm.tmf.ms.activation.config.ApplicationProperties;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
@@ -89,8 +88,9 @@ public class TenantService {
     }
 
     private void checkOnlySuperTenantOperation() {
-        if (!XM.equals(TenantContextUtils.getRequiredTenantKeyValue(tenantContextHolder))) {
-            throw new BusinessException("Only 'XM' tenant is allowed to create new tenants");
+        if (!applicationProperties.getTenantWithCreationAccessList().contains(tenantContextHolder.getTenantKey().toUpperCase())) {
+            throw new BusinessException("Error creating tenant with key " + tenantContextHolder.getTenantKey() +
+                ". Creating new tenants allowed only from super tenant");
         }
     }
 
