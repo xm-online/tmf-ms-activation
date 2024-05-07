@@ -38,7 +38,7 @@ public class MapSpecResolver implements SagaSpecResolver {
         updateTenantSpec(tenant);
     }
 
-    private Map<String, SagaSpec> getTenantMap(String tenant) {
+    public Map<String, SagaSpec> getTenantMap(String tenant) {
         return tenantToFileToSagaSpecs.computeIfAbsent(tenant, k -> new ConcurrentHashMap<>());
     }
 
