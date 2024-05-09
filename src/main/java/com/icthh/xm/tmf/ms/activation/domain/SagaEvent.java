@@ -21,7 +21,9 @@ import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import lombok.ToString;
 import lombok.experimental.Accessors;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @Data
 @Accessors(chain = true)
 @ToString(exclude = "taskContext")
@@ -62,7 +64,18 @@ public class SagaEvent implements Serializable {
     }
 
     public void markAsInQueue() {
+        if (log.isTraceEnabled()) {
+            log.trace("Mark event {} as IN_QUEUE", id);
+        }
         this.status = IN_QUEUE;
+    }
+
+    public SagaEvent setStatus(SagaEventStatus status) {
+        if (log.isTraceEnabled()) {
+            log.trace("Set event {} status to {}", id, status);
+        }
+        this.status = status;
+        return this;
     }
 
     public boolean isSuspended() {

@@ -8,8 +8,7 @@ import java.util.Optional;
 
 public interface SagaSpecResolver {
     Optional<SagaTransactionSpec> findTransactionSpec(String tenant, SagaType sagaType);
-    void update(String tenant, SagaSpec spec);
-    void remove(String tenant);
-    String getActualSpecVersion(String tenantKey);
+    void update(String tenant, String updatedKey, SagaSpec spec);
+    void remove(String tenant, String updatedKey);
     SagaSpec getActualSagaSpec(String tenantKey);
 }

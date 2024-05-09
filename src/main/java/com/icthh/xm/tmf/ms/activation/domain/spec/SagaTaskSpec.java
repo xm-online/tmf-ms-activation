@@ -6,6 +6,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Data;
 import lombok.experimental.Accessors;
 import org.apache.commons.lang3.SerializationUtils;
+import org.apache.commons.lang3.builder.ToStringBuilder;
 
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -62,5 +63,37 @@ public class SagaTaskSpec implements Serializable {
 
     public static SagaTaskSpec copy(SagaTaskSpec src){
         return SerializationUtils.clone(src);
+    }
+
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("SagaTaskSpec{");
+        if (key != null) {
+            sb.append("key='").append(key).append('\'');
+        }
+        if (retryCount != null) {
+            sb.append(", retryCount=").append(retryCount);
+        }
+        if (next != null && !next.isEmpty()) {
+            sb.append(", next=").append(next);
+        }
+        if (depends != null && !depends.isEmpty()) {
+            sb.append(", depends=").append(depends);
+        }
+        if (isSuspendable != null) {
+            sb.append(", isSuspendable=").append(isSuspendable);
+        }
+        if (saveTaskContext != null) {
+            sb.append(", saveTaskContext=").append(saveTaskContext);
+        }
+        if (taskParameters != null && !taskParameters.isEmpty()) {
+            sb.append(", taskParameters=").append(taskParameters);
+        }
+        if (dependsStrategy != null) {
+            sb.append(", dependsStrategy=").append(dependsStrategy);
+        }
+        sb.append('}');
+        return sb.toString();
     }
 }

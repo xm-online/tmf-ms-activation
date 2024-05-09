@@ -24,6 +24,7 @@ public class ApplicationProperties {
     private String kafkaSystemQueue;
     private boolean timelinesEnabled;
     private String dbSchemaSuffix;
+    private List<String> tenantWithCreationAccessList;
     private int kafkaConcurrencyCount;
     private int kafkaOffsetsMetricTimeout;
     private long expectedTransactionCompletionTimeSeconds;

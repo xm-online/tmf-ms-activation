@@ -11,6 +11,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class MapSpecResolver implements SagaSpecResolver {
 
     private final Map<String, SagaSpec> sagaSpecs = new ConcurrentHashMap<>();
+    private final Map<String, Map<String, SagaSpec>> tenantToFileToSagaSpecs = new ConcurrentHashMap<>();
 
     @Override
     public Optional<SagaTransactionSpec> findTransactionSpec(String tenant, SagaType sagaType) {
@@ -19,19 +20,26 @@ public class MapSpecResolver implements SagaSpecResolver {
     }
 
     @Override
-    public void update(String tenant, SagaSpec spec) {
-        sagaSpecs.put(tenant, spec);
+    public void update(String tenant, String updatedKey, SagaSpec spec) {
+        Map<String, SagaSpec> tenantMap = getTenantMap(tenant);
+        tenantMap.put(updatedKey, spec);
+        updateTenantSpec(tenant);
+    }
+
+    private void updateTenantSpec(String tenant) {
+        Map<String, SagaSpec> tenantMap = getTenantMap(tenant);
+        tenantMap.values().stream().reduce(SagaSpec::mergeSpec).ifPresent(it -> sagaSpecs.put(tenant, it));
     }
 
     @Override
-    public void remove(String tenant) {
-        sagaSpecs.remove(tenant);
+    public void remove(String tenant, String updatedKey) {
+        Map<String, SagaSpec> tenantMap = getTenantMap(tenant);
+        tenantMap.remove(updatedKey);
+        updateTenantSpec(tenant);
     }
 
-    @Override
-    public String getActualSpecVersion(String tenantKey) {
-        SagaSpec sagaSpec = sagaSpecs.get(tenantKey);
-        return sagaSpec != null ? sagaSpec.getVersion() : null;
+    public Map<String, SagaSpec> getTenantMap(String tenant) {
+        return tenantToFileToSagaSpecs.computeIfAbsent(tenant, k -> new ConcurrentHashMap<>());
     }
 
     @Override

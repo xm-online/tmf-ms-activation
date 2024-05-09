@@ -1,11 +1,8 @@
 package com.icthh.xm.tmf.ms.activation.service;
 
-import com.google.common.base.Predicate;
-import com.icthh.xm.commons.config.client.repository.TenantListRepository;
 import com.icthh.xm.commons.exceptions.EntityNotFoundException;
 import com.icthh.xm.commons.lep.LogicExtensionPoint;
 import com.icthh.xm.commons.lep.spring.LepService;
-import com.icthh.xm.commons.tenant.TenantKey;
 import com.icthh.xm.tmf.ms.activation.domain.SagaEvent;
 import com.icthh.xm.tmf.ms.activation.domain.SagaTransaction;
 import com.icthh.xm.tmf.ms.activation.domain.SagaTransactionState;
@@ -24,13 +21,13 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import javax.annotation.PostConstruct;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 
 import static com.google.common.base.Predicates.alwaysTrue;
 import static com.google.common.base.Predicates.not;
@@ -126,6 +123,7 @@ public class RetryService {
         doResend(sagaEvent, self::removeAndSend);
     }
 
+
     private void doResend(SagaEvent sagaEvent, Consumer<SagaEvent> operation) {
         scheduledEventsId.remove(sagaEvent.getId());
         tenantUtils.doInTenantContext(() -> {
@@ -147,11 +145,16 @@ public class RetryService {
 
     @Transactional
     public void removeAndSend(SagaEvent sagaEvent, Predicate<SagaEvent> eventFilter) {
-        sagaEventRepository.findById(sagaEvent.getId())
-            .filter(eventFilter)
-            .ifPresentOrElse(this::resendEvent,
-                () -> log.warn("Event not allowed for resend {}", sagaEvent)
-            );
+        sagaEventRepository.findById(sagaEvent.getId()).ifPresentOrElse((event) -> {
+                // Optional api like filter can't be applied, because when filter failed in log must be actual event
+                if (eventFilter.test(event)) {
+                    resendEvent(event);
+                } else {
+                    log.warn("Event {} not allowed for resend", event);
+                }
+            },
+            () -> log.warn("Event {} not found for resend", sagaEvent.getTypeKey())
+        );
     }
 
     private void resendEvent(SagaEvent event) {
