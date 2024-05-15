@@ -252,6 +252,21 @@ public class SagaIntTest {
     }
 
     @Test
+    public void testDependCheckEventuallyStrategyWithNoDepends() {
+        specService.onRefresh("/config/tenants/TEST_TENANT/activation/activation-spec.yml", loadFile("spec/activation-spec-test-depends.yml"));
+
+        SagaTransaction saga = sagaService.createNewSaga(new SagaTransaction()
+            .setKey(UUID.randomUUID().toString())
+            .setTypeKey("TEST-DEPENDS-STRATEGY-WITH-NO-DEPENDS")
+            .setContext(Map.of())
+            .setSagaTransactionState(NEW)
+        );
+
+        testEventSender.startSagaProcessing();
+        assertEquals(FINISHED, sagaService.getByKey(saga.getKey()).getSagaTransactionState());
+    }
+
+    @Test
     public void testDependCheckEventuallyStrategy() {
         specService.onRefresh("/config/tenants/TEST_TENANT/activation/activation-spec.yml", loadFile("spec/activation-spec-test-depends.yml"));
 

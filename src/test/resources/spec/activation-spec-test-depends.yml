@@ -48,6 +48,20 @@ transactions:
     - key: B2_SUSPENDABLE
       isSuspendable: true
 
+- key: TEST-DEPENDS-STRATEGY-WITH-NO-DEPENDS
+  checkDependsEventually: true
+  retryPolicy: RETRY
+  retryCount: 5
+  backOff: 0
+  maxBackOff: 0
+  tasks:
+    - key: A
+      next:
+        - B
+    - key: B
+      next:
+        - C
+    - key: C
 
 - key: TEST-DEPENDS-REJECT-STRATEGY
   checkDependsEventually: true

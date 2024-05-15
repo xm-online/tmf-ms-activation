@@ -25,6 +25,7 @@ import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.NotImplementedException;
 import org.apache.commons.lang3.time.StopWatch;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -349,12 +350,20 @@ public class SagaServiceImpl implements SagaService {
                 .flatMap(Collection::stream)
                 .distinct().collect(toList());
 
+            if (CollectionUtils.isEmpty(logsThatNeedDependentTasks)) {
+                return;
+            }
+
             Set<String> finishedTasks = new HashSet<>(logRepository.getFinishLogsTypeKeys(transactionId, logsThatNeedDependentTasks));
 
             List<String> dependentTaskReadyToResend = dependentTasks.stream()
                 .filter(it -> finishedTasks.containsAll(it.getDepends()))
                 .map(SagaTaskSpec::getKey)
                 .collect(toList());
+
+            if (CollectionUtils.isEmpty(dependentTaskReadyToResend)) {
+                return;
+            }
 
             List<SagaEvent> dependentEvents = sagaEventRepository.findByTransactionIdAndTypeKeyIn(transactionId, dependentTaskReadyToResend);
             dependentEvents.stream()
