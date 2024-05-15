@@ -28,14 +28,14 @@ spring:
       allow-bean-definition-overriding: true
     datasource:
         type: com.zaxxer.hikari.HikariDataSource
-        url: jdbc:h2:mem:activation;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+        url: jdbc:h2:mem:activation;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE;MODE=PostgreSQL
         name:
         username:
         password:
         hikari:
             auto-commit: false
     jpa:
-        database-platform: io.github.jhipster.domain.util.FixedH2Dialect
+        database-platform: io.github.jhipster.domain.util.FixedPostgreSQL82Dialect
         database: H2
         open-in-view: false
         show-sql: false
