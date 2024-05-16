@@ -176,7 +176,7 @@ public class SagaServiceImpl implements SagaService {
         SagaTransactionSpec transactionSpec = context.getTransactionSpec();
         SagaTaskSpec taskSpec = context.getTaskSpec();
 
-        writeLog(sagaEvent, transaction, EVENT_START, taskSpec);
+        writeLog(sagaEvent, transaction, EVENT_START, taskSpec, sagaEvent.getTaskContext());
 
         try {
             if (needRejectByDependedTasks(transaction.getId(), taskSpec, context)) {
@@ -280,7 +280,8 @@ public class SagaServiceImpl implements SagaService {
     }
 
     private void markAsRejectedByCondition(String taskKey, Context context) {
-        writeLog(new SagaEvent().setTypeKey(taskKey), context.getTransaction(), REJECTED_BY_CONDITION, context.getTaskSpec());
+        final SagaEvent sagaEvent = new SagaEvent().setTypeKey(taskKey);
+        writeLog(sagaEvent, context.getTransaction(), REJECTED_BY_CONDITION, context.getTaskSpec(), Map.of());
     }
 
     @LogicExtensionPoint("ContinueTask")
@@ -335,7 +336,7 @@ public class SagaServiceImpl implements SagaService {
                               SagaTaskSpec taskSpec, Map<String, Object> taskContext) {
         var tasks = taskSpec.getNext().stream().map(transactionSpec::getTask).collect(toList());
         generateEvents(transaction.getId(), sagaEvent.getTypeKey(), tasks, taskContext);
-        writeLog(sagaEvent, transaction, EVENT_END, taskSpec);
+        writeLog(sagaEvent, transaction, EVENT_END, taskSpec, taskContext);
         resendEventsForDependentTasks(transactionSpec, taskSpec, sagaEvent.getTransactionId()); // after write end log
         updateTransactionStrategy.updateTransactionStatus(transaction, transactionSpec, taskContext);
     }
@@ -625,14 +626,18 @@ public class SagaServiceImpl implements SagaService {
         return depends;
     }
 
-    private void writeLog(SagaEvent sagaEvent, SagaTransaction transaction, SagaLogType eventType, SagaTaskSpec taskSpec) {
+    private void writeLog(SagaEvent sagaEvent,
+                          SagaTransaction transaction,
+                          SagaLogType eventType,
+                          SagaTaskSpec taskSpec,
+                          Map<String, Object> taskContext) {
         SagaLog sagaLog = new SagaLog().setLogType(eventType)
             .setCreateDate(Instant.now(clock))
             .setEventTypeKey(sagaEvent.getTypeKey())
             .setSagaTransaction(transaction);
 
         if (TRUE.equals(taskSpec.getSaveTaskContext())) {
-            sagaLog.setTaskContext(sagaEvent.getTaskContext());
+            sagaLog.setTaskContext(taskContext);
         }
 
         List<SagaLog> logs = logRepository.findLogs(eventType, transaction, sagaEvent.getTypeKey());
