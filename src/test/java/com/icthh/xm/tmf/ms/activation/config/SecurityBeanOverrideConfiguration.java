@@ -4,6 +4,9 @@ import static org.mockito.Mockito.mock;
 
 import javax.annotation.PostConstruct;
 
+import com.icthh.xm.commons.config.client.repository.CommonConfigRepository;
+import com.icthh.xm.commons.config.client.repository.TenantListRepository;
+import com.icthh.xm.commons.config.client.service.TenantAliasService;
 import com.icthh.xm.commons.lep.spring.LepUpdateMode;
 import com.icthh.xm.commons.logging.config.LoggingConfigService;
 import com.icthh.xm.commons.logging.config.LoggingConfigServiceStub;
@@ -46,6 +49,11 @@ public class SecurityBeanOverrideConfiguration {
     @Primary
     public LepUpdateMode lepUpdateMode() {
         return LepUpdateMode.SYNCHRONOUS;
+    }
+
+    @Bean
+    public TenantAliasService tenantAliasService() {
+        return new TenantAliasService(mock(CommonConfigRepository.class), mock(TenantListRepository.class));
     }
 
     @PostConstruct
