@@ -20,6 +20,8 @@ import com.icthh.xm.tmf.ms.activation.resolver.TaskTypeKeyResolver;
 import com.icthh.xm.tmf.ms.activation.resolver.TransactionTypeKeyResolver;
 import com.icthh.xm.tmf.ms.activation.service.SagaSpecService.InvalidSagaSpecificationException;
 import com.icthh.xm.tmf.ms.activation.utils.TenantUtils;
+import com.jayway.jsonpath.JsonPath;
+import com.jayway.jsonpath.JsonPathException;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
@@ -37,6 +39,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -65,8 +68,11 @@ import static java.lang.Boolean.TRUE;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.emptySet;
 import static java.util.Collections.singletonList;
+import static java.util.Objects.isNull;
 import static java.util.function.Predicate.not;
 import static java.util.stream.Collectors.toList;
+import static java.util.stream.IntStream.range;
+import static org.apache.commons.lang3.ObjectUtils.firstNonNull;
 import static org.apache.commons.lang3.StringUtils.isEmpty;
 
 /**
@@ -80,6 +86,7 @@ import static org.apache.commons.lang3.StringUtils.isEmpty;
 @RequiredArgsConstructor
 public class SagaServiceImpl implements SagaService {
 
+    public static final String LOOP_RESULT_CONTEXTS = "contexts";
     private final SagaLogRepository logRepository;
     private final SagaTransactionRepository transactionRepository;
     private final SagaSpecService specService;
@@ -90,7 +97,7 @@ public class SagaServiceImpl implements SagaService {
     private final SagaEventRepository sagaEventRepository;
     private final TransactionStatusStrategy updateTransactionStrategy;
     private Clock clock = Clock.systemUTC();
-    private Map<String, Boolean> executingTask = new ConcurrentHashMap<>();
+    private final Map<String, Boolean> executingTask = new ConcurrentHashMap<>();
 
     @Setter(onMethod = @__(@Autowired))
     private SagaServiceImpl self;
@@ -176,10 +183,10 @@ public class SagaServiceImpl implements SagaService {
         SagaTransactionSpec transactionSpec = context.getTransactionSpec();
         SagaTaskSpec taskSpec = context.getTaskSpec();
 
-        writeLog(sagaEvent, transaction, EVENT_START, taskSpec, sagaEvent.getTaskContext());
+        writeLog(sagaEvent, transaction, EVENT_START, taskSpec, sagaEvent.getTaskContext(), sagaEvent.getIteration());
 
         try {
-            if (needRejectByDependedTasks(transaction.getId(), taskSpec, context)) {
+            if (needRejectByDependedTasks(transaction.getId(), taskSpec)) {
                 log.info("Task by event {} rejected by depended tasks. Transaction: {}", sagaEvent, transaction);
                 rejectTask(transaction.getId(), sagaEvent.getTypeKey(), sagaEvent.getTypeKey(), context);
                 updateTransactionStrategy.updateTransactionStatus(transaction, transactionSpec, sagaEvent.getTaskContext());
@@ -193,11 +200,23 @@ public class SagaServiceImpl implements SagaService {
                 return;
             }
 
+            if (taskSpec.isIterable() && sagaEvent.getIteration() == null) {
+                int countOfIteration = generateIterableEvents(transaction.getId(), sagaEvent.getTypeKey(), taskSpec, sagaEvent.getTaskContext());
+                if (countOfIteration <= 0) {
+                    log.info("Iterable task skipped. countOfIteration: {}, sagaEvent: {}", countOfIteration, sagaEvent);
+                    finishTask(sagaEvent, transaction, transactionSpec, taskSpec, Map.of(), sagaEvent.getIteration());
+                    deleteSagaEvent(sagaEvent);
+                }
+                return;
+            }
+
             StopWatch stopWatch = StopWatch.createStarted();
             log.info("Start execute task by event {} transaction {}", sagaEvent, transaction);
             Continuation continuation = new Continuation();
             Set<String> nextTasks = new HashSet<>(taskSpec.getNext());
+
             Map<String, Object> taskContext = taskExecutor.executeTask(taskSpec, sagaEvent, transaction, continuation);
+
             nextTasks.removeAll(taskSpec.getNext());
             nextTasks.forEach(task -> rejectTask(transaction.getId(), taskSpec.getKey(), task, context));
             if (TRUE.equals(taskSpec.getIsSuspendable()) && !continuation.isContinuationFlag()) {
@@ -219,8 +238,7 @@ public class SagaServiceImpl implements SagaService {
         return true;
     }
 
-
-    private boolean needRejectByDependedTasks(String sagaTxId, SagaTaskSpec taskSpec, Context context) {
+    private boolean needRejectByDependedTasks(String sagaTxId, SagaTaskSpec taskSpec) {
         List<String> dependsTasks = taskSpec.getDepends();
         if (dependsTasks.isEmpty()) {
             return false;
@@ -281,7 +299,7 @@ public class SagaServiceImpl implements SagaService {
 
     private void markAsRejectedByCondition(String taskKey, Context context) {
         final SagaEvent sagaEvent = new SagaEvent().setTypeKey(taskKey);
-        writeLog(sagaEvent, context.getTransaction(), REJECTED_BY_CONDITION, context.getTaskSpec(), Map.of());
+        writeLog(sagaEvent, context.getTransaction(), REJECTED_BY_CONDITION, context.getTaskSpec(), Map.of(), sagaEvent.getIteration());
     }
 
     @LogicExtensionPoint("ContinueTask")
@@ -334,11 +352,41 @@ public class SagaServiceImpl implements SagaService {
 
     private void continuation(SagaEvent sagaEvent, SagaTransaction transaction, SagaTransactionSpec transactionSpec,
                               SagaTaskSpec taskSpec, Map<String, Object> taskContext) {
+        if (taskSpec.isIterable()) {
+            finishIterableTask(sagaEvent, transaction, transactionSpec, taskSpec, taskContext);
+        } else {
+            finishTask(sagaEvent, transaction, transactionSpec, taskSpec, taskContext, sagaEvent.getIteration());
+        }
+    }
+
+    private void generateNextEvents(SagaEvent sagaEvent, SagaTransaction transaction, SagaTransactionSpec transactionSpec,
+                                    SagaTaskSpec taskSpec, Map<String, Object> taskContext) {
         var tasks = taskSpec.getNext().stream().map(transactionSpec::getTask).collect(toList());
         generateEvents(transaction.getId(), sagaEvent.getTypeKey(), tasks, taskContext);
-        writeLog(sagaEvent, transaction, EVENT_END, taskSpec, taskContext);
+    }
+
+    private void finishTask(SagaEvent sagaEvent, SagaTransaction transaction, SagaTransactionSpec transactionSpec,
+                            SagaTaskSpec taskSpec, Map<String, Object> taskContext, Integer iteration) {
+        generateNextEvents(sagaEvent, transaction, transactionSpec, taskSpec, taskContext);
+        writeLog(sagaEvent, transaction, EVENT_END, taskSpec, taskContext, iteration);
         resendEventsForDependentTasks(transactionSpec, taskSpec, sagaEvent.getTransactionId()); // after write end log
         updateTransactionStrategy.updateTransactionStatus(transaction, transactionSpec, taskContext);
+    }
+
+    private void finishIterableTask(SagaEvent sagaEvent, SagaTransaction transaction, SagaTransactionSpec transactionSpec,
+                                    SagaTaskSpec taskSpec, Map<String, Object> taskContext) {
+        writeLog(sagaEvent, transaction, EVENT_END, taskSpec, taskContext, sagaEvent.getIteration());
+
+        Integer countEndLogs = logRepository.countByIterableLogs(transaction.getId(), sagaEvent.getTypeKey());
+        log.info("Finished {} from {} tasks of {}", sagaEvent.getTypeKey(), countEndLogs, sagaEvent.getIterationsCount());
+        if (countEndLogs >= sagaEvent.getIterationsCount()) {
+            Map<String, Object> resultTaskContext = new HashMap<>();
+            if (TRUE.equals(taskSpec.getSaveTaskContext())) {
+                List<Map<String, Object>> taskContexts = logRepository.getResultTaskContexts(sagaEvent.getTypeKey(), transaction.getId());
+                resultTaskContext.put(LOOP_RESULT_CONTEXTS, taskContexts);
+            }
+            finishTask(sagaEvent, transaction, transactionSpec, taskSpec, resultTaskContext, null);
+        }
     }
 
     private void resendEventsForDependentTasks(SagaTransactionSpec transactionSpec, SagaTaskSpec taskSpec, String transactionId) {
@@ -468,12 +516,16 @@ public class SagaServiceImpl implements SagaService {
     private boolean isCurrentTaskFinished(SagaEvent sagaEvent, Context context) {
         SagaTransaction transaction = context.getTransaction();
         SagaTransactionSpec transactionSpec = context.getTransactionSpec();
-        if (isTaskFinished(sagaEvent.getTypeKey(), context.getTxId())) {
+        if (isTaskFinished(sagaEvent.getTypeKey(), context.getTxId(), sagaEvent.getIteration())) {
             log.warn("Task is already finished. Event {} skipped. Transaction {}.", sagaEvent, transaction);
             updateTransactionStrategy.updateTransactionStatus(transaction, transactionSpec, sagaEvent.getTaskContext());
             return true;
         }
         return false;
+    }
+
+    private boolean isTaskFinished(String eventTypeKey, String txId, Integer iteration) {
+        return logRepository.findFinishLogTypeKeyAndIteration(txId, eventTypeKey, iteration).isPresent();
     }
 
     private boolean isTaskFinished(String eventTypeKey, String txId) {
@@ -517,7 +569,7 @@ public class SagaServiceImpl implements SagaService {
 
     @Override
     public SagaLog getLogsByTransactionEventTypeAndLogType(String txId, String eventType, SagaLogType logType) {
-        return logRepository.findBySagaTransactionIdAndEventTypeKeyAndLogType(txId, eventType, logType);
+        return logRepository.findBySagaTransactionIdAndEventTypeKeyAndLogTypeAndIterationIsNull(txId, eventType, logType);
     }
 
     @Override
@@ -575,18 +627,66 @@ public class SagaServiceImpl implements SagaService {
 
     private void generateEvents(String sagaTransactionId, String parentTypeKey, List<SagaTaskSpec> sagaTaskSpecs,
                                 Map<String, Object> taskContext) {
-
-        String tenantKey = tenantUtils.getTenantKey();
         sagaTaskSpecs.stream()
-            .map(task -> new SagaEvent().setTypeKey(task.getKey())
-                .setParentTypeKey(parentTypeKey)
-                .setTenantKey(tenantKey)
-                .setCreateDate(Instant.now(clock))
-                .setTaskContext(taskContext)
-                .setTransactionId(sagaTransactionId))
+            .map(task -> createEvent(sagaTransactionId, parentTypeKey, task, taskContext))
             .peek(SagaEvent::markAsInQueue)
             .map(sagaEventRepository::save)
             .forEach(eventsManager::sendEvent);
+    }
+
+    private int generateIterableEvents(String sagaTransactionId, String parentTypeKey, SagaTaskSpec task,
+                                                   Map<String, Object> taskContext) {
+        String iterablePath = task.getIterableJsonPath();
+        Object iterable = getByPath(taskContext, iterablePath, task);
+        Integer countOfIteration = calculateCountOfIteration(iterable);
+        if (countOfIteration <= 0) {
+            log.warn("Iterable by path {} is {}. Task {} will not be created.", iterablePath, iterable, task.getKey());
+        }
+        range(0, countOfIteration).mapToObj(iteration ->
+                createEvent(sagaTransactionId, parentTypeKey, task, taskContext)
+                    .setIteration(iteration)
+                    .setIterationsCount(countOfIteration)
+            )
+            .peek(SagaEvent::markAsInQueue)
+            .map(sagaEventRepository::save)
+            .forEach(eventsManager::sendEvent);
+        return countOfIteration;
+    }
+
+    private SagaEvent createEvent(String sagaTransactionId, String parentTypeKey, SagaTaskSpec task, Map<String, Object> taskContext) {
+        String tenantKey = tenantUtils.getTenantKey();
+        return new SagaEvent().setTypeKey(task.getKey())
+            .setParentTypeKey(parentTypeKey)
+            .setTenantKey(tenantKey)
+            .setCreateDate(Instant.now(clock))
+            .setTaskContext(taskContext)
+            .setTransactionId(sagaTransactionId);
+    }
+
+    private Integer calculateCountOfIteration(Object iterable) {
+        if (isNull(iterable)) {
+            return 0;
+        } else if (iterable instanceof Number) {
+            return ((Number) iterable).intValue();
+        } else if (iterable instanceof Collection) {
+            return ((Collection<?>) iterable).size();
+        } else {
+            log.error("Iterable should be Number or Collection. But it is {}", iterable.getClass());
+            throw new IllegalArgumentException("Iterable should be Number or Collection");
+        }
+    }
+
+    private Object getByPath(Map<String, Object> taskContext, String path, SagaTaskSpec task) {
+        Map<String, Object> map = firstNonNull(taskContext, emptyMap());
+        try {
+            return JsonPath.read(map, path);
+        } catch (JsonPathException e) {
+            log.error("Error read from taskContext {} by json path {}", taskContext, path, e);
+            if (TRUE.equals(task.getSkipIterableJsonPathError())) {
+                return null;
+            }
+            throw e;
+        }
     }
 
     private void failHandler(SagaTransaction transaction, SagaEvent sagaEvent, SagaTaskSpec taskSpec, Exception e) {
@@ -619,10 +719,10 @@ public class SagaServiceImpl implements SagaService {
             return emptySet();
         }
 
-        List<SagaLog> finished = logRepository.getFinishLogs(sagaTxId, taskKeys);
+        Set<String> finished = new HashSet<>(logRepository.getFinishLogsTypeKeys(sagaTxId, taskKeys));
         log.debug("Finished tasks {} by keys {}", finished, taskKeys);
         Set<String> depends = new HashSet<>(taskKeys);
-        finished.forEach(log -> depends.remove(log.getEventTypeKey()));
+        depends.removeAll(finished);
         return depends;
     }
 
@@ -630,17 +730,20 @@ public class SagaServiceImpl implements SagaService {
                           SagaTransaction transaction,
                           SagaLogType eventType,
                           SagaTaskSpec taskSpec,
-                          Map<String, Object> taskContext) {
+                          Map<String, Object> taskContext,
+                          Integer iteration) {
         SagaLog sagaLog = new SagaLog().setLogType(eventType)
             .setCreateDate(Instant.now(clock))
             .setEventTypeKey(sagaEvent.getTypeKey())
+            .setIteration(iteration)
+            .setIterationsCount(sagaEvent.getIterationsCount())
             .setSagaTransaction(transaction);
 
         if (TRUE.equals(taskSpec.getSaveTaskContext())) {
             sagaLog.setTaskContext(taskContext);
         }
 
-        List<SagaLog> logs = logRepository.findLogs(eventType, transaction, sagaEvent.getTypeKey());
+        List<SagaLog> logs = logRepository.findLogs(eventType, transaction, sagaEvent.getTypeKey(), iteration);
         if (logs.isEmpty()) {
             logRepository.save(sagaLog);
             log.info("Write saga log {}", sagaLog);

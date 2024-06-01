@@ -47,4 +47,10 @@ public class SagaLog implements Serializable {
     @Convert(converter = MapToStringConverter.class)
     @Column(name = "task_context")
     private Map<String, Object> taskContext = new HashMap<>();
+
+    @Column(name = "iteration")
+    private Integer iteration;
+
+    @Column(name = "iterations_count")
+    private Integer iterationsCount;
 }

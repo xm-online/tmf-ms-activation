@@ -1,0 +1,36 @@
+---
+transactions:
+  - key: SIMPLE-LOOP
+    retryPolicy: RETRY
+    retryCount: 2
+    tasks:
+      - key: A
+        next: [B]
+      - key: B
+        iterable: true
+        iterableJsonPath: "$.data.items"
+        saveTaskContext: true
+        next: [C]
+      - key: C
+  - key: SIMPLE-LOOP-SKIP-ERROR
+    retryPolicy: RETRY
+    retryCount: 2
+    tasks:
+      - key: A
+        next: [B]
+      - key: B
+        iterable: true
+        iterableJsonPath: "$.blablabla.items"
+        skipIterableJsonPathError: true
+        next: [C]
+      - key: C
+  - key: SIMPLE-LOOP-FINISH
+    retryPolicy: RETRY
+    retryCount: 2
+    tasks:
+      - key: A
+        next: [B]
+      - key: B
+        iterable: true
+        iterableJsonPath: "$.data.items"
+        saveTaskContext: true

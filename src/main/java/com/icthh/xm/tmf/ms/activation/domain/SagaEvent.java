@@ -59,6 +59,12 @@ public class SagaEvent implements Serializable {
     @Column(name = "create_date")
     private Instant createDate;
 
+    @Column(name = "iteration")
+    private Integer iteration;
+
+    @Column(name = "iterations_count")
+    private Integer iterationsCount;
+
     public boolean isInQueue() {
         return IN_QUEUE == status;
     }

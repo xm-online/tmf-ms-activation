@@ -17,6 +17,7 @@ import com.icthh.xm.tmf.ms.activation.domain.spec.SagaTransactionSpec;
 import com.icthh.xm.tmf.ms.activation.events.EventsSender;
 import com.icthh.xm.tmf.ms.activation.events.bindings.EventHandler;
 import com.icthh.xm.tmf.ms.activation.repository.SagaEventRepository;
+import com.icthh.xm.tmf.ms.activation.repository.SagaLogRepository;
 import com.icthh.xm.tmf.ms.activation.repository.SagaTransactionRepository;
 import com.icthh.xm.tmf.ms.activation.utils.TenantUtils;
 import lombok.RequiredArgsConstructor;
@@ -56,6 +57,7 @@ import static com.icthh.xm.tmf.ms.activation.domain.SagaLogType.EVENT_START;
 import static com.icthh.xm.tmf.ms.activation.domain.SagaLogType.REJECTED_BY_CONDITION;
 import static com.icthh.xm.tmf.ms.activation.domain.SagaTransactionState.FINISHED;
 import static com.icthh.xm.tmf.ms.activation.domain.SagaTransactionState.NEW;
+import static com.icthh.xm.tmf.ms.activation.service.SagaServiceImpl.LOOP_RESULT_CONTEXTS;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toSet;
@@ -73,6 +75,9 @@ public class SagaIntTest {
 
     @Autowired
     private SagaService sagaService;
+
+    @Autowired
+    private SagaLogRepository logRepository;
 
     @Autowired
     private LepManagementService lepManager;
@@ -411,6 +416,160 @@ public class SagaIntTest {
             assertTrue(trigger.get());
         });
         testEventSender.startSagaProcessing();
+    }
+
+    @Test
+    public void testIterableLoopTask() {
+        specService.onRefresh("/config/tenants/TEST_TENANT/activation/activation-spec.yml", loadFile("spec/activation-spec-loops.yml"));
+        resourceLoader.onRefresh("/config/tenants/TEST_TENANT/activation/lep/tasks/Task$$SIMPLE-LOOP$$A.groovy",
+            "return [data: [items: ['a', 'b', 'c']]]");
+
+        resourceLoader.onRefresh("/config/tenants/TEST_TENANT/activation/lep/tasks/Task$$SIMPLE-LOOP$$B.groovy",
+            "return [" +
+                "index: lepContext.inArgs.sagaEvent.iteration, " +
+                "value: lepContext.inArgs.sagaEvent.taskContext.data.items[lepContext.inArgs.sagaEvent.iteration]" +
+                "]");
+
+        SagaTransaction saga = sagaService.createNewSaga(new SagaTransaction()
+            .setKey(UUID.randomUUID().toString())
+            .setTypeKey("SIMPLE-LOOP")
+            .setContext(Map.of())
+            .setSagaTransactionState(NEW)
+        );
+
+        testEventSender.startSagaProcessing();
+
+        List<SagaLog> logs = sagaService.getLogsByTransaction(saga.getId());
+        assertEquals(12, logs.size());
+        assertTxResult(saga);
+    }
+
+    @Test
+    public void testIterableLoopAsLastTask() {
+        specService.onRefresh("/config/tenants/TEST_TENANT/activation/activation-spec.yml", loadFile("spec/activation-spec-loops.yml"));
+        resourceLoader.onRefresh("/config/tenants/TEST_TENANT/activation/lep/tasks/Task$$SIMPLE-LOOP-FINISH$$A.groovy",
+            "return [data: [items: ['a', 'b', 'c']]]");
+
+        resourceLoader.onRefresh("/config/tenants/TEST_TENANT/activation/lep/tasks/Task$$SIMPLE-LOOP-FINISH$$B.groovy",
+            "return [" +
+                "index: lepContext.inArgs.sagaEvent.iteration, " +
+                "value: lepContext.inArgs.sagaEvent.taskContext.data.items[lepContext.inArgs.sagaEvent.iteration]" +
+                "]");
+
+        SagaTransaction saga = sagaService.createNewSaga(new SagaTransaction()
+            .setKey(UUID.randomUUID().toString())
+            .setTypeKey("SIMPLE-LOOP-FINISH")
+            .setContext(Map.of())
+            .setSagaTransactionState(NEW)
+        );
+
+        testEventSender.startSagaProcessing();
+
+        List<SagaLog> logs = sagaService.getLogsByTransaction(saga.getId());
+        assertEquals(10, logs.size());
+        assertTxResult(saga);
+    }
+
+    private void assertTxResult(SagaTransaction saga) {
+        assertEquals(FINISHED, sagaService.getByKey(saga.getKey()).getSagaTransactionState());
+        for (Integer i = 0; i < 3; i++) {
+            SagaLog log = logRepository.findFinishLogTypeKeyAndIteration(saga.getId(), "B", i).get();
+            assertEquals(i, log.getIteration());
+            assertEquals(Integer.valueOf(3), log.getIterationsCount());
+            char value = (char) ('a' + i);
+            assertEquals(Map.of("value", "" + value, "index", i), log.getTaskContext());
+        }
+        SagaLog log = sagaService.getLogsByTransactionEventTypeAndLogType(saga.getId(), "B", EVENT_END);
+        assertEquals(Map.of(
+            LOOP_RESULT_CONTEXTS,
+            List.of(
+                Map.of("index", 0, "value", "a"),
+                Map.of("index", 1, "value", "b"),
+                Map.of("index", 2, "value", "c")
+            )
+        ), log.getTaskContext());
+    }
+
+    @Test
+    public void testIterableNumberTask() {
+        specService.onRefresh("/config/tenants/TEST_TENANT/activation/activation-spec.yml", loadFile("spec/activation-spec-loops.yml"));
+        resourceLoader.onRefresh("/config/tenants/TEST_TENANT/activation/lep/tasks/Task$$SIMPLE-LOOP$$A.groovy",
+            "return [data: [items: 3]]");
+
+        resourceLoader.onRefresh("/config/tenants/TEST_TENANT/activation/lep/tasks/Task$$SIMPLE-LOOP$$B.groovy",
+            "return [index: lepContext.inArgs.sagaEvent.iteration]");
+
+        SagaTransaction saga = sagaService.createNewSaga(new SagaTransaction()
+            .setKey(UUID.randomUUID().toString())
+            .setTypeKey("SIMPLE-LOOP")
+            .setContext(Map.of())
+            .setSagaTransactionState(NEW)
+        );
+
+        testEventSender.startSagaProcessing();
+
+        List<SagaLog> logs = sagaService.getLogsByTransaction(saga.getId());
+        assertEquals(12, logs.size());
+        assertEquals(FINISHED, sagaService.getByKey(saga.getKey()).getSagaTransactionState());
+        for (Integer i = 0; i < 3; i++) {
+            SagaLog log = logRepository.findFinishLogTypeKeyAndIteration(saga.getId(), "B", i).get();
+            assertEquals(i, log.getIteration());
+            assertEquals(Integer.valueOf(3), log.getIterationsCount());
+            assertEquals(Map.of("index", i), log.getTaskContext());
+        }
+        SagaLog log = sagaService.getLogsByTransactionEventTypeAndLogType(saga.getId(), "B", EVENT_END);
+        assertEquals(Map.of(
+            LOOP_RESULT_CONTEXTS,
+            List.of(
+                Map.of("index", 0),
+                Map.of("index", 1),
+                Map.of("index", 2)
+            )
+        ), log.getTaskContext());
+    }
+
+    @Test
+    public void testIterableSkipTask() {
+        testIterableSkipTask("[]");
+        testIterableSkipTask("0");
+        testIterableSkipTask("null");
+    }
+
+    private void testIterableSkipTask(String items) {
+        specService.onRefresh("/config/tenants/TEST_TENANT/activation/activation-spec.yml", loadFile("spec/activation-spec-loops.yml"));
+        resourceLoader.onRefresh("/config/tenants/TEST_TENANT/activation/lep/tasks/Task$$SIMPLE-LOOP$$A.groovy",
+            "return [data: [items: " + items + "]]");
+
+        SagaTransaction saga = sagaService.createNewSaga(new SagaTransaction()
+            .setKey(UUID.randomUUID().toString())
+            .setTypeKey("SIMPLE-LOOP")
+            .setContext(Map.of())
+            .setSagaTransactionState(NEW)
+        );
+
+        testEventSender.startSagaProcessing();
+        List<SagaLog> logs = sagaService.getLogsByTransaction(saga.getId());
+        assertEquals(6, logs.size());
+        assertEquals(FINISHED, sagaService.getByKey(saga.getKey()).getSagaTransactionState());
+    }
+
+    @Test
+    public void testIterableSkipErrorTask() {
+        specService.onRefresh("/config/tenants/TEST_TENANT/activation/activation-spec.yml", loadFile("spec/activation-spec-loops.yml"));
+        resourceLoader.onRefresh("/config/tenants/TEST_TENANT/activation/lep/tasks/Task$$SIMPLE-LOOP-SKIP-ERROR$$A.groovy",
+            "return [data: [items: ['a', 'b', 'c']]]");
+
+        SagaTransaction saga = sagaService.createNewSaga(new SagaTransaction()
+            .setKey(UUID.randomUUID().toString())
+            .setTypeKey("SIMPLE-LOOP-SKIP-ERROR")
+            .setContext(Map.of())
+            .setSagaTransactionState(NEW)
+        );
+
+        testEventSender.startSagaProcessing();
+        List<SagaLog> logs = sagaService.getLogsByTransaction(saga.getId());
+        assertEquals(6, logs.size());
+        assertEquals(FINISHED, sagaService.getByKey(saga.getKey()).getSagaTransactionState());
     }
 
     @Test

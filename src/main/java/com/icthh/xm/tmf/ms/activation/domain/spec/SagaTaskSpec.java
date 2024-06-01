@@ -6,7 +6,6 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Data;
 import lombok.experimental.Accessors;
 import org.apache.commons.lang3.SerializationUtils;
-import org.apache.commons.lang3.builder.ToStringBuilder;
 
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -32,11 +31,19 @@ public class SagaTaskSpec implements Serializable {
     private Map<String, Object> taskParameters;
     private DependsStrategy dependsStrategy;
 
+    private Boolean iterable;
+    private String iterableJsonPath;
+    private Boolean skipIterableJsonPathError;
+
     public List<String> getNext() {
         if (next == null) {
             next = new ArrayList<>();
         }
         return next;
+    }
+
+    public boolean isIterable() {
+        return Boolean.TRUE.equals(iterable);
     }
 
     public List<String> getDepends() {
