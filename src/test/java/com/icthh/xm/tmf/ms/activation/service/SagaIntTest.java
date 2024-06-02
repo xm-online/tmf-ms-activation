@@ -470,6 +470,42 @@ public class SagaIntTest {
         assertTxResult(saga);
     }
 
+    @Test
+    public void testLepTasksAndTransactionShortCut() {
+        specService.onRefresh("/config/tenants/TEST_TENANT/activation/activation-spec.yml", loadFile("spec/activation-spec.yml"));
+        resourceLoader.onRefresh("/config/tenants/TEST_TENANT/activation/lep/tasks/Task$$SIMPLE$$TASK_1.groovy",
+            "return [data: [value: 'task1']]");
+        resourceLoader.onRefresh("/config/tenants/TEST_TENANT/activation/lep/tasks/Task$$SIMPLE$$TASK_2.groovy",
+            "return [data: [value: 'task2']]");
+        resourceLoader.onRefresh("/config/tenants/TEST_TENANT/activation/lep/tasks/Task$$SIMPLE$$TASK_3.groovy",
+            "return [\n" +
+                "fromTask1: lepContext.tasks.TASK_1.output.data.value,\n" +
+                "fromTask2Input: lepContext.tasks.TASK_2.input.data.value,\n" +
+                "fromTask2: lepContext.tasks.TASK_2.output.data.value,\n" +
+                "fromTask3: lepContext.tasks.TASK_3.input.data.value,\n" +
+                "fromTask3x2: lepContext.tasks.context.data.value,\n" +
+                "fromTx: lepContext.transaction.data.field1\n" +
+                "]");
+
+        SagaTransaction saga = sagaService.createNewSaga(new SagaTransaction()
+            .setKey(UUID.randomUUID().toString())
+            .setTypeKey("SIMPLE")
+            .setContext(Map.of("data", Map.of("field1", "value1")))
+            .setSagaTransactionState(NEW)
+        );
+
+        testEventSender.startSagaProcessing();
+        assertEquals(FINISHED, sagaService.getByKey(saga.getKey()).getSagaTransactionState());
+
+        SagaLog log = sagaService.getLogsByTransactionEventTypeAndLogType(saga.getId(), "TASK_3", EVENT_END);
+        assertEquals("task1", log.getTaskContext().get("fromTask1"));
+        assertEquals("task1", log.getTaskContext().get("fromTask2Input"));
+        assertEquals("task2", log.getTaskContext().get("fromTask2"));
+        assertEquals("task2", log.getTaskContext().get("fromTask3"));
+        assertEquals("task2", log.getTaskContext().get("fromTask3x2"));
+        assertEquals("value1", log.getTaskContext().get("fromTx"));
+    }
+
     private void assertTxResult(SagaTransaction saga) {
         assertEquals(FINISHED, sagaService.getByKey(saga.getKey()).getSagaTransactionState());
         for (Integer i = 0; i < 3; i++) {

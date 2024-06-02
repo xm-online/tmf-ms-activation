@@ -38,6 +38,14 @@ public interface SagaLogRepository extends JpaRepository<SagaLog, Long>, JpaSpec
     );
 
     @Query("SELECT s FROM SagaLog s " +
+        "WHERE s.sagaTransaction.id = :sagaTransactionId AND s.eventTypeKey = :eventTypeKey " +
+        "AND s.iteration IS NULL")
+    List<SagaLog> getLogsBySagaTransactionIdAndTypeKey(
+        @Param("sagaTransactionId") String sagaTransactionId,
+        @Param("eventTypeKey") String eventTypeKey
+    );
+
+    @Query("SELECT s FROM SagaLog s " +
         "WHERE (s.logType = 'REJECTED_BY_CONDITION' OR s.logType = 'EVENT_END') " +
         "AND s.sagaTransaction.id = :sagaTransactionId AND s.eventTypeKey = :eventTypeKey " +
         "AND s.iteration = :iteration")

@@ -62,3 +62,13 @@ transactions:
         - REJECTED-TASK
     - key: SECOND-TASK
     - key: REJECTED-TASK
+- key: SIMPLE
+  tasks:
+    - key: TASK_1
+      saveTaskContext: true
+      next: [TASK_2]
+    - key: TASK_2
+      saveTaskContext: true
+      next: [TASK_3]
+    - key: TASK_3
+      saveTaskContext: true
