@@ -387,6 +387,7 @@ public class SagaServiceImpl implements SagaService {
             }
             SagaEvent event = sagaEventRepository.findByTransactionIdAndTypeKeyAndIterationIsNull(transaction.getId(), sagaEvent.getTypeKey());
             finishTask(event, transaction, transactionSpec, taskSpec, resultTaskContext, null);
+            deleteSagaEvent(event);
         }
     }
 
