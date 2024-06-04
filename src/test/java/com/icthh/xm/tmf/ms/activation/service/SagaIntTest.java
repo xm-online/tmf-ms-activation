@@ -41,6 +41,7 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -335,11 +336,11 @@ public class SagaIntTest {
         specService.onRefresh("/config/tenants/TEST_TENANT/activation/activation-specs/anotherFile.yml", loadFile("spec/activation-spec.yml"));
 
         txKeys = specService.getActualSagaSpec().getTransactions().stream().map(SagaTransactionSpec::getKey).collect(toSet());
-        assertEquals(Set.of(
+        assertEquals(new HashSet<>(Set.of(
             "TEST-REJECT", "TEST-VERSION", "TASK-WITH-REJECTED-BY-CONDITION-TASK-AND-DELETED-EVENT",
             "TASK-WITH-REJECTED-AND-NON-REJECTED", "TASK-WITH-REJECTED-BY-CONDITION-TASKS",
-            "TASK-AND-TASK-WITH-SUSPEND-TX", "TEST-SAGA-TYPE-KEY"
-        ), txKeys);
+            "TASK-AND-TASK-WITH-SUSPEND-TX", "TEST-SAGA-TYPE-KEY", "SIMPLE"
+        )), txKeys);
 
         SagaTransaction saga = sagaService.createNewSaga(new SagaTransaction()
             .setKey(UUID.randomUUID().toString())

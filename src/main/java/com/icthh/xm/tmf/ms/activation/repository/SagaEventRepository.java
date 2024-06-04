@@ -22,6 +22,8 @@ public interface SagaEventRepository extends JpaRepository<SagaEvent, String>, J
 
     Optional<SagaEvent> findByTransactionIdAndTypeKey(String transactionId, String typeKey);
 
+    SagaEvent findByTransactionIdAndTypeKeyAndIterationIsNull(String transactionId, String typeKey);
+
     long countByStatus(SagaEventStatus status);
 
     long countByStatusAndCreateDateBefore(SagaEventStatus status, Instant date);

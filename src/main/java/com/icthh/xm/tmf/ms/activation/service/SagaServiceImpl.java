@@ -385,7 +385,8 @@ public class SagaServiceImpl implements SagaService {
                 List<Map<String, Object>> taskContexts = logRepository.getResultTaskContexts(sagaEvent.getTypeKey(), transaction.getId());
                 resultTaskContext.put(LOOP_RESULT_CONTEXTS, taskContexts);
             }
-            finishTask(sagaEvent, transaction, transactionSpec, taskSpec, resultTaskContext, null);
+            SagaEvent event = sagaEventRepository.findByTransactionIdAndTypeKeyAndIterationIsNull(transaction.getId(), sagaEvent.getTypeKey());
+            finishTask(event, transaction, transactionSpec, taskSpec, resultTaskContext, null);
         }
     }
 
