@@ -48,8 +48,8 @@ public class TaskIterationLepAdditionalContext implements LepAdditionalContext<I
 
     public interface TaskIterationField extends LepAdditionalContextField {
         String FIELD_NAME = "iteration";
-        default Map<String, Object> getIteration() {
-            return (Map<String, Object>)get(FIELD_NAME);
+        default Integer getIteration() {
+            return (Integer)get(FIELD_NAME);
         }
     }
 
