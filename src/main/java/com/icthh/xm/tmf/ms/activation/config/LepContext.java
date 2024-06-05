@@ -9,7 +9,9 @@ import com.icthh.xm.commons.lep.api.BaseLepContext;
 import com.icthh.xm.commons.lep.processor.GroovyMap;
 import com.icthh.xm.commons.logging.trace.TraceService.TraceServiceField;
 import com.icthh.xm.commons.topic.service.KafkaTemplateService;
+import com.icthh.xm.tmf.ms.activation.config.TaskIterationLepAdditionalContext.TaskIterationField;
 import com.icthh.xm.tmf.ms.activation.config.TaskLepAdditionalContext.TaskContextField;
+import com.icthh.xm.tmf.ms.activation.config.TaskParametersLepAdditionalContext.TaskParametersField;
 import com.icthh.xm.tmf.ms.activation.config.TransactionLepAdditionalContext.TransactionContextField;
 import com.icthh.xm.tmf.ms.activation.service.MailService;
 import com.icthh.xm.tmf.ms.activation.service.SagaService;
@@ -17,7 +19,8 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.web.client.RestTemplate;
 
 @GroovyMap
-public class LepContext extends BaseLepContext implements OutboxTransportServiceField, TraceServiceField, TransactionContextField, TaskContextField {
+public class LepContext extends BaseLepContext implements OutboxTransportServiceField, TraceServiceField,
+    TransactionContextField, TaskContextField, TaskIterationField, TaskParametersField {
 
     public LepServices services;
     public LepTemplates templates;

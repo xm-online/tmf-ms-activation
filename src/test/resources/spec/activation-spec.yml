@@ -72,3 +72,7 @@ transactions:
       next: [TASK_3]
     - key: TASK_3
       saveTaskContext: true
+      taskParameters:
+        field: 'paramField'
+      iterable: true
+      iterableJsonPath: "$.items"
