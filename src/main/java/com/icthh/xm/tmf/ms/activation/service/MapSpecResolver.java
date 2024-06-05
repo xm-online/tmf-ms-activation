@@ -7,6 +7,7 @@ import com.icthh.xm.tmf.ms.activation.domain.spec.SagaTransactionSpec;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 public class MapSpecResolver implements SagaSpecResolver {
 
@@ -23,7 +24,16 @@ public class MapSpecResolver implements SagaSpecResolver {
     public void update(String tenant, String updatedKey, SagaSpec spec) {
         Map<String, SagaSpec> tenantMap = getTenantMap(tenant);
         tenantMap.put(updatedKey, spec);
+        updateRetryPolicy(spec);
         updateTenantSpec(tenant);
+    }
+
+    private void updateRetryPolicy(SagaSpec spec) {
+        spec.getTransactions().forEach(tx -> tx.setTasks(
+            tx.getTasks().stream().peek(
+                task -> task.applyAsDefaultTransactionConfig(tx)
+            ).collect(Collectors.toList())
+        ));
     }
 
     private void updateTenantSpec(String tenant) {

@@ -52,7 +52,6 @@ public class SagaSpecService implements RefreshableConfiguration {
                     sagaSpecResolver.remove(tenant, updatedKey);
                     log.info("Spec for tenant '{}' were removed: {}", tenant, updatedKey);
                 } else {
-                    updateRetryPolicy(spec);
                     sagaSpecResolver.update(tenant, updatedKey, spec);
                     log.info("Spec for tenant '{}' were updated: {}", tenant, updatedKey);
                 }
@@ -60,14 +59,6 @@ public class SagaSpecService implements RefreshableConfiguration {
         } catch (Exception e) {
             log.error("Error read specification from path: {}", updatedKey, e);
         }
-    }
-
-    private void updateRetryPolicy(SagaSpec spec) {
-        spec.getTransactions().forEach(tx -> tx.setTasks(
-            tx.getTasks().stream().peek(
-                task -> task.applyAsDefaultTransactionConfig(tx)
-            ).collect(Collectors.toList())
-        ));
     }
 
     private String extractTenant(final String updatedKey) {
