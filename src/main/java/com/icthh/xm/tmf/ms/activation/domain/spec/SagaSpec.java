@@ -42,7 +42,7 @@ public class SagaSpec {
 
     public static SagaSpec mergeSpec(SagaSpec spec1, SagaSpec spec2) {
         SagaSpec sagaSpec = new SagaSpec();
-        List<SagaTransactionSpec> transactions = new ArrayList<>(spec1.transactions);
+        List<SagaTransactionSpec> transactions = new ArrayList<>(spec1.getTransactions());
         transactions.addAll(spec2.getTransactions());
         sagaSpec.setTransactions(transactions);
         return sagaSpec;

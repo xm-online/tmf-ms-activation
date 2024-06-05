@@ -9,6 +9,7 @@ import com.icthh.xm.tmf.ms.activation.repository.SagaTransactionRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -35,9 +36,9 @@ public class FinishTransactionStrategy implements TransactionStatusStrategy {
 
     protected boolean isAllTaskFinished(SagaTransaction transaction, SagaTransactionSpec transactionSpec) {
         List<String> txTasks = transactionSpec.getTasks().stream().map(SagaTaskSpec::getKey).collect(toList());
-        List<SagaLog> finished = logRepository.getFinishLogs(transaction.getId(), txTasks);
+        List<String> finished = logRepository.getFinishLogsTypeKeys(transaction.getId(), txTasks);
         log.debug("Finished tasks {} by keys {}", finished, txTasks);
-        Set<String> finishedTasks = finished.stream().map(SagaLog::getEventTypeKey).collect(toSet());
+        Set<String> finishedTasks = new HashSet<>(finished);
         return finishedTasks.containsAll(txTasks);
     }
 }

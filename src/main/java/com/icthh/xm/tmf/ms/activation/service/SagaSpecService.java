@@ -48,10 +48,14 @@ public class SagaSpecService implements RefreshableConfiguration {
                 log.info("Spec for tenant '{}' were removed: {}", tenant, updatedKey);
             } else {
                 SagaSpec spec = mapper.readValue(config, SagaSpec.class);
-                updateRetryPolicy(spec);
-
-                sagaSpecResolver.update(tenant, updatedKey, spec);
-                log.info("Spec for tenant '{}' were updated: {}", tenant, updatedKey);
+                if (spec == null) {
+                    sagaSpecResolver.remove(tenant, updatedKey);
+                    log.info("Spec for tenant '{}' were removed: {}", tenant, updatedKey);
+                } else {
+                    updateRetryPolicy(spec);
+                    sagaSpecResolver.update(tenant, updatedKey, spec);
+                    log.info("Spec for tenant '{}' were updated: {}", tenant, updatedKey);
+                }
             }
         } catch (Exception e) {
             log.error("Error read specification from path: {}", updatedKey, e);

@@ -69,7 +69,7 @@ public class LogsRepositoryTest extends BaseDaoTest {
 
     @Test
     public void findLogs() {
-        List<SagaLog> started = sagaLogRepository.findLogs(EVENT_START, sagaTransactionRepository.getOne("1"), "STARTED");
+        List<SagaLog> started = sagaLogRepository.findLogs(EVENT_START, sagaTransactionRepository.getOne("1"), "STARTED", null);
         assertEquals(1, started.size());
         assertEquals(asList(sagaLog("STARTED", 1L, "1").setLogType(EVENT_START)), started);
     }
