@@ -35,7 +35,7 @@ public class TaskIterationLepAdditionalContext implements LepAdditionalContext<I
         LepBaseKey lepBaseKey = lepMethod.getLepBaseKey();
         if ("tasks".equals(lepBaseKey.getGroup()) && "Task".equals(lepBaseKey.getBaseKey())) {
             SagaEvent sagaEvent = lepMethod.getParameter("sagaEvent", SagaEvent.class);
-            return Optional.ofNullable(sagaEvent.getIteration());
+            return Optional.ofNullable(sagaEvent).map(SagaEvent::getIteration);
         } else {
             return Optional.empty();
         }
