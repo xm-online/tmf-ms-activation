@@ -12,8 +12,8 @@ import com.icthh.xm.tmf.ms.activation.domain.SagaLog;
 import com.icthh.xm.tmf.ms.activation.domain.SagaLogType;
 import com.icthh.xm.tmf.ms.activation.domain.SagaTransaction;
 import com.icthh.xm.tmf.ms.activation.repository.SagaLogRepository;
-import groovy.util.logging.Slf4j;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import java.util.Collection;
@@ -29,7 +29,7 @@ import static com.icthh.xm.tmf.ms.activation.domain.SagaLogType.EVENT_START;
 import static java.util.Collections.emptyMap;
 
 
-@lombok.extern.slf4j.Slf4j
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class TaskLepAdditionalContext implements LepAdditionalContext<TaskContext> {
