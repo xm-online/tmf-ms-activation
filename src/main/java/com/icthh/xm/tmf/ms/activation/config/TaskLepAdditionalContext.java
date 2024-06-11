@@ -6,7 +6,6 @@ import com.icthh.xm.commons.lep.api.LepAdditionalContext;
 import com.icthh.xm.commons.lep.api.LepAdditionalContextField;
 import com.icthh.xm.commons.lep.api.LepBaseKey;
 import com.icthh.xm.commons.lep.api.LepEngine;
-import com.icthh.xm.commons.lep.commons.CommonsExecutor;
 import com.icthh.xm.tmf.ms.activation.config.TaskLepAdditionalContext.TaskContext;
 import com.icthh.xm.tmf.ms.activation.domain.SagaEvent;
 import com.icthh.xm.tmf.ms.activation.domain.SagaLog;
@@ -14,13 +13,15 @@ import com.icthh.xm.tmf.ms.activation.domain.SagaLogType;
 import com.icthh.xm.tmf.ms.activation.domain.SagaTransaction;
 import com.icthh.xm.tmf.ms.activation.repository.SagaLogRepository;
 import lombok.RequiredArgsConstructor;
-import lombok.experimental.Delegate;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 import static com.icthh.xm.tmf.ms.activation.config.TaskLepAdditionalContext.TaskContextField.FIELD_NAME;
 import static com.icthh.xm.tmf.ms.activation.domain.SagaLogType.EVENT_END;
@@ -28,6 +29,7 @@ import static com.icthh.xm.tmf.ms.activation.domain.SagaLogType.EVENT_START;
 import static java.util.Collections.emptyMap;
 
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class TaskLepAdditionalContext implements LepAdditionalContext<TaskContext> {
@@ -70,6 +72,7 @@ public class TaskLepAdditionalContext implements LepAdditionalContext<TaskContex
     }
 
     // need to implement all methods from Map interface for js lep-s interop
+    @Slf4j
     @RequiredArgsConstructor
     public static class TaskContext implements Map<String, Object> {
 
@@ -77,8 +80,6 @@ public class TaskLepAdditionalContext implements LepAdditionalContext<TaskContex
         private final SagaTransaction sagaTransaction;
         private final SagaEvent sagaEvent;
         private final Map<String, Object> context = new HashMap<>();
-        @Delegate(excludes = MapExcludes.class)
-        private final Map<String, Object> delegate = emptyMap();
 
         @Override
         public Object get(Object inputTaskTypeKey) {
@@ -91,11 +92,12 @@ public class TaskLepAdditionalContext implements LepAdditionalContext<TaskContex
             }
 
             return context.computeIfAbsent(taskTypeKey, key -> {
-                    List<SagaLog> logs = sagaLogRepository.getLogsBySagaTransactionIdAndTypeKey(sagaTransaction.getId(), taskTypeKey);
-                    return Map.of(
-                        "input", filterContext(logs, EVENT_START),
-                        "output", filterContext(logs, EVENT_END)
-                    );
+                List<SagaLog> logs = sagaLogRepository.getLogsBySagaTransactionIdAndTypeKey(sagaTransaction.getId(), taskTypeKey);
+                log.info("Logs by taskTypeKey {} and transactionId {} | {}", taskTypeKey, sagaTransaction.getId(), logs);
+                return Map.of(
+                    "input", filterContext(logs, EVENT_START),
+                    "output", filterContext(logs, EVENT_END)
+                );
                 }
             );
         }
@@ -113,9 +115,64 @@ public class TaskLepAdditionalContext implements LepAdditionalContext<TaskContex
                 .orElse(emptyMap());
         }
 
-        public interface MapExcludes {
-            Object get(Object key);
-            boolean containsKey(Object key);
+        @Override
+        public Object remove(Object arg0) {
+            throw new UnsupportedOperationException("Not implemented");
+        }
+
+        @Override
+        public boolean equals(Object arg0) {
+            throw new UnsupportedOperationException("Not implemented");
+        }
+
+        @Override
+        public Collection<Object> values() {
+            throw new UnsupportedOperationException("Not implemented");
+        }
+
+        @Override
+        public int hashCode() {
+            throw new UnsupportedOperationException("Not implemented");
+        }
+
+        @Override
+        public void clear() {
+            throw new UnsupportedOperationException("Not implemented");
+        }
+
+        @Override
+        public boolean isEmpty() {
+            throw new UnsupportedOperationException("Not implemented");
+        }
+
+        @Override
+        public int size() {
+            throw new UnsupportedOperationException("Not implemented");
+        }
+
+        @Override
+        public Set<Entry<String, Object>> entrySet() {
+            throw new UnsupportedOperationException("Not implemented");
+        }
+
+        @Override
+        public void putAll(Map<? extends String, ?> arg0) {
+            throw new UnsupportedOperationException("Not implemented");
+        }
+
+        @Override
+        public boolean containsValue(Object arg0) {
+            throw new UnsupportedOperationException("Not implemented");
+        }
+
+        @Override
+        public Set<String> keySet() {
+            throw new UnsupportedOperationException("Not implemented");
+        }
+
+        @Override
+        public Object put(String key, Object value) {
+            throw new UnsupportedOperationException("Not implemented");
         }
 
     }
