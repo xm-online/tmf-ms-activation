@@ -183,7 +183,6 @@ xm-config:
 
 application:
     kafkaOffsetsMetricTimeout: 5
-    expectedTransactionCompletionTimeSeconds: 300
     retryThreadCount: 3
     kafka-enabled: true
     kafka-system-topic: system_topic
