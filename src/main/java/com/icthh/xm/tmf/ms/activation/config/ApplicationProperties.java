@@ -27,7 +27,6 @@ public class ApplicationProperties {
     private List<String> tenantWithCreationAccessList;
     private int kafkaConcurrencyCount;
     private int kafkaOffsetsMetricTimeout;
-    private long expectedTransactionCompletionTimeSeconds;
     private RestTemplateProperties loadBalancedRestTemplate = new RestTemplateProperties();
 
     private final Lep lep = new Lep();
