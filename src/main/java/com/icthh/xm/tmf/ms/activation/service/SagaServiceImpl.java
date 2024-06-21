@@ -201,7 +201,7 @@ public class SagaServiceImpl implements SagaService {
             }
 
             if (taskSpec.isIterable() && sagaEvent.getIteration() == null) {
-                int countOfIteration = generateIterableEvents(transaction.getId(), sagaEvent.getTypeKey(), taskSpec, sagaEvent.getTaskContext());
+                int countOfIteration = generateIterableEvents(transaction.getId(), sagaEvent, taskSpec);
                 if (countOfIteration <= 0) {
                     log.info("Iterable task skipped. countOfIteration: {}, sagaEvent: {}", countOfIteration, sagaEvent);
                     finishTask(sagaEvent, transaction, transactionSpec, taskSpec, Map.of(), sagaEvent.getIteration());
@@ -636,16 +636,16 @@ public class SagaServiceImpl implements SagaService {
             .forEach(eventsManager::sendEvent);
     }
 
-    private int generateIterableEvents(String sagaTransactionId, String parentTypeKey, SagaTaskSpec task,
-                                                   Map<String, Object> taskContext) {
+    private int generateIterableEvents(String sagaTransactionId, SagaEvent parentEvent, SagaTaskSpec task) {
         String iterablePath = task.getIterableJsonPath();
-        Object iterable = getByPath(taskContext, iterablePath, task);
+        Object iterable = getByPath(parentEvent.getTaskContext(), iterablePath, task);
         Integer countOfIteration = calculateCountOfIteration(iterable);
         if (countOfIteration <= 0) {
             log.warn("Iterable by path {} is {}. Task {} will not be created.", iterablePath, iterable, task.getKey());
         }
         range(0, countOfIteration).mapToObj(iteration ->
-                createEvent(sagaTransactionId, parentTypeKey, task, taskContext)
+                createEvent(sagaTransactionId, parentEvent.getTypeKey(), task, parentEvent.getTaskContext())
+                    .setId(parentEvent.getId() + "-" + iteration)
                     .setIteration(iteration)
                     .setIterationsCount(countOfIteration)
             )

@@ -130,9 +130,9 @@ public class RetryServiceIntTest extends AbstractSpringBootTest {
         final String[] excludedFields = new String[]{"backOff", "taskContext", "createDate", "retryNumber"};
 
         //return new event object each time for state transition verifying
-        when(eventRepository.save(refEq(onRetrySagaEvent(txId, id), excludedFields)))
+        when(eventRepository.saveAndFlush(refEq(onRetrySagaEvent(txId, id), excludedFields)))
             .thenReturn(onRetrySagaEvent(txId, id), onRetrySagaEvent(txId, id), onRetrySagaEvent(txId, id));
-        when(eventRepository.save(refEq(inQueueSagaEvent(txId, id), excludedFields)))
+        when(eventRepository.saveAndFlush(refEq(inQueueSagaEvent(txId, id), excludedFields)))
             .thenReturn(inQueueSagaEvent(txId, id), inQueueSagaEvent(txId, id), inQueueSagaEvent(txId, id));
         when(eventRepository.save(refEq(failedSagaEvent(txId, id), excludedFields))).thenReturn(failedSagaEvent(txId, id));
 
@@ -161,11 +161,11 @@ public class RetryServiceIntTest extends AbstractSpringBootTest {
         verify(eventRepository, times(4)).findById(eq(id));
 
         //verify that event was saved with state IN_QUEUE 3 times
-        verify(eventRepository, times(3)).save(
+        verify(eventRepository, times(3)).saveAndFlush(
             refEq(inQueueSagaEvent(txId, id), "backOff", "taskContext", "retryNumber", "createDate"));
 
         //verify that event was saved with state ON_RETRY 3 times
-        verify(eventRepository, times(3)).save(
+        verify(eventRepository, times(3)).saveAndFlush(
             refEq(onRetrySagaEvent(txId, id), "backOff", "taskContext", "retryNumber", "createDate"));
 
         //verify that event was saved with state FAILED after retryLimitExceeded
@@ -265,7 +265,7 @@ public class RetryServiceIntTest extends AbstractSpringBootTest {
 
         final String[] excludedFields = new String[]{"backOff", "taskContext", "createDate", "retryNumber", "status"};
 
-        when(eventRepository.save(refEq(sagaEvent, excludedFields))).thenReturn(sagaEvent);
+        when(eventRepository.saveAndFlush(refEq(sagaEvent, excludedFields))).thenReturn(sagaEvent);
         when(eventRepository.findById(eq(id))).thenReturn(Optional.of(sagaEvent));
 
         SagaTaskSpec task = sagaSpecService.getTransactionSpec(TYPE).getTask(FIRST_TASK_KEY);
@@ -313,12 +313,10 @@ public class RetryServiceIntTest extends AbstractSpringBootTest {
 
         final String[] excludedFields = new String[]{"backOff", "taskContext", "createDate", "retryNumber", "status"};
 
-        when(eventRepository.save(refEq(sagaEvent, excludedFields))).thenReturn(sagaEvent);
+        when(eventRepository.saveAndFlush(refEq(sagaEvent, excludedFields))).thenReturn(sagaEvent);
         when(eventRepository.findById(eq(id))).thenReturn(Optional.of(sagaEvent));
 
         SagaTaskSpec task = sagaSpecService.getTransactionSpec(TYPE).getTask(FIRST_TASK_KEY);
-
-
         Mockito.doAnswer(invocation -> {
             SagaEvent event = (SagaEvent) invocation.getArguments()[0];
             retryService.retry(event, mockTx(txId), task, ON_RETRY);
@@ -359,12 +357,12 @@ public class RetryServiceIntTest extends AbstractSpringBootTest {
         verifyNoMoreInteractions(eventsSender);
 
         final String[] excludedFields = new String[]{"backOff", "taskContext", "createDate", "retryNumber"};
-        when(eventRepository.save(refEq(sagaEvent, excludedFields))).thenReturn(sagaEvent);
+        when(eventRepository.saveAndFlush(refEq(sagaEvent, excludedFields))).thenReturn(sagaEvent);
 
         retryService.doResendInQueueEvent(sagaEvent);
 
         verify(eventRepository, times(2)).findById(eq(id));
-        verify(eventRepository).save(refEq(sagaEvent, excludedFields));
+        verify(eventRepository).saveAndFlush(refEq(sagaEvent, excludedFields));
         verify(eventsSender).sendEvent(refEq(sagaEvent, excludedFields));
 
         verifyNoMoreInteractions(eventsSender);
@@ -393,9 +391,9 @@ public class RetryServiceIntTest extends AbstractSpringBootTest {
         final String[] excludedFields = new String[]{"backOff", "taskContext", "createDate", "retryNumber"};
 
         //return new event object each time for state transition verifying
-        when(eventRepository.save(refEq(onRetrySagaEvent(txId, id), excludedFields)))
+        when(eventRepository.saveAndFlush(refEq(onRetrySagaEvent(txId, id), excludedFields)))
             .thenReturn(onRetrySagaEvent(txId, id), onRetrySagaEvent(txId, id));
-        when(eventRepository.save(refEq(inQueueSagaEvent(txId, id), excludedFields)))
+        when(eventRepository.saveAndFlush(refEq(inQueueSagaEvent(txId, id), excludedFields)))
             .thenReturn(inQueueSagaEvent(txId, id));
 
         //return new event object each time for state transition verifying
@@ -418,10 +416,10 @@ public class RetryServiceIntTest extends AbstractSpringBootTest {
 
         verify(eventRepository, times(2)).findById(eq(id));
 
-        verify(eventRepository, times(1)).save(
+        verify(eventRepository, times(1)).saveAndFlush(
             refEq(inQueueSagaEvent(txId, id), "backOff", "taskContext", "retryNumber", "createDate"));
 
-        verify(eventRepository, times(2)).save(
+        verify(eventRepository, times(2)).saveAndFlush(
             refEq(onRetrySagaEvent(txId, id), "backOff", "taskContext", "retryNumber", "createDate"));
 
         verify(eventsSender, times(1)).sendEvent(any());

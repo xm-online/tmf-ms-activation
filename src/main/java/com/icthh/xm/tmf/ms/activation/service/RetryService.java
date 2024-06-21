@@ -95,7 +95,7 @@ public class RetryService {
 
     private void scheduleRetry(SagaEvent sagaEvent, SagaEvent.SagaEventStatus eventStatus) {
         sagaEvent.setStatus(eventStatus);
-        SagaEvent savedSagaEvent = sagaEventRepository.save(sagaEvent);
+        SagaEvent savedSagaEvent = sagaEventRepository.saveAndFlush(sagaEvent);
 
         if (scheduledEventsId.containsKey(sagaEvent.getId())) {
             log.warn("Event {} already scheduled", sagaEvent);
@@ -165,7 +165,7 @@ public class RetryService {
         }
         log.info("Resend event: {}", event);
         event.markAsInQueue();
-        event = sagaEventRepository.save(event);
+        event = sagaEventRepository.saveAndFlush(event);
 
         //we need to commit saga transaction state to DB before send event to kafka
         separateTransactionExecutor.doInSeparateTransaction(() -> {
