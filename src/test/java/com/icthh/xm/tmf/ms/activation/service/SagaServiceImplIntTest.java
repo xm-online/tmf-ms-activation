@@ -131,7 +131,7 @@ public class SagaServiceImplIntTest extends AbstractSpringBootTest {
                 .setTypeKey("TEST_NOT_FOUND_EVENT");
 
         sagaService.onSagaEvent(sagaEvent);
-        verify(sagaEventRepository).save(refEq(savedSagaEvent, "id"));
+        verify(sagaEventRepository).saveAndFlush(refEq(savedSagaEvent, "id"));
         verifyNoMoreInteractions(sagaEventRepository);
         verifyZeroInteractions(eventsSender);
         verifyZeroInteractions(sagaTaskExecutor);

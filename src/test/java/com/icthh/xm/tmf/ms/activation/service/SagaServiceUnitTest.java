@@ -140,18 +140,18 @@ public class SagaServiceUnitTest {
     public void testGenerageFirstEventOnCreateSagaTx() {
         when(tenantUtils.getTenantKey()).thenReturn("XM");
         String txId = UUID.randomUUID().toString();
-        when(transactionRepository.save(refEq(mockTx()))).thenReturn(mockTx(txId));
-        when(sagaEventRepository.save(refEq(inQueueEvent(txId, "FIRST-PARALEL-TASK", null, null), "id")))
+        when(transactionRepository.saveAndFlush(refEq(mockTx()))).thenReturn(mockTx(txId));
+        when(sagaEventRepository.saveAndFlush(refEq(inQueueEvent(txId, "FIRST-PARALEL-TASK", null, null), "id")))
             .thenReturn(inQueueEvent(txId, "FIRST-PARALEL-TASK", "savedFirstTaskId", null));
-        when(sagaEventRepository.save(refEq(inQueueEvent(txId, "SECOND-PARALEL-TASK", null, null), "id")))
+        when(sagaEventRepository.saveAndFlush(refEq(inQueueEvent(txId, "SECOND-PARALEL-TASK", null, null), "id")))
             .thenReturn(inQueueEvent(txId, "SECOND-PARALEL-TASK", "savedSecondTaskId", null));
 
         sagaService.createNewSaga(mockTx());
 
         verify(transactionRepository).findByKey(anyString());
-        verify(transactionRepository).save(refEq(mockTx()));
-        verify(sagaEventRepository).save(refEq(inQueueEvent(txId, "FIRST-PARALEL-TASK", null, null), "id"));
-        verify(sagaEventRepository).save(refEq(inQueueEvent(txId, "SECOND-PARALEL-TASK", null, null), "id"));
+        verify(transactionRepository).saveAndFlush(refEq(mockTx()));
+        verify(sagaEventRepository).saveAndFlush(refEq(inQueueEvent(txId, "FIRST-PARALEL-TASK", null, null), "id"));
+        verify(sagaEventRepository).saveAndFlush(refEq(inQueueEvent(txId, "SECOND-PARALEL-TASK", null, null), "id"));
         verify(eventsManager).sendEvent(refEq(inQueueEvent(txId, "FIRST-PARALEL-TASK", "savedFirstTaskId", null)));
         verify(eventsManager).sendEvent(refEq(inQueueEvent(txId, "SECOND-PARALEL-TASK", "savedSecondTaskId", null)));
 
@@ -207,7 +207,7 @@ public class SagaServiceUnitTest {
         generateEvent(txId, firstTaskKey, "NEXT-SECOND-TASK", transaction, firstTaskSpec);
 
         verify(transactionRepository).findById(eq(txId));
-        verify(logRepository, times(4)).save(sagaLogArgumentCaptor.capture());
+        verify(logRepository, times(4)).saveAndFlush(sagaLogArgumentCaptor.capture());
 
         List<SagaLog> savedLogs = sagaLogArgumentCaptor.getAllValues();
 
@@ -251,7 +251,7 @@ public class SagaServiceUnitTest {
 
         //startedAndEndedEvents.size() tasks started and ended + 2 task rejected
         verify(logRepository, times(startedAndEndedEvents.size() * 2 + 2))
-            .save(sagaLogArgumentCaptor.capture());
+            .saveAndFlush(sagaLogArgumentCaptor.capture());
 
         List<SagaLog> savedLogs = sagaLogArgumentCaptor.getAllValues();
 
@@ -360,7 +360,7 @@ public class SagaServiceUnitTest {
 
         sagaService.onSagaEvent(sagaEvent);
 
-        verify(transactionRepository).save(refEq(transaction.setSagaTransactionState(FINISHED)));
+        verify(transactionRepository).saveAndFlush(refEq(transaction.setSagaTransactionState(FINISHED)));
     }
 
     @Test
@@ -417,7 +417,7 @@ public class SagaServiceUnitTest {
         verify(transactionRepository).findById(eq(txId));
         verify(logRepository).findFinishLogTypeKeyAndIteration(eq(txId), eq("FIRST-PARALEL-TASK"), isNull());
         verify(logRepository).getFinishLogsTypeKeys(eq(txId), eq(allTasks));
-        verify(transactionRepository).save(refEq(mockTx(txId, FINISHED)));
+        verify(transactionRepository).saveAndFlush(refEq(mockTx(txId, FINISHED)));
         verify(taskExecutor).onFinish(refEq(mockTx(txId, FINISHED)), eq(taskContext));
         verify(sagaEventRepository).existsById(sagaEvent.getId());
         verify(sagaEventRepository).deleteById(sagaEvent.getId());
@@ -460,7 +460,7 @@ public class SagaServiceUnitTest {
         when(logRepository.findFinishLogTypeKeyAndIteration(eq(txId), eq("NEXT-JOIN-TASK"), isNull())).thenReturn(Optional.empty());
         when(logRepository.getFinishLogsTypeKeys(eq(txId), eq(List.of("PARALEL-TASK1", "PARALEL-TASK2"))))
             .thenReturn(List.of("PARALEL-TASK1", "PARALEL-TASK2"));
-        when(sagaEventRepository.save(refEq(inQueueEvent(txId, "SOME-OTHER-TASK", null, "NEXT-JOIN-TASK"), "id")))
+        when(sagaEventRepository.saveAndFlush(refEq(inQueueEvent(txId, "SOME-OTHER-TASK", null, "NEXT-JOIN-TASK"), "id")))
             .thenReturn(inQueueEvent(txId, "SOME-OTHER-TASK", "saved-event" + txId, "NEXT-JOIN-TASK"));
         when(sagaEventRepository.findById("saved-event" + txId))
             .thenReturn(Optional.of(inQueueEvent(txId, "NEXT-JOIN-TASK", "saved-event" + txId, null)));
@@ -474,16 +474,16 @@ public class SagaServiceUnitTest {
         verify(logRepository).getFinishLogsTypeKeys(eq(txId), eq(List.of("PARALEL-TASK1", "PARALEL-TASK2")));
         verify(logRepository).getFinishLogs(eq(txId), eq(List.of("PARALEL-TASK1", "PARALEL-TASK2")));
         verify(logRepository).findLogs(eq(EVENT_START), eq(mockTx(txId, NEW)), eq("NEXT-JOIN-TASK"), isNull());
-        verify(logRepository).save(refEq(createLog(txId, "NEXT-JOIN-TASK", EVENT_START)));
+        verify(logRepository).saveAndFlush(refEq(createLog(txId, "NEXT-JOIN-TASK", EVENT_START)));
         verify(taskExecutor).onCheckWaitCondition(sagaTaskSpec, sagaEvent, mockTx(txId));
         verify(taskExecutor).executeTask(refEq(sagaTaskSpec), refEq(sagaEvent, "id"), refEq(mockTx(txId)), refEq(continuation));
         verify(sagaEventRepository).findById("saved-event" + txId);
         verify(sagaEventRepository).existsById("saved-event" + txId);
         verify(sagaEventRepository).deleteById("saved-event" + txId);
-        verify(sagaEventRepository).save(refEq(inQueueEvent(txId, "SOME-OTHER-TASK", null, "NEXT-JOIN-TASK"), "id"));
+        verify(sagaEventRepository).saveAndFlush(refEq(inQueueEvent(txId, "SOME-OTHER-TASK", null, "NEXT-JOIN-TASK"), "id"));
         verify(eventsManager).sendEvent(refEq(inQueueEvent(txId, "SOME-OTHER-TASK", "saved-event" + txId, "NEXT-JOIN-TASK")));
         verify(logRepository).findLogs(eq(EVENT_END), eq(mockTx(txId, NEW)), eq("NEXT-JOIN-TASK"), isNull());
-        verify(logRepository).save(refEq(createLog(txId, "NEXT-JOIN-TASK", EVENT_END)));
+        verify(logRepository).saveAndFlush(refEq(createLog(txId, "NEXT-JOIN-TASK", EVENT_END)));
         verify(logRepository).getFinishLogsTypeKeys(eq(txId), eq(allTasks));
 
         noMoreInteraction();
@@ -580,14 +580,14 @@ public class SagaServiceUnitTest {
         verify(logRepository).getFinishLogsTypeKeys(eq(txId), eq(List.of("PARALEL-TASK1", "PARALEL-TASK2")));
         verify(logRepository).getFinishLogs(eq(txId), eq(List.of("PARALEL-TASK1", "PARALEL-TASK2")));
         verify(logRepository).findLogs(eq(EVENT_START), eq(mockTx(txId, NEW)), eq("NEXT-JOIN-TASK"), isNull());
-        verify(logRepository).save(refEq(createLog(txId, "NEXT-JOIN-TASK", EVENT_START)));
+        verify(logRepository).saveAndFlush(refEq(createLog(txId, "NEXT-JOIN-TASK", EVENT_START)));
         verify(taskExecutor).onCheckWaitCondition(sagaTaskSpec, sagaEvent, mockTx(txId));
         verify(taskExecutor).executeTask(refEq(sagaTaskSpec), refEq(sagaEvent), refEq(mockTx(txId)), refEq(continuation));
         verify(retryService).retry(refEq(new SagaEvent().setTenantKey("XM")
             .setTypeKey("NEXT-JOIN-TASK")
             .setTransactionId(txId), "id", "error"), any(), any());
         verify(sagaEventRepository).findById("eventId");
-        verify(sagaEventRepository).save(refEq(new SagaEvent().setTenantKey("XM")
+        verify(sagaEventRepository).saveAndFlush(refEq(new SagaEvent().setTenantKey("XM")
             .setTypeKey("NEXT-JOIN-TASK")
             .setTransactionId(txId)
             .setError(new SagaEventError()
@@ -628,14 +628,14 @@ public class SagaServiceUnitTest {
         verify(logRepository).getFinishLogsTypeKeys(eq(txId), eq(List.of("PARALEL-TASK1", "PARALEL-TASK2")));
         verify(logRepository).getFinishLogs(eq(txId), eq(List.of("PARALEL-TASK1", "PARALEL-TASK2")));
         verify(logRepository).findLogs(eq(EVENT_START), eq(mockTx(txId, NEW)), eq("NEXT-JOIN-TASK"), isNull());
-        verify(logRepository).save(refEq(createLog(txId, "NEXT-JOIN-TASK", EVENT_START)));
+        verify(logRepository).saveAndFlush(refEq(createLog(txId, "NEXT-JOIN-TASK", EVENT_START)));
         verify(taskExecutor).onCheckWaitCondition(sagaTaskSpec, sagaEvent, mockTx(txId));
         verify(taskExecutor).executeTask(refEq(sagaTaskSpec), refEq(sagaEvent), refEq(mockTx(txId)), refEq(continuation));
         verify(retryService).retry(refEq(new SagaEvent().setTenantKey("XM")
             .setTypeKey("NEXT-JOIN-TASK")
             .setTransactionId(txId), "id", "error"), any(), any());
         verify(sagaEventRepository).findById("eventId");
-        verify(sagaEventRepository).save(refEq(new SagaEvent().setTenantKey("XM")
+        verify(sagaEventRepository).saveAndFlush(refEq(new SagaEvent().setTenantKey("XM")
             .setTypeKey("NEXT-JOIN-TASK")
             .setTransactionId(txId)
             .setError(new SagaEventError()
@@ -701,13 +701,13 @@ public class SagaServiceUnitTest {
         verify(transactionRepository).findById(eq(txId));
         verify(logRepository).findFinishLogTypeKeyAndIteration(eq(txId), eq("SOME-OTHER-TASK"), isNull());
         verify(logRepository).findLogs(eq(EVENT_START), refEq(mockTx(txId, NEW), "sagaTransactionState"), eq("SOME-OTHER-TASK"), isNull());
-        verify(logRepository).save(refEq(createLog(txId, "SOME-OTHER-TASK", EVENT_START), "sagaTransaction"));
+        verify(logRepository).saveAndFlush(refEq(createLog(txId, "SOME-OTHER-TASK", EVENT_START), "sagaTransaction"));
         verify(taskExecutor).executeTask(refEq(sagaTaskSpec), refEq(sagaEvent), refEq(mockTx(txId), "sagaTransactionState"), refEq(continuation));
         verify(taskExecutor).onCheckWaitCondition(sagaTaskSpec, sagaEvent, mockTx(txId, FINISHED));
         verify(logRepository).findLogs(eq(EVENT_END), refEq(mockTx(txId, NEW), "sagaTransactionState"), eq("SOME-OTHER-TASK"), isNull());
-        verify(logRepository).save(refEq(createLog(txId, "SOME-OTHER-TASK", EVENT_END), "sagaTransaction"));
+        verify(logRepository).saveAndFlush(refEq(createLog(txId, "SOME-OTHER-TASK", EVENT_END), "sagaTransaction"));
         verify(logRepository).getFinishLogsTypeKeys(eq(txId), eq(allTasks));
-        verify(transactionRepository).save(refEq(mockTx(txId, FINISHED)));
+        verify(transactionRepository).saveAndFlush(refEq(mockTx(txId, FINISHED)));
         verify(taskExecutor).onFinish(refEq(mockTx(txId, FINISHED)), eq(taskContext));
         verify(sagaEventRepository).findById("eventId");
         verify(sagaEventRepository).existsById("eventId");
@@ -770,9 +770,9 @@ public class SagaServiceUnitTest {
         verify(taskExecutor, times(2)).onCheckWaitCondition(taskSpec, sagaEvent, transaction);
         verify(taskExecutor).executeTask(taskSpec, sagaEvent, transaction, continuation);
         verify(logRepository).findLogs(eq(EVENT_START), refEq(transaction), eq(sagaEvent.getTypeKey()), isNull());
-        verify(logRepository).save(refEq(createLog(txId, sagaEvent.getTypeKey(), EVENT_START), "sagaTransaction"));
+        verify(logRepository).saveAndFlush(refEq(createLog(txId, sagaEvent.getTypeKey(), EVENT_START), "sagaTransaction"));
         verify(logRepository).findLogs(eq(EVENT_END), refEq(transaction), eq(sagaEvent.getTypeKey()), isNull());
-        verify(logRepository).save(refEq(createLog(txId, sagaEvent.getTypeKey(), EVENT_END), "sagaTransaction"));
+        verify(logRepository).saveAndFlush(refEq(createLog(txId, sagaEvent.getTypeKey(), EVENT_END), "sagaTransaction"));
         verify(sagaEventRepository).existsById(sagaEvent.getId());
         verify(sagaEventRepository).deleteById(sagaEvent.getId());
         verify(logRepository).getFinishLogsTypeKeys(eq(txId), eq(List.of(eventTypeKey, "SUSPEND-TASK")));
@@ -808,8 +808,8 @@ public class SagaServiceUnitTest {
         verify(taskExecutor, times(2)).onCheckWaitCondition(taskSpec, sagaEvent, transaction);
         verify(taskExecutor).executeTask(taskSpec, sagaEvent, transaction, continuation);
         verify(logRepository).findLogs(eq(EVENT_START), refEq(transaction), eq(sagaEvent.getTypeKey()), isNull());
-        verify(logRepository).save(refEq(createLog(txId, sagaEvent.getTypeKey(), EVENT_START), "sagaTransaction"));
-        verify(sagaEventRepository).save(mockEvent(txId, eventTypeKey, taskId).setStatus(SUSPENDED));
+        verify(logRepository).saveAndFlush(refEq(createLog(txId, sagaEvent.getTypeKey(), EVENT_START), "sagaTransaction"));
+        verify(sagaEventRepository).saveAndFlush(mockEvent(txId, eventTypeKey, taskId).setStatus(SUSPENDED));
 
         noMoreInteraction();
     }
@@ -833,7 +833,7 @@ public class SagaServiceUnitTest {
                 return empty();
             }
         });
-        when(transactionRepository.save(tx1)).then(mock -> {
+        when(transactionRepository.saveAndFlush(tx1)).then(mock -> {
             isSaved.setValue(true);
             return tx1;
         });
@@ -842,8 +842,8 @@ public class SagaServiceUnitTest {
         sagaService.createNewSaga(tx2);
 
         verify(transactionRepository, times(2)).findByKey(eq(key));
-        verify(transactionRepository, times(countTransactionWillStarted)).save(refEq(tx1));
-        verify(sagaEventRepository, times(2)).save(any());
+        verify(transactionRepository, times(countTransactionWillStarted)).saveAndFlush(refEq(tx1));
+        verify(sagaEventRepository, times(2)).saveAndFlush(any());
         verify(eventsManager, times(2)).sendEvent(any());
 
         noMoreInteraction();
@@ -860,17 +860,17 @@ public class SagaServiceUnitTest {
 
         when(transactionRepository.findByKey(tx1.getKey())).thenReturn(empty());
         when(transactionRepository.findByKey(tx2.getKey())).thenReturn(empty());
-        when(transactionRepository.save(tx1)).thenReturn(tx1);
-        when(transactionRepository.save(tx2)).thenReturn(tx2);
+        when(transactionRepository.saveAndFlush(tx1)).thenReturn(tx1);
+        when(transactionRepository.saveAndFlush(tx2)).thenReturn(tx2);
 
         sagaService.createNewSaga(tx1);
         sagaService.createNewSaga(tx2);
 
         verify(transactionRepository).findByKey(eq(tx1.getKey()));
         verify(transactionRepository).findByKey(eq(tx2.getKey()));
-        verify(transactionRepository).save(refEq(tx1));
-        verify(transactionRepository).save(refEq(tx2));
-        verify(sagaEventRepository, times(4)).save(any());
+        verify(transactionRepository).saveAndFlush(refEq(tx1));
+        verify(transactionRepository).saveAndFlush(refEq(tx2));
+        verify(sagaEventRepository, times(4)).saveAndFlush(any());
         verify(eventsManager, times(4)).sendEvent(any());
 
         noMoreInteraction();

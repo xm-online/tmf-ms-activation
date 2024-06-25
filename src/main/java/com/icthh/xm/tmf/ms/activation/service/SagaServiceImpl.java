@@ -420,7 +420,7 @@ public class SagaServiceImpl implements SagaService {
             dependentEvents.stream()
                 .filter(not(SagaEvent::isInQueue))
                 .peek(SagaEvent::markAsInQueue)
-                .map(sagaEventRepository::save)
+                .map(sagaEventRepository::saveAndFlush)
                 .forEach(eventsManager::sendEvent);
         }
     }
@@ -606,7 +606,7 @@ public class SagaServiceImpl implements SagaService {
     public void updateEventContext(String eventId, Map<String, Object> context) {
         sagaEventRepository.findById(eventId)
             .map(it -> it.setTaskContext(context))
-            .ifPresentOrElse(sagaEventRepository::save, () -> eventNotFound(eventId));
+            .ifPresentOrElse(sagaEventRepository::saveAndFlush, () -> eventNotFound(eventId));
     }
 
     @LogicExtensionPoint("UpdateTransactionContext")
@@ -615,7 +615,7 @@ public class SagaServiceImpl implements SagaService {
     public void updateTransactionContext(String txId, Map<String, Object> context) {
         transactionRepository.findById(txId)
             .map(it -> it.setContext(context))
-            .ifPresentOrElse(transactionRepository::save,
+            .ifPresentOrElse(transactionRepository::saveAndFlush,
                 () -> entityNotFound("Transaction with id " + txId + " not found"));
     }
 
@@ -632,7 +632,7 @@ public class SagaServiceImpl implements SagaService {
         sagaTaskSpecs.stream()
             .map(task -> createEvent(sagaTransactionId, parentTypeKey, task, taskContext))
             .peek(SagaEvent::markAsInQueue)
-            .map(sagaEventRepository::save)
+            .map(sagaEventRepository::saveAndFlush)
             .forEach(eventsManager::sendEvent);
     }
 
@@ -650,7 +650,7 @@ public class SagaServiceImpl implements SagaService {
                     .setIterationsCount(countOfIteration)
             )
             .peek(SagaEvent::markAsInQueue)
-            .map(sagaEventRepository::save)
+            .map(sagaEventRepository::saveAndFlush)
             .forEach(eventsManager::sendEvent);
         return countOfIteration;
     }
