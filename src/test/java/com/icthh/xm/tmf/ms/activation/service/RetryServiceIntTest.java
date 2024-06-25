@@ -169,14 +169,14 @@ public class RetryServiceIntTest extends AbstractSpringBootTest {
             refEq(onRetrySagaEvent(txId, id), "backOff", "taskContext", "retryNumber", "createDate"));
 
         //verify that event was saved with state FAILED after retryLimitExceeded
-        verify(eventRepository).save(refEq(failedSagaEvent(txId, id), "backOff", "taskContext", "retryNumber", "createDate"));
+        verify(eventRepository).saveAndFlush(refEq(failedSagaEvent(txId, id), "backOff", "taskContext", "retryNumber", "createDate"));
 
         verify(eventsSender, times(3)).sendEvent(any());
 
         //verify that TX was saved with state NEW 3 times
-        verify(transactionRepository, times(3)).save(newSagaTransaction(txId));
+        verify(transactionRepository, times(3)).saveAndFlush(newSagaTransaction(txId));
         //verify that TX was saved with state FAILED after retryLimitExceeded
-        verify(transactionRepository).save(failedSagaTransaction(txId));
+        verify(transactionRepository).saveAndFlush(failedSagaTransaction(txId));
 
         verifyNoMoreInteractions(eventsSender);
         verifyNoMoreInteractions(eventRepository);
@@ -283,8 +283,8 @@ public class RetryServiceIntTest extends AbstractSpringBootTest {
 
         assertThat(sagaEvent.getTaskContext(), IsMapContaining.hasEntry("test", "data"));
 
-        verify(transactionRepository, times(3)).save(newSagaTransaction(txId));
-        verify(transactionRepository).save(failedSagaTransaction(txId));
+        verify(transactionRepository, times(3)).saveAndFlush(newSagaTransaction(txId));
+        verify(transactionRepository).saveAndFlush(failedSagaTransaction(txId));
     }
 
     @Test
@@ -329,8 +329,8 @@ public class RetryServiceIntTest extends AbstractSpringBootTest {
 
         assertThat(sagaEvent.getTaskContext(), IsMapContaining.hasEntry("test", "data"));
 
-        verify(transactionRepository, times(3)).save(newSagaTransaction(txId));
-        verify(transactionRepository).save(failedSagaTransaction(txId));
+        verify(transactionRepository, times(3)).saveAndFlush(newSagaTransaction(txId));
+        verify(transactionRepository).saveAndFlush(failedSagaTransaction(txId));
     }
 
     @Test
@@ -424,7 +424,7 @@ public class RetryServiceIntTest extends AbstractSpringBootTest {
 
         verify(eventsSender, times(1)).sendEvent(any());
         //verify that TX was saved with state NEW 1 times
-        verify(transactionRepository, times(1)).save(newSagaTransaction(txId));
+        verify(transactionRepository, times(1)).saveAndFlush(newSagaTransaction(txId));
 
         verifyNoMoreInteractions(eventsSender);
         verifyNoMoreInteractions(eventRepository);
