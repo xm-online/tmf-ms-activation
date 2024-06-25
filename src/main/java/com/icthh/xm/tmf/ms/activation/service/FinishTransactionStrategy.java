@@ -29,7 +29,7 @@ public class FinishTransactionStrategy implements TransactionStatusStrategy {
     public void updateTransactionStatus(SagaTransaction transaction, SagaTransactionSpec transactionSpec,
                                         Map<String, Object> taskContext) {
         if (isAllTaskFinished(transaction, transactionSpec)) {
-            transactionRepository.save(transaction.setSagaTransactionState(FINISHED));
+            transactionRepository.saveAndFlush(transaction.setSagaTransactionState(FINISHED));
             taskExecutor.onFinish(transaction, taskContext);
         }
     }
