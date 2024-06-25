@@ -113,7 +113,7 @@ public class RetryService {
         log.info("State of transaction:{} will be changed to: {}", txId, state);
         transactionRepository.findById(txId)
             .map(it -> it.setSagaTransactionState(state))
-            .ifPresentOrElse(transactionRepository::save,
+            .ifPresentOrElse(transactionRepository::saveAndFlush,
                 () -> {
                     throw new EntityNotFoundException("Transaction with id " + txId + " not found");
                 });
@@ -196,7 +196,7 @@ public class RetryService {
         log.info("State of event:{} will be changed to: {}", sagaEvent.getId(), FAILED);
         sagaEventRepository.findById(eventId)
             .map(it -> it.setStatus(FAILED))
-            .ifPresentOrElse(sagaEventRepository::save,
+            .ifPresentOrElse(sagaEventRepository::saveAndFlush,
                 () -> {
                     throw new EntityNotFoundException("Event with id " + eventId + " not found");
                 });
