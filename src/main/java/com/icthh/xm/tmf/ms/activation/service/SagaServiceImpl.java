@@ -20,6 +20,7 @@ import com.icthh.xm.tmf.ms.activation.resolver.TaskTypeKeyResolver;
 import com.icthh.xm.tmf.ms.activation.resolver.TransactionTypeKeyResolver;
 import com.icthh.xm.tmf.ms.activation.service.SagaSpecService.InvalidSagaSpecificationException;
 import com.icthh.xm.tmf.ms.activation.utils.TenantUtils;
+import com.icthh.xm.tmf.ms.activation.utils.TransactionUtils;
 import com.jayway.jsonpath.JsonPath;
 import com.jayway.jsonpath.JsonPathException;
 import lombok.AllArgsConstructor;
@@ -96,6 +97,7 @@ public class SagaServiceImpl implements SagaService {
     private final RetryService retryService;
     private final SagaEventRepository sagaEventRepository;
     private final TransactionStatusStrategy updateTransactionStrategy;
+    private final TransactionUtils transactionUtils;
     private Clock clock = Clock.systemUTC();
     private final Map<String, Boolean> executingTask = new ConcurrentHashMap<>();
 
@@ -120,7 +122,7 @@ public class SagaServiceImpl implements SagaService {
         sagaTransaction.setSagaTransactionState(NEW);
         sagaTransaction.setCreateDate(Instant.now(clock));
         sagaTransaction.setSpecificationVersion(transactionSpec.getVersion());
-        SagaTransaction saved = transactionRepository.saveAndFlush(sagaTransaction);
+        SagaTransaction saved = transactionUtils.withTransaction(() -> transactionRepository.saveAndFlush(sagaTransaction));
         log.info("Saga transaction created {} with context {}", sagaTransaction, sagaTransaction.getContext());
         generateFirstEvents(saved, transactionSpec);
         return saved;
@@ -221,7 +223,7 @@ public class SagaServiceImpl implements SagaService {
             nextTasks.forEach(task -> rejectTask(transaction.getId(), taskSpec.getKey(), task, context));
             if (TRUE.equals(taskSpec.getIsSuspendable()) && !continuation.isContinuationFlag()) {
                 log.info("Task by event {} suspended. Transaction: {}. Time: {}ms", sagaEvent, transaction, stopWatch.getTime());
-                sagaEventRepository.saveAndFlush(sagaEvent.setStatus(SUSPENDED));
+                transactionUtils.withTransaction(() -> sagaEventRepository.saveAndFlush(sagaEvent.setStatus(SUSPENDED)));
             } else {
                 log.info("Finish execute task by event {}. Transaction: {}. Time: {}ms", sagaEvent, transaction, stopWatch.getTime());
                 continuation(sagaEvent, transaction, transactionSpec, taskSpec, taskContext);
@@ -335,7 +337,7 @@ public class SagaServiceImpl implements SagaService {
     private boolean isValidSpec(SagaEvent sagaEvent, DraftContext context) {
         if (!context.isValidSpec()) {
             log.warn("Specification for event {} not found or invalid.", sagaEvent);
-            sagaEventRepository.saveAndFlush(sagaEvent.setStatus(INVALID_SPECIFICATION));
+            transactionUtils.withTransaction(() -> sagaEventRepository.saveAndFlush(sagaEvent.setStatus(INVALID_SPECIFICATION)));
             return false;
         }
         return true;
@@ -420,7 +422,7 @@ public class SagaServiceImpl implements SagaService {
             dependentEvents.stream()
                 .filter(not(SagaEvent::isInQueue))
                 .peek(SagaEvent::markAsInQueue)
-                .map(sagaEventRepository::saveAndFlush)
+                .map(it -> transactionUtils.withTransaction(() -> sagaEventRepository.saveAndFlush(it)))
                 .forEach(eventsManager::sendEvent);
         }
     }
@@ -501,7 +503,7 @@ public class SagaServiceImpl implements SagaService {
             if (TRUE.equals(transactionSpec.getCheckDependsEventually())) {
                 log.debug("Depends tasks will be checked eventually after finish \"depends\" tasks. Transaction id {}.", txId);
                 sagaEvent.setStatus(WAIT_DEPENDS_TASK);
-                sagaEventRepository.saveAndFlush(sagaEvent);
+                transactionUtils.withTransaction(() -> sagaEventRepository.saveAndFlush(sagaEvent));
             } else {
                 retryService.retryForWaitDependsTask(sagaEvent, sagaTransaction, context.getTaskSpec());
             }
@@ -538,7 +540,7 @@ public class SagaServiceImpl implements SagaService {
     public void cancelSagaTransaction(String sagaTxKey) {
         SagaTransaction sagaTransaction = getById(sagaTxKey);
         sagaTransaction.setSagaTransactionState(CANCELED);
-        transactionRepository.saveAndFlush(sagaTransaction);
+        transactionUtils.withTransaction(() -> transactionRepository.saveAndFlush(sagaTransaction));
     }
 
     @Override
@@ -606,7 +608,10 @@ public class SagaServiceImpl implements SagaService {
     public void updateEventContext(String eventId, Map<String, Object> context) {
         sagaEventRepository.findById(eventId)
             .map(it -> it.setTaskContext(context))
-            .ifPresentOrElse(sagaEventRepository::saveAndFlush, () -> eventNotFound(eventId));
+            .ifPresentOrElse(
+                sagaEventRepository::saveAndFlush,
+                () -> eventNotFound(eventId)
+            );
     }
 
     @LogicExtensionPoint("UpdateTransactionContext")
@@ -615,8 +620,10 @@ public class SagaServiceImpl implements SagaService {
     public void updateTransactionContext(String txId, Map<String, Object> context) {
         transactionRepository.findById(txId)
             .map(it -> it.setContext(context))
-            .ifPresentOrElse(transactionRepository::saveAndFlush,
-                () -> entityNotFound("Transaction with id " + txId + " not found"));
+            .ifPresentOrElse(
+                transactionRepository::saveAndFlush,
+                () -> entityNotFound("Transaction with id " + txId + " not found")
+            );
     }
 
     private void eventNotFound(String eventId) {
@@ -632,7 +639,7 @@ public class SagaServiceImpl implements SagaService {
         sagaTaskSpecs.stream()
             .map(task -> createEvent(sagaTransactionId, parentTypeKey, task, taskContext))
             .peek(SagaEvent::markAsInQueue)
-            .map(sagaEventRepository::saveAndFlush)
+            .map(it -> transactionUtils.withTransaction(() -> sagaEventRepository.saveAndFlush(it)))
             .forEach(eventsManager::sendEvent);
     }
 
@@ -650,7 +657,7 @@ public class SagaServiceImpl implements SagaService {
                     .setIterationsCount(countOfIteration)
             )
             .peek(SagaEvent::markAsInQueue)
-            .map(sagaEventRepository::saveAndFlush)
+            .map(it -> transactionUtils.withTransaction(() -> sagaEventRepository.saveAndFlush(it)))
             .forEach(eventsManager::sendEvent);
         return countOfIteration;
     }
@@ -713,7 +720,7 @@ public class SagaServiceImpl implements SagaService {
             error.setCode(GENERAL_ERROR_CODE);
         }
         sagaEvent.setError(error);
-        sagaEventRepository.saveAndFlush(sagaEvent);
+        transactionUtils.withTransaction(() -> sagaEventRepository.saveAndFlush(sagaEvent));
     }
 
     private Set<String> getNotFinishedTasks(String sagaTxId, List<String> taskKeys) {
@@ -747,7 +754,8 @@ public class SagaServiceImpl implements SagaService {
 
         List<SagaLog> logs = logRepository.findLogs(eventType, transaction, sagaEvent.getTypeKey(), iteration);
         if (logs.isEmpty()) {
-            sagaLog = logRepository.saveAndFlush(sagaLog);
+            var sagaLogToSave = sagaLog;
+            sagaLog = transactionUtils.withTransaction(() -> logRepository.saveAndFlush(sagaLogToSave));
             log.info("Write saga log {}", sagaLog);
         } else {
             log.warn("Saga logs already exist: {}", logs);

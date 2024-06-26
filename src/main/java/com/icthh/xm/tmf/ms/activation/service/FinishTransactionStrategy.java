@@ -6,6 +6,7 @@ import com.icthh.xm.tmf.ms.activation.domain.spec.SagaTaskSpec;
 import com.icthh.xm.tmf.ms.activation.domain.spec.SagaTransactionSpec;
 import com.icthh.xm.tmf.ms.activation.repository.SagaLogRepository;
 import com.icthh.xm.tmf.ms.activation.repository.SagaTransactionRepository;
+import com.icthh.xm.tmf.ms.activation.utils.TransactionUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -25,11 +26,14 @@ public class FinishTransactionStrategy implements TransactionStatusStrategy {
     private final SagaTaskExecutor taskExecutor;
     private final SagaTransactionRepository transactionRepository;
     private final SagaLogRepository logRepository;
+    private final TransactionUtils transactionUtils;
 
     public void updateTransactionStatus(SagaTransaction transaction, SagaTransactionSpec transactionSpec,
                                         Map<String, Object> taskContext) {
         if (isAllTaskFinished(transaction, transactionSpec)) {
-            transactionRepository.saveAndFlush(transaction.setSagaTransactionState(FINISHED));
+            transactionUtils.withTransaction(() -> {
+                transactionRepository.saveAndFlush(transaction.setSagaTransactionState(FINISHED));
+            });
             taskExecutor.onFinish(transaction, taskContext);
         }
     }

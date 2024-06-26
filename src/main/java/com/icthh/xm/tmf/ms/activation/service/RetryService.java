@@ -13,6 +13,7 @@ import com.icthh.xm.tmf.ms.activation.repository.SagaTransactionRepository;
 import com.icthh.xm.tmf.ms.activation.resolver.TaskTypeKeyResolver;
 import com.icthh.xm.tmf.ms.activation.resolver.TransactionTypeKeyResolver;
 import com.icthh.xm.tmf.ms.activation.utils.TenantUtils;
+import com.icthh.xm.tmf.ms.activation.utils.TransactionUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,8 +34,8 @@ import static com.google.common.base.Predicates.alwaysTrue;
 import static com.google.common.base.Predicates.not;
 import static com.icthh.xm.tmf.ms.activation.domain.SagaEvent.SagaEventStatus.FAILED;
 import static com.icthh.xm.tmf.ms.activation.domain.SagaEvent.SagaEventStatus.ON_RETRY;
-import static com.icthh.xm.tmf.ms.activation.domain.SagaEvent.SagaEventStatus.WAIT_DEPENDS_TASK;
 import static com.icthh.xm.tmf.ms.activation.domain.SagaEvent.SagaEventStatus.WAIT_CONDITION_TASK;
+import static com.icthh.xm.tmf.ms.activation.domain.SagaEvent.SagaEventStatus.WAIT_DEPENDS_TASK;
 
 @Slf4j
 @Service
@@ -48,7 +49,7 @@ public class RetryService {
     private final SagaEventRepository sagaEventRepository;
     private final SagaTransactionRepository transactionRepository;
     private final TenantUtils tenantUtils;
-    private final SeparateTransactionExecutor separateTransactionExecutor;
+    private final TransactionUtils transactionUtils;
 
     private final Map<String, Boolean> scheduledEventsId = new ConcurrentHashMap<>();
 
@@ -61,6 +62,7 @@ public class RetryService {
         sagaEventRepository.findByStatus(WAIT_CONDITION_TASK).forEach(this::doResend);
     }
 
+    @Transactional
     @LogicExtensionPoint(value = "OnRetry", resolver = TaskTypeKeyResolver.class)
     public void retry(SagaEvent sagaEvent, SagaTransaction sagaTransaction, SagaTaskSpec task, SagaEvent.SagaEventStatus eventStatus) {
         long backOff = Math.min(task.getMaxBackOff(), sagaEvent.getBackOff() + task.getBackOff());
@@ -168,7 +170,7 @@ public class RetryService {
         event = sagaEventRepository.saveAndFlush(event);
 
         //we need to commit saga transaction state to DB before send event to kafka
-        separateTransactionExecutor.doInSeparateTransaction(() -> {
+        transactionUtils.withSeparateTransaction(() -> {
             changeTransactionState(txId, SagaTransactionState.NEW);
             return Optional.empty();
         });

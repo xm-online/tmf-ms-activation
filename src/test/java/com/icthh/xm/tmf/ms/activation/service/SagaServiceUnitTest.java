@@ -16,6 +16,7 @@ import com.icthh.xm.tmf.ms.activation.repository.SagaEventRepository;
 import com.icthh.xm.tmf.ms.activation.repository.SagaLogRepository;
 import com.icthh.xm.tmf.ms.activation.repository.SagaTransactionRepository;
 import com.icthh.xm.tmf.ms.activation.utils.TenantUtils;
+import com.icthh.xm.tmf.ms.activation.utils.TransactionUtils;
 import lombok.SneakyThrows;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -99,6 +100,7 @@ public class SagaServiceUnitTest {
     private RetryService retryService;
     @Mock
     private SagaEventRepository sagaEventRepository;
+    private TransactionUtils transactionUtils = new TransactionUtils();
     @Captor
     private ArgumentCaptor<SagaLog> sagaLogArgumentCaptor;
     @Captor
@@ -123,9 +125,9 @@ public class SagaServiceUnitTest {
     @Before
     public void before() throws IOException {
         specService = new SagaSpecService(tenantUtils, new MapSpecResolver());
-        var transactionStatusStrategy = new FinishTransactionStrategy(taskExecutor, transactionRepository, logRepository);
+        var transactionStatusStrategy = new FinishTransactionStrategy(taskExecutor, transactionRepository, logRepository, transactionUtils);
         sagaService = new SagaServiceImpl(logRepository, transactionRepository, specService, eventsManager,
-            tenantUtils, taskExecutor, retryService, sagaEventRepository, transactionStatusStrategy);
+            tenantUtils, taskExecutor, retryService, sagaEventRepository, transactionStatusStrategy, transactionUtils);
         sagaService.setClock(clock);
         sagaService.setSelf(sagaService);
         specService.onRefresh("/config/tenants/XM/activation/activation-spec.yml", loadFile("spec/activation-spec.yml"));

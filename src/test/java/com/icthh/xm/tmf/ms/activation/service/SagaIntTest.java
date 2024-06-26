@@ -20,6 +20,7 @@ import com.icthh.xm.tmf.ms.activation.repository.SagaEventRepository;
 import com.icthh.xm.tmf.ms.activation.repository.SagaLogRepository;
 import com.icthh.xm.tmf.ms.activation.repository.SagaTransactionRepository;
 import com.icthh.xm.tmf.ms.activation.utils.TenantUtils;
+import com.icthh.xm.tmf.ms.activation.utils.TransactionUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
@@ -91,6 +92,9 @@ public class SagaIntTest {
 
     @Autowired
     private SagaSpecService specService;
+
+    @Autowired
+    private TransactionUtils transactionUtils;
 
     @Autowired
     private XmLepScriptConfigServerResourceLoader resourceLoader;
@@ -662,7 +666,7 @@ public class SagaIntTest {
             SagaEventRepository sagaEventRepository,
             SagaTransactionRepository transactionRepository,
             TenantUtils tenantUtils,
-            SeparateTransactionExecutor separateTransactionExecutor
+            TransactionUtils transactionUtils
         ) {
             return new RetryService(
                 threadPoolTaskScheduler,
@@ -670,7 +674,7 @@ public class SagaIntTest {
                 sagaEventRepository,
                 transactionRepository,
                 tenantUtils,
-                separateTransactionExecutor
+                transactionUtils
             ) {
                 @Override
                 public void retry(SagaEvent sagaEvent, SagaTransaction sagaTransaction, SagaTaskSpec sagaTaskSpec) {
