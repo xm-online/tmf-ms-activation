@@ -36,7 +36,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import javax.persistence.EntityManager;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.Collection;
@@ -102,9 +101,6 @@ public class SagaServiceImpl implements SagaService {
 
     @Setter(onMethod = @__(@Autowired))
     private EntityManager entityManager;
-
-    @Setter(onMethod = @__(@Autowired))
-    private SagaServiceImpl self;
 
     @LogicExtensionPoint(value = "CreateNewSaga", resolver = TransactionTypeKeyResolver.class)
     @Override
