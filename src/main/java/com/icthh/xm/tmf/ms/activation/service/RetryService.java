@@ -100,7 +100,7 @@ public class RetryService {
         }
 
         sagaEvent.setStatus(eventStatus);
-        SagaEvent savedSagaEvent = sagaEventRepository.saveAndFlush(sagaEvent);
+        SagaEvent savedSagaEvent = sagaEventRepository.save(sagaEvent);
 
         log.info("Schedule event {} for delay {}", savedSagaEvent, savedSagaEvent.getBackOff());
         scheduledEventsId.put(savedSagaEvent.getId(), true);
