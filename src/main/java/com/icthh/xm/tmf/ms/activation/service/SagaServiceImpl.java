@@ -100,7 +100,7 @@ public class SagaServiceImpl implements SagaService {
     private final Map<String, Boolean> executingTask = new ConcurrentHashMap<>();
 
     @Setter(onMethod = @__(@Autowired))
-    private EntityManager entityManager;
+    private SagaServiceImpl self;
 
     @LogicExtensionPoint(value = "CreateNewSaga", resolver = TransactionTypeKeyResolver.class)
     @Override
