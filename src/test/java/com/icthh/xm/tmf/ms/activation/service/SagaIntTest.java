@@ -617,6 +617,28 @@ public class SagaIntTest {
     }
 
     @Test
+    public void testRejectTaskThatPresentInSuspendableTask() {
+        specService.onRefresh("/config/tenants/TEST_TENANT/activation/activation-spec.yml", loadFile("spec/activation-spec-reject-in-suspendable.yml"));
+        resourceLoader.onRefresh("/config/tenants/TEST_TENANT/activation/lep/tasks/Task$$TEST_SUSPENDABLE_REJECT$$SUSPENDABLE_TASK.groovy",
+            "lepContext.inArgs.task.next=['TARGET_TASK']; return [:]");
+        resourceLoader.onRefresh("/config/tenants/TEST_TENANT/activation/lep/tasks/Task$$TEST_SUSPENDABLE_REJECT$$REJECTED_TASK.groovy",
+            "throw new RuntimeException('Error has happened')");
+
+        SagaTransaction saga = sagaService.createNewSaga(new SagaTransaction()
+            .setKey(UUID.randomUUID().toString())
+            .setTypeKey("TEST_SUSPENDABLE_REJECT")
+            .setContext(Map.of())
+            .setSagaTransactionState(NEW)
+        );
+
+        afterEvent("SUSPENDABLE_TASK").accept(sagaEvent -> {
+            sagaService.continueTask(sagaEvent.getId(), Map.of());
+        });
+
+        testEventSender.startSagaProcessing();
+    }
+
+    @Test
     public void testSagaTxVersion() {
         specService.onRefresh("/config/tenants/TEST_TENANT/activation/activation-spec.yml", loadFile("spec/activation-spec-version.yml"));
 
@@ -736,13 +758,22 @@ public class SagaIntTest {
             }
         }
 
+        @SneakyThrows
         private void processNextEvent() {
             log.info("queue state: {}", sagaEvents.stream().map(SagaEvent::getTypeKey).collect(toList()));
             SagaEvent event = sagaEvents.getFirst();
             log.info("\"get\" event from \"queue\": {}", event.getTypeKey());
 
             BEFORE_EVENTS.forEach(handler -> handler.accept(event));
-            eventHandler.onEvent(event, "TEST_TENANT");
+            Thread thread = new Thread(() -> {
+                try {
+                    eventHandler.onEvent(event, "TEST_TENANT");
+                } catch (Exception e) {
+                    log.error("Error has happened", e);
+                }
+            });
+            thread.start();
+            thread.join();
             sagaEvents.removeFirst();
 
             initContext.run();

@@ -94,18 +94,18 @@ public class RetryService {
     }
 
     private void scheduleRetry(SagaEvent sagaEvent, SagaEvent.SagaEventStatus eventStatus) {
-        sagaEvent.setStatus(eventStatus);
-        SagaEvent savedSagaEvent = sagaEventRepository.save(sagaEvent);
-
         if (scheduledEventsId.containsKey(sagaEvent.getId())) {
             log.warn("Event {} already scheduled", sagaEvent);
             return;
         }
 
-        log.info("Schedule event {} for delay {}", savedSagaEvent, sagaEvent.getBackOff());
-        scheduledEventsId.put(sagaEvent.getId(), true);
+        sagaEvent.setStatus(eventStatus);
+        SagaEvent savedSagaEvent = sagaEventRepository.save(sagaEvent);
+
+        log.info("Schedule event {} for delay {}", savedSagaEvent, savedSagaEvent.getBackOff());
+        scheduledEventsId.put(savedSagaEvent.getId(), true);
         threadPoolTaskScheduler
-            .schedule(() -> doResend(savedSagaEvent), Instant.now().plusSeconds(sagaEvent.getBackOff()));
+            .schedule(() -> doResend(savedSagaEvent), Instant.now().plusSeconds(savedSagaEvent.getBackOff()));
     }
 
     @Transactional
@@ -163,16 +163,14 @@ public class RetryService {
             log.info("Resend event not allowed. Transaction:{} canceled", txId);
             return;
         }
-        log.info("Resend event: {}", event);
-        event.markAsInQueue();
-        event = sagaEventRepository.save(event);
-
         //we need to commit saga transaction state to DB before send event to kafka
-        separateTransactionExecutor.doInSeparateTransaction(() -> {
+        var savedEvent = separateTransactionExecutor.doInSeparateTransaction(() -> {
             changeTransactionState(txId, SagaTransactionState.NEW);
-            return Optional.empty();
+            log.info("Resend event: {}", event);
+            event.markAsInQueue();
+            return sagaEventRepository.save(event);
         });
-        eventsSender.sendEvent(event);
+        eventsSender.sendEvent(savedEvent);
     }
 
     private boolean isTxCanceled(final String txId) {

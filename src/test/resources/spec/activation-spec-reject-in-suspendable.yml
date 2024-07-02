@@ -1,0 +1,13 @@
+---
+transactions:
+- key: TEST_SUSPENDABLE_REJECT
+  retryPolicy: RETRY
+  retryCount: 1
+  backOff: 0
+  maxBackOff: 0
+  tasks:
+    - key: SUSPENDABLE_TASK
+      isSuspendable: true
+      next: [REJECTED_TASK, TARGET_TASK]
+    - key: TARGET_TASK
+    - key: REJECTED_TASK
