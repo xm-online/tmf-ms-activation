@@ -5,7 +5,6 @@ buildscript {
         mavenLocal()
         mavenCentral()
         gradlePluginPortal()
-        maven { url "https://repo.spring.io/plugins-release" }
         maven { url "https://plugins.gradle.org/m2/" }
     }
     dependencies {
@@ -120,7 +119,7 @@ checkstyle {
 
 pmd {
     rulePriority = 3
-    toolVersion = '5.5.4'
+    toolVersion = '6.55.0'
     ignoreFailures = true
     ruleSetFiles = files("./qa/pmd.xml")
 }
