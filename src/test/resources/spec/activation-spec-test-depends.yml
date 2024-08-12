@@ -2,7 +2,7 @@
 transactions:
 - key: TEST-DEPENDS-RETRY-STRATEGY
   retryPolicy: RETRY
-  retryCount: 1
+  retryCount: 15
   backOff: 0
   maxBackOff: 0
   tasks:
