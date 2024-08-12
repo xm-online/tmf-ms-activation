@@ -104,6 +104,10 @@ public class RetryService {
 
         log.info("Schedule event {} for delay {}", savedSagaEvent, savedSagaEvent.getBackOff());
         scheduledEventsId.put(savedSagaEvent.getId(), true);
+        putToScheduler(savedSagaEvent);
+    }
+
+    protected void putToScheduler(SagaEvent savedSagaEvent) {
         threadPoolTaskScheduler
             .schedule(() -> doResend(savedSagaEvent), Instant.now().plusSeconds(savedSagaEvent.getBackOff()));
     }
@@ -138,12 +142,12 @@ public class RetryService {
         }, sagaEvent.getTenantKey());
     }
 
-    @Transactional
+    //@Transactional
     public void removeAndSend(SagaEvent sagaEvent) {
         this.removeAndSend(sagaEvent, not(SagaEvent::isInQueue));
     }
 
-    @Transactional
+    //@Transactional
     public void removeAndSend(SagaEvent sagaEvent, Predicate<SagaEvent> eventFilter) {
         sagaEventRepository.findById(sagaEvent.getId()).ifPresentOrElse((event) -> {
                 // Optional api like filter can't be applied, because when filter failed in log must be actual event

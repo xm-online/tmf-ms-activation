@@ -27,6 +27,7 @@ import org.apache.commons.io.IOUtils;
 import org.hibernate.envers.internal.tools.MutableInteger;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -101,6 +102,7 @@ public class SagaIntTest {
     @Before
     public void setup() {
         initContext(tenantContextHolder, lepManager);
+        this.testEventSender.immediatelyProcessing = false;
     }
 
     private static void initContext(TenantContextHolder tenantContextHolder, LepManagementService lepManager) {
@@ -239,22 +241,28 @@ public class SagaIntTest {
             assertEquals(IN_QUEUE, getEventByTypeKey(saga, "TARGET_TASK").getStatus());
         });
         MutableInteger mutableInteger = new MutableInteger();
-        afterEvent("TARGET_TASK").accept(sagaEvent -> {
+        beforeEvent("TARGET_TASK").accept(sagaEvent -> {
             mutableInteger.increase();
-            if (mutableInteger.get() < 5) {
+            if (mutableInteger.get() < 3) {
                 assertEquals(IN_QUEUE, getEventByTypeKey(saga, "TARGET_TASK").getStatus());
-            } else if (mutableInteger.get() == 5) {
+            } else if (mutableInteger.get() >= 3 && mutableInteger.get() < 10) {
+                assertEquals(IN_QUEUE, getEventByTypeKey(saga, "TARGET_TASK").getStatus());
+                testEventSender.immediatelyProcessing = true; // to test case when event consumed before transaction commited
+            } else if (mutableInteger.get() >= 5 && mutableInteger.get() < 10) {
+                assertEquals(IN_QUEUE, getEventByTypeKey(saga, "TARGET_TASK").getStatus());
+                testEventSender.immediatelyProcessing = false;
+            } else if (mutableInteger.get() == 10) {
                 assertEquals(IN_QUEUE, getEventByTypeKey(saga, "TARGET_TASK").getStatus());
                 sagaService.continueTask(getEventByTypeKey(saga, "B2_SUSPENDABLE").getId(), Map.of());
             } else {
                 assertNull(getEventByTypeKey(saga, "TARGET_TASK"));
                 assertEquals(FINISHED, sagaService.getByKey(saga.getKey()).getSagaTransactionState());
-                assertEquals(5, sagaEvent.getRetryNumber());
+                assertEquals(10, sagaEvent.getRetryNumber());
             }
         });
 
         testEventSender.startSagaProcessing();
-        assertEquals(6, mutableInteger.get());
+        assertEquals(10, mutableInteger.get());
     }
 
     @Test
@@ -705,9 +713,8 @@ public class SagaIntTest {
                 }
 
                 @Override
-                public void retryForWaitDependsTask(SagaEvent sagaEvent, SagaTransaction sagaTransaction, SagaTaskSpec sagaTaskSpec) {
-                    sagaEvent.setRetryNumber(sagaEvent.getRetryNumber() + 1);
-                    eventsSender.sendEvent(sagaEvent);
+                protected void putToScheduler(SagaEvent savedSagaEvent) {
+                    doResend(savedSagaEvent);
                 }
             };
         }
@@ -741,6 +748,9 @@ public class SagaIntTest {
     @RequiredArgsConstructor
     public static class TestEventSender implements EventsSender {
 
+        public volatile boolean immediatelyProcessing = false;
+        public volatile boolean started = false;
+
         public final LinkedList<SagaEvent> sagaEvents = new LinkedList<>();
 
         private final EventHandler eventHandler;
@@ -750,9 +760,13 @@ public class SagaIntTest {
         public void sendEvent(SagaEvent sagaEvent) {
             log.info("sendEvent.typeKey: {}", sagaEvent.getTypeKey());
             sagaEvents.addLast(sagaEvent);
+            if (immediatelyProcessing && started) {
+                this.processNextEvent();
+            }
         }
 
         public void startSagaProcessing() {
+            this.started = true;
             while (!sagaEvents.isEmpty()) {
                 processNextEvent();
             }
@@ -761,7 +775,7 @@ public class SagaIntTest {
         @SneakyThrows
         private void processNextEvent() {
             log.info("queue state: {}", sagaEvents.stream().map(SagaEvent::getTypeKey).collect(toList()));
-            SagaEvent event = sagaEvents.getFirst();
+            SagaEvent event = sagaEvents.removeFirst();
             log.info("\"get\" event from \"queue\": {}", event.getTypeKey());
 
             BEFORE_EVENTS.forEach(handler -> handler.accept(event));
@@ -774,10 +788,11 @@ public class SagaIntTest {
             });
             thread.start();
             thread.join();
-            sagaEvents.removeFirst();
 
             initContext.run();
-            AFTER_EVENTS.forEach(handler -> handler.accept(event));
+            if (!immediatelyProcessing) {
+                AFTER_EVENTS.forEach(handler -> handler.accept(event));
+            }
         }
 
         @Override
