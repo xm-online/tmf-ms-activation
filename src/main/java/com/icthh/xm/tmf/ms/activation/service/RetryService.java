@@ -142,12 +142,10 @@ public class RetryService {
         }, sagaEvent.getTenantKey());
     }
 
-    //@Transactional
     public void removeAndSend(SagaEvent sagaEvent) {
         this.removeAndSend(sagaEvent, not(SagaEvent::isInQueue));
     }
 
-    //@Transactional
     public void removeAndSend(SagaEvent sagaEvent, Predicate<SagaEvent> eventFilter) {
         sagaEventRepository.findById(sagaEvent.getId()).ifPresentOrElse((event) -> {
                 // Optional api like filter can't be applied, because when filter failed in log must be actual event
