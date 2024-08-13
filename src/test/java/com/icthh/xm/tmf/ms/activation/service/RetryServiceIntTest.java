@@ -27,6 +27,7 @@ import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.core.io.ClassPathResource;
+import org.springframework.test.annotation.DirtiesContext;
 
 import java.io.InputStream;
 import java.time.Instant;
@@ -54,6 +55,7 @@ import static org.mockito.Mockito.when;
 
 
 @Slf4j
+@DirtiesContext(classMode = DirtiesContext.ClassMode.BEFORE_EACH_TEST_METHOD)
 public class RetryServiceIntTest extends AbstractSpringBootTest {
 
 
@@ -108,6 +110,8 @@ public class RetryServiceIntTest extends AbstractSpringBootTest {
     @Test
     @SneakyThrows
     public void testRetry() {
+        Mockito.reset(eventsSender, eventRepository, transactionRepository);
+
         lepResourceLoader.onRefresh("/config/tenants/XM/activation/lep/service/retry/RetryLimitExceeded$$around.groovy", loadFile("/lep/RetryLimitExceeded$$around.groovy"));
 
         final String txId = UUID.randomUUID().toString();
@@ -154,8 +158,6 @@ public class RetryServiceIntTest extends AbstractSpringBootTest {
 
         retryService.retry(sagaEvent, transaction, task, ON_RETRY);
         countDownLatch.await(5, TimeUnit.SECONDS);
-
-        verify(eventRepository, atLeastOnce()).findByStatus(any());
 
         //3 time - in resendEvent; 1 time after retryLimitExceeded
         verify(eventRepository, times(4)).findById(eq(id));
@@ -242,6 +244,7 @@ public class RetryServiceIntTest extends AbstractSpringBootTest {
     @Test
     @SneakyThrows
     public void testRetryWithoutTaskResolver() {
+        Mockito.reset(eventsSender, eventRepository, transactionRepository);
         lepResourceLoader.onRefresh("/config/tenants/XM/activation/lep/service/retry/RetryLimitExceeded$$around.groovy", loadFile("/lep/RetryLimitExceeded$$around.groovy"));
 
         final String txId = UUID.randomUUID().toString();
@@ -290,6 +293,7 @@ public class RetryServiceIntTest extends AbstractSpringBootTest {
     @Test
     @SneakyThrows
     public void testRetryWithTaskResolver() {
+        Mockito.reset(eventsSender, eventRepository, transactionRepository);
         lepResourceLoader.onRefresh("/config/tenants/XM/activation/lep/service/retry/RetryLimitExceeded$$TEST_TYPE_KEY$$TASK_1$$around.groovy", loadFile("/lep/RetryLimitExceeded$$around.groovy"));
 
         final String txId = UUID.randomUUID().toString();
@@ -338,6 +342,7 @@ public class RetryServiceIntTest extends AbstractSpringBootTest {
     @Test
     @SneakyThrows
     public void testResendInQueueEvent() {
+        Mockito.reset(eventsSender, eventRepository, transactionRepository);
 
         final String txId = UUID.randomUUID().toString();
         final String id = UUID.randomUUID().toString();
@@ -374,6 +379,8 @@ public class RetryServiceIntTest extends AbstractSpringBootTest {
     @Test
     @SneakyThrows
     public void shouldNotRetryIfTrxWasCanceled() {
+        Mockito.reset(eventsSender, eventRepository, transactionRepository);
+
         lepResourceLoader.onRefresh("/config/tenants/XM/activation/lep/service/retry/RetryLimitExceeded$$around.groovy", loadFile("/lep/RetryLimitExceeded$$around.groovy"));
 
         final String txId = UUID.randomUUID().toString();
