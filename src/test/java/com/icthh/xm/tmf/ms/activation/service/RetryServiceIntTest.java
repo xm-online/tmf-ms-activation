@@ -55,7 +55,6 @@ import static org.mockito.Mockito.when;
 
 
 @Slf4j
-@DirtiesContext(classMode = DirtiesContext.ClassMode.BEFORE_EACH_TEST_METHOD)
 public class RetryServiceIntTest extends AbstractSpringBootTest {
 
 
