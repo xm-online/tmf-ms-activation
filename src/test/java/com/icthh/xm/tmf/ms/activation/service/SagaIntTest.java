@@ -454,6 +454,36 @@ public class SagaIntTest {
     }
 
     @Test
+    public void testIterableDoWhileLoopTask() {
+        String basePath = "/config/tenants/TEST_TENANT/activation";
+        specService.onRefresh(basePath + "/activation-spec.yml", loadFile("spec/activation-spec-loops.yml"));
+        resourceLoader.onRefresh(basePath + "/lep/tasks/Task$$SIMPLE-WHILE-LOOP$$A.groovy", "return [:]");
+
+        resourceLoader.onRefresh(basePath + "/lep/tasks/Task$$SIMPLE-WHILE-LOOP$$B.groovy",
+            "return [" +
+                "index: lepContext.inArgs.sagaEvent.iteration" +
+                "]");
+
+        resourceLoader.onRefresh(basePath + "/lep/tasks/ContinueIterableLoopCondition$$SIMPLE-WHILE-LOOP$$B.groovy",
+            "return lepContext.inArgs.sagaEvent.iteration + 1 < 10");
+
+        SagaTransaction saga = sagaService.createNewSaga(new SagaTransaction()
+            .setKey(UUID.randomUUID().toString())
+            .setTypeKey("SIMPLE-WHILE-LOOP")
+            .setContext(Map.of())
+            .setSagaTransactionState(NEW)
+        );
+
+        testEventSender.startSagaProcessing();
+
+        List<SagaLog> logs = sagaService.getLogsByTransaction(saga.getId());
+        assertEquals(FINISHED, sagaService.getByKey(saga.getKey()).getSagaTransactionState());
+        int iterableIterationsLogs = 10 * 2;
+        int abcTasksLogs = 3 * 2;
+        assertEquals(iterableIterationsLogs + abcTasksLogs, logs.size());
+    }
+
+    @Test
     public void testIterableLoopAsLastTask() {
         specService.onRefresh("/config/tenants/TEST_TENANT/activation/activation-spec.yml", loadFile("spec/activation-spec-loops.yml"));
         resourceLoader.onRefresh("/config/tenants/TEST_TENANT/activation/lep/tasks/Task$$SIMPLE-LOOP-FINISH$$A.groovy",

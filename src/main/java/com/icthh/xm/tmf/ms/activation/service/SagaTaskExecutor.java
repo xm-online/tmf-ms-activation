@@ -1,35 +1,18 @@
 package com.icthh.xm.tmf.ms.activation.service;
 
-import com.icthh.xm.commons.lep.LogicExtensionPoint;
-import com.icthh.xm.commons.lep.spring.LepService;
 import com.icthh.xm.tmf.ms.activation.domain.SagaEvent;
 import com.icthh.xm.tmf.ms.activation.domain.SagaTransaction;
 import com.icthh.xm.tmf.ms.activation.domain.spec.SagaTaskSpec;
-import com.icthh.xm.tmf.ms.activation.resolver.TaskTypeKeyResolver;
-import com.icthh.xm.tmf.ms.activation.resolver.TransactionTypeKeyResolver;
-import java.util.Collections;
+
 import java.util.Map;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Service;
 
-@Slf4j
-@Service
-@LepService(group = "tasks")
-public class SagaTaskExecutor {
+public interface SagaTaskExecutor {
 
-    @LogicExtensionPoint(value = "Task", resolver = TaskTypeKeyResolver.class)
-    public Map<String, Object> executeTask(SagaTaskSpec task, SagaEvent sagaEvent, SagaTransaction sagaTransaction, Continuation continuation) {
-        log.error("Script for task {} not found. Transaction {}.", task, sagaTransaction);
-        return Collections.emptyMap();
-    }
+    Map<String, Object> executeTask(SagaTaskSpec task, SagaEvent sagaEvent, SagaTransaction sagaTransaction, Continuation continuation);
 
-    @LogicExtensionPoint(value = "OnFinish", resolver = TransactionTypeKeyResolver.class)
-    public void onFinish(SagaTransaction sagaTransaction, Map<String, Object> taskContext) {
-        log.info("Script for finish not found. Transaction {}.", sagaTransaction);
-    }
+    void onFinish(SagaTransaction sagaTransaction, Map<String, Object> taskContext);
 
-    @LogicExtensionPoint(value = "OnCheckWaitCondition", resolver = TaskTypeKeyResolver.class)
-    public boolean onCheckWaitCondition(SagaTaskSpec task, SagaEvent sagaEvent, SagaTransaction sagaTransaction) {
-        return true;
-    }
+    boolean onCheckWaitCondition(SagaTaskSpec task, SagaEvent sagaEvent, SagaTransaction sagaTransaction);
+
+    boolean continueIterableLoopCondition(SagaTaskSpec task, SagaEvent sagaEvent, SagaTransaction sagaTransaction);
 }
