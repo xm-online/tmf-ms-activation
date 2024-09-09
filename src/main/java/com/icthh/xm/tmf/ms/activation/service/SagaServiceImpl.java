@@ -702,7 +702,7 @@ public class SagaServiceImpl implements SagaService {
         }
     }
 
-    private Object getByPath(Map<String, Object> taskContext, String path, SagaTaskSpec task) {
+    public Object getByPath(Map<String, Object> taskContext, String path, SagaTaskSpec task) {
         if (isBlank(path) && task.getDefaultIterationsCount() != null) {
             return task.getDefaultIterationsCount();
         }
