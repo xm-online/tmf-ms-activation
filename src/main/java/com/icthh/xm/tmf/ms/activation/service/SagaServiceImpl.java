@@ -658,7 +658,7 @@ public class SagaServiceImpl implements SagaService {
                                        Map<String, Object> taskContext) {
         String iterablePath = task.getIterableJsonPath();
         Object iterable = getByPath(taskContext, iterablePath, task);
-        Integer countOfIteration = calculateCountOfIteration(iterable);
+        Integer countOfIteration = calculateCountOfIteration(iterable, task);
         if (countOfIteration <= 0) {
             log.warn("Iterable by path {} is {}. Task {} will not be created.", iterablePath, iterable, task.getKey());
         }
@@ -689,9 +689,10 @@ public class SagaServiceImpl implements SagaService {
             .setTransactionId(sagaTransactionId);
     }
 
-    private Integer calculateCountOfIteration(Object iterable) {
+    private Integer calculateCountOfIteration(Object iterable, SagaTaskSpec task) {
         if (isNull(iterable)) {
-            return 0;
+            Integer defaultIterationsCount = task.getDefaultIterationsCount();
+            return defaultIterationsCount == null ? 0 : defaultIterationsCount;
         } else if (iterable instanceof Number) {
             return ((Number) iterable).intValue();
         } else if (iterable instanceof Collection) {
@@ -703,8 +704,8 @@ public class SagaServiceImpl implements SagaService {
     }
 
     public Object getByPath(Map<String, Object> taskContext, String path, SagaTaskSpec task) {
-        if (isBlank(path) && task.getDefaultIterationsCount() != null) {
-            return task.getDefaultIterationsCount();
+        if (isBlank(path)) {
+            return null;
         }
         Map<String, Object> map = firstNonNull(taskContext, emptyMap());
         try {
@@ -712,7 +713,7 @@ public class SagaServiceImpl implements SagaService {
         } catch (JsonPathException e) {
             log.error("Error read from taskContext {} by json path {}", taskContext, path, e);
             if (TRUE.equals(task.getSkipIterableJsonPathError())) {
-                return task.getDefaultIterationsCount();
+                return null;
             }
             throw e;
         }
