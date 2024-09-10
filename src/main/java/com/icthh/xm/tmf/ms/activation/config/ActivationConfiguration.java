@@ -6,6 +6,7 @@ import com.icthh.xm.tmf.ms.activation.service.MapSpecResolver;
 import com.icthh.xm.tmf.ms.activation.service.FinishTransactionStrategy;
 import com.icthh.xm.tmf.ms.activation.service.SagaSpecResolver;
 import com.icthh.xm.tmf.ms.activation.service.SagaTaskExecutor;
+import com.icthh.xm.tmf.ms.activation.service.SagaTaskExecutorImpl;
 import com.icthh.xm.tmf.ms.activation.service.TransactionStatusStrategy;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
@@ -26,6 +27,12 @@ public class ActivationConfiguration {
     @ConditionalOnMissingBean(SagaSpecResolver.class)
     public SagaSpecResolver sagaSpecResolver() {
         return new MapSpecResolver();
+    }
+
+    @Bean
+    @ConditionalOnMissingBean(SagaTaskExecutor.class)
+    public SagaTaskExecutor sagaTaskExecutor() {
+        return new SagaTaskExecutorImpl();
     }
 
 }

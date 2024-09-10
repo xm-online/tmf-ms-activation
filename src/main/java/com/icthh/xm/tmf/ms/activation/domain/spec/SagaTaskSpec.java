@@ -33,6 +33,7 @@ public class SagaTaskSpec implements Serializable {
 
     private Boolean iterable;
     private String iterableJsonPath;
+    private Integer defaultIterationsCount;
     private Boolean skipIterableJsonPathError;
 
     public List<String> getNext() {

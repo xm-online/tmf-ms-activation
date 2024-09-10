@@ -73,6 +73,7 @@ import static java.util.function.Predicate.not;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.IntStream.range;
 import static org.apache.commons.lang3.ObjectUtils.firstNonNull;
+import static org.apache.commons.lang3.StringUtils.isBlank;
 import static org.apache.commons.lang3.StringUtils.isEmpty;
 
 /**
@@ -380,15 +381,32 @@ public class SagaServiceImpl implements SagaService {
         Integer countEndLogs = logRepository.countByIterableLogs(transaction.getId(), sagaEvent.getTypeKey());
         log.info("Finished {} from {} tasks of {}", sagaEvent.getTypeKey(), countEndLogs, sagaEvent.getIterationsCount());
         if (countEndLogs >= sagaEvent.getIterationsCount()) {
-            Map<String, Object> resultTaskContext = new HashMap<>();
-            if (TRUE.equals(taskSpec.getSaveTaskContext())) {
-                List<Map<String, Object>> taskContexts = logRepository.getResultTaskContexts(sagaEvent.getTypeKey(), transaction.getId());
-                resultTaskContext.put(LOOP_RESULT_CONTEXTS, taskContexts);
+            if (taskExecutor.continueIterableLoopCondition(taskSpec, sagaEvent, transaction)) {
+                Integer iteration = firstNonNull(sagaEvent.getIteration(), 0);
+                generateIterableEvent(
+                    sagaEvent.getTransactionId(),
+                    sagaEvent.getParentTypeKey(),
+                    taskSpec,
+                    sagaEvent.getTaskContext(),
+                    iteration + 1,
+                    sagaEvent.getIterationsCount()
+                );
+            } else {
+                finishLoop(sagaEvent, transaction, transactionSpec, taskSpec);
             }
-            SagaEvent event = sagaEventRepository.findByTransactionIdAndTypeKeyAndIterationIsNull(transaction.getId(), sagaEvent.getTypeKey());
-            finishTask(event, transaction, transactionSpec, taskSpec, resultTaskContext, null);
-            deleteSagaEvent(event);
         }
+    }
+
+    private void finishLoop(SagaEvent sagaEvent, SagaTransaction transaction,
+                            SagaTransactionSpec transactionSpec, SagaTaskSpec taskSpec) {
+        Map<String, Object> resultTaskContext = new HashMap<>();
+        if (TRUE.equals(taskSpec.getSaveTaskContext())) {
+            List<Map<String, Object>> taskContexts = logRepository.getResultTaskContexts(sagaEvent.getTypeKey(), transaction.getId());
+            resultTaskContext.put(LOOP_RESULT_CONTEXTS, taskContexts);
+        }
+        SagaEvent event = sagaEventRepository.findByTransactionIdAndTypeKeyAndIterationIsNull(transaction.getId(), sagaEvent.getTypeKey());
+        finishTask(event, transaction, transactionSpec, taskSpec, resultTaskContext, null);
+        deleteSagaEvent(event);
     }
 
     private void resendEventsForDependentTasks(SagaTransactionSpec transactionSpec, SagaTaskSpec taskSpec, String transactionId) {
@@ -637,23 +655,29 @@ public class SagaServiceImpl implements SagaService {
     }
 
     private int generateIterableEvents(String sagaTransactionId, String parentTypeKey, SagaTaskSpec task,
-                                                   Map<String, Object> taskContext) {
+                                       Map<String, Object> taskContext) {
         String iterablePath = task.getIterableJsonPath();
         Object iterable = getByPath(taskContext, iterablePath, task);
-        Integer countOfIteration = calculateCountOfIteration(iterable);
+        Integer countOfIteration = calculateCountOfIteration(iterable, task);
         if (countOfIteration <= 0) {
             log.warn("Iterable by path {} is {}. Task {} will not be created.", iterablePath, iterable, task.getKey());
         }
-        range(0, countOfIteration).mapToObj(iteration ->
-                createEvent(sagaTransactionId, parentTypeKey, task, taskContext)
-                    .setIteration(iteration)
-                    .setIterationsCount(countOfIteration)
-            )
-            .peek(SagaEvent::markAsInQueue)
-            .map(sagaEventRepository::save)
-            .forEach(eventsManager::sendEvent);
+        range(0, countOfIteration).forEach(iteration ->
+                generateIterableEvent(sagaTransactionId, parentTypeKey, task, taskContext, iteration, countOfIteration)
+            );
         return countOfIteration;
     }
+
+    private void generateIterableEvent(String sagaTransactionId, String parentTypeKey, SagaTaskSpec task,
+                                       Map<String, Object> taskContext, Integer iteration, Integer countOfIteration) {
+        SagaEvent sagaEvent = createEvent(sagaTransactionId, parentTypeKey, task, taskContext)
+            .setIteration(iteration)
+            .setIterationsCount(countOfIteration);
+        sagaEvent.markAsInQueue();
+        sagaEvent = sagaEventRepository.save(sagaEvent);
+        eventsManager.sendEvent(sagaEvent);
+    }
+
 
     private SagaEvent createEvent(String sagaTransactionId, String parentTypeKey, SagaTaskSpec task, Map<String, Object> taskContext) {
         String tenantKey = tenantUtils.getTenantKey();
@@ -665,9 +689,10 @@ public class SagaServiceImpl implements SagaService {
             .setTransactionId(sagaTransactionId);
     }
 
-    private Integer calculateCountOfIteration(Object iterable) {
+    private Integer calculateCountOfIteration(Object iterable, SagaTaskSpec task) {
         if (isNull(iterable)) {
-            return 0;
+            Integer defaultIterationsCount = task.getDefaultIterationsCount();
+            return defaultIterationsCount == null ? 0 : defaultIterationsCount;
         } else if (iterable instanceof Number) {
             return ((Number) iterable).intValue();
         } else if (iterable instanceof Collection) {
@@ -678,7 +703,10 @@ public class SagaServiceImpl implements SagaService {
         }
     }
 
-    private Object getByPath(Map<String, Object> taskContext, String path, SagaTaskSpec task) {
+    public Object getByPath(Map<String, Object> taskContext, String path, SagaTaskSpec task) {
+        if (isBlank(path)) {
+            return null;
+        }
         Map<String, Object> map = firstNonNull(taskContext, emptyMap());
         try {
             return JsonPath.read(map, path);
