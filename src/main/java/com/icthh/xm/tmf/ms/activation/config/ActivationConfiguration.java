@@ -7,6 +7,7 @@ import com.icthh.xm.tmf.ms.activation.service.FinishTransactionStrategy;
 import com.icthh.xm.tmf.ms.activation.service.SagaSpecResolver;
 import com.icthh.xm.tmf.ms.activation.service.SagaTaskExecutor;
 import com.icthh.xm.tmf.ms.activation.service.SagaTaskExecutorImpl;
+import com.icthh.xm.tmf.ms.activation.service.SagaTaskLepExecutor;
 import com.icthh.xm.tmf.ms.activation.service.TransactionStatusStrategy;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
@@ -31,8 +32,8 @@ public class ActivationConfiguration {
 
     @Bean
     @ConditionalOnMissingBean(SagaTaskExecutor.class)
-    public SagaTaskExecutor sagaTaskExecutor() {
-        return new SagaTaskExecutorImpl();
+    public SagaTaskExecutor sagaTaskExecutor(SagaTaskLepExecutor lepExecutor) {
+        return new SagaTaskExecutorImpl(lepExecutor);
     }
 
 }
