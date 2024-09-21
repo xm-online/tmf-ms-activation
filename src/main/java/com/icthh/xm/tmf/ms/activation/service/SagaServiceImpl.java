@@ -19,9 +19,8 @@ import com.icthh.xm.tmf.ms.activation.repository.SagaTransactionRepository;
 import com.icthh.xm.tmf.ms.activation.resolver.TaskTypeKeyResolver;
 import com.icthh.xm.tmf.ms.activation.resolver.TransactionTypeKeyResolver;
 import com.icthh.xm.tmf.ms.activation.service.SagaSpecService.InvalidSagaSpecificationException;
+import com.icthh.xm.tmf.ms.activation.utils.JsonPathUtil;
 import com.icthh.xm.tmf.ms.activation.utils.TenantUtils;
-import com.jayway.jsonpath.JsonPath;
-import com.jayway.jsonpath.JsonPathException;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
@@ -73,7 +72,6 @@ import static java.util.function.Predicate.not;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.IntStream.range;
 import static org.apache.commons.lang3.ObjectUtils.firstNonNull;
-import static org.apache.commons.lang3.StringUtils.isBlank;
 import static org.apache.commons.lang3.StringUtils.isEmpty;
 
 /**
@@ -657,7 +655,7 @@ public class SagaServiceImpl implements SagaService {
     private int generateIterableEvents(String sagaTransactionId, String parentTypeKey, SagaTaskSpec task,
                                        Map<String, Object> taskContext) {
         String iterablePath = task.getIterableJsonPath();
-        Object iterable = getByPath(taskContext, iterablePath, task);
+        Object iterable = JsonPathUtil.getByPath(taskContext, iterablePath, task);
         Integer countOfIteration = calculateCountOfIteration(iterable, task);
         if (countOfIteration <= 0) {
             log.warn("Iterable by path {} is {}. Task {} will not be created.", iterablePath, iterable, task.getKey());
@@ -700,22 +698,6 @@ public class SagaServiceImpl implements SagaService {
         } else {
             log.error("Iterable should be Number or Collection. But it is {}", iterable.getClass());
             throw new IllegalArgumentException("Iterable should be Number or Collection");
-        }
-    }
-
-    public Object getByPath(Map<String, Object> taskContext, String path, SagaTaskSpec task) {
-        if (isBlank(path)) {
-            return null;
-        }
-        Map<String, Object> map = firstNonNull(taskContext, emptyMap());
-        try {
-            return JsonPath.read(map, path);
-        } catch (JsonPathException e) {
-            log.error("Error read from taskContext {} by json path {}", taskContext, path, e);
-            if (TRUE.equals(task.getSkipIterableJsonPathError())) {
-                return null;
-            }
-            throw e;
         }
     }
 
