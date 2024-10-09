@@ -366,8 +366,8 @@ public class SagaServiceImpl implements SagaService {
 
     private void finishTask(SagaEvent sagaEvent, SagaTransaction transaction, SagaTransactionSpec transactionSpec,
                             SagaTaskSpec taskSpec, Map<String, Object> taskContext, Integer iteration) {
-        generateNextEvents(sagaEvent, transaction, transactionSpec, taskSpec, taskContext);
         writeLog(sagaEvent, transaction, EVENT_END, taskSpec, taskContext, iteration);
+        generateNextEvents(sagaEvent, transaction, transactionSpec, taskSpec, taskContext);
         resendEventsForDependentTasks(transactionSpec, taskSpec, sagaEvent.getTransactionId()); // after write end log
         updateTransactionStrategy.updateTransactionStatus(transaction, transactionSpec, taskContext);
     }
