@@ -22,8 +22,9 @@ public class ActivationConfiguration {
     @ConditionalOnMissingBean(TransactionStatusStrategy.class)
     public TransactionStatusStrategy transactionStatusStrategy(SagaTaskExecutor taskExecutor,
                                                                SagaTransactionRepository transactionRepository,
-                                                               SagaLogRepository logRepository) {
-        return new FinishTransactionStrategy(taskExecutor, transactionRepository, logRepository);
+                                                               SagaLogRepository logRepository,
+                                                               TxFinishEventPublisher txFinishEventPublisher) {
+        return new FinishTransactionStrategy(taskExecutor, transactionRepository, logRepository, txFinishEventPublisher);
     }
 
     @Bean

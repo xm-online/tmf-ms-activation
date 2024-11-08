@@ -98,6 +98,8 @@ public class SagaServiceUnitTest {
     @Mock
     private RetryService retryService;
     @Mock
+    private TxFinishEventPublisher txFinishEventPublisher;
+    @Mock
     private SagaEventRepository sagaEventRepository;
     @Captor
     private ArgumentCaptor<SagaLog> sagaLogArgumentCaptor;
@@ -123,7 +125,8 @@ public class SagaServiceUnitTest {
     @Before
     public void before() throws IOException {
         specService = new SagaSpecService(tenantUtils, new MapSpecResolver());
-        var transactionStatusStrategy = new FinishTransactionStrategy(taskExecutor, transactionRepository, logRepository);
+        var transactionStatusStrategy = new FinishTransactionStrategy(taskExecutor, transactionRepository,
+            logRepository, txFinishEventPublisher);
         sagaService = new SagaServiceImpl(logRepository, transactionRepository, specService, eventsManager,
             tenantUtils, taskExecutor, retryService, sagaEventRepository, transactionStatusStrategy);
         sagaService.setClock(clock);

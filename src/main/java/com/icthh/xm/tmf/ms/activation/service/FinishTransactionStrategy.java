@@ -24,18 +24,19 @@ public class FinishTransactionStrategy implements TransactionStatusStrategy {
     private final SagaTaskExecutor taskExecutor;
     private final SagaTransactionRepository transactionRepository;
     private final SagaLogRepository logRepository;
+    private final TxFinishEventPublisher txFinishEventPublisher;
 
     public void updateTransactionStatus(SagaTransaction transaction, SagaTransactionSpec transactionSpec,
                                         Map<String, Object> taskContext) {
         if (isAllTaskFinished(transaction, transactionSpec)) {
             if (TRUE.equals(transactionSpec.getRetryOnFinish())) {
                 taskExecutor.onFinish(transaction, taskContext);
-
+                txFinishEventPublisher.emitEvent(transaction, taskContext);
                 transactionRepository.save(transaction.setSagaTransactionState(FINISHED));
             } else {
                 transactionRepository.save(transaction.setSagaTransactionState(FINISHED));
                 taskExecutor.onFinish(transaction, taskContext);
-
+                txFinishEventPublisher.emitEvent(transaction, taskContext);
             }
         }
     }
