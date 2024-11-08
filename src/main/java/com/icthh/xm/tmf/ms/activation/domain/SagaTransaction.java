@@ -48,4 +48,7 @@ public class SagaTransaction implements SagaType, Serializable {
 
     @Column(name = "specification_version")
     private String specificationVersion;
+
+    @Column(name = "parent_event_id")
+    public String parentEventId;
 }

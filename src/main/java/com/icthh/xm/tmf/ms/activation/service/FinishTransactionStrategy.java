@@ -1,6 +1,5 @@
 package com.icthh.xm.tmf.ms.activation.service;
 
-import com.icthh.xm.tmf.ms.activation.domain.SagaLog;
 import com.icthh.xm.tmf.ms.activation.domain.SagaTransaction;
 import com.icthh.xm.tmf.ms.activation.domain.spec.SagaTaskSpec;
 import com.icthh.xm.tmf.ms.activation.domain.spec.SagaTransactionSpec;
@@ -15,8 +14,8 @@ import java.util.Map;
 import java.util.Set;
 
 import static com.icthh.xm.tmf.ms.activation.domain.SagaTransactionState.FINISHED;
+import static java.lang.Boolean.TRUE;
 import static java.util.stream.Collectors.toList;
-import static java.util.stream.Collectors.toSet;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -29,8 +28,15 @@ public class FinishTransactionStrategy implements TransactionStatusStrategy {
     public void updateTransactionStatus(SagaTransaction transaction, SagaTransactionSpec transactionSpec,
                                         Map<String, Object> taskContext) {
         if (isAllTaskFinished(transaction, transactionSpec)) {
-            transactionRepository.save(transaction.setSagaTransactionState(FINISHED));
-            taskExecutor.onFinish(transaction, taskContext);
+            if (TRUE.equals(transactionSpec.getRetryOnFinish())) {
+                taskExecutor.onFinish(transaction, taskContext);
+
+                transactionRepository.save(transaction.setSagaTransactionState(FINISHED));
+            } else {
+                transactionRepository.save(transaction.setSagaTransactionState(FINISHED));
+                taskExecutor.onFinish(transaction, taskContext);
+
+            }
         }
     }
 

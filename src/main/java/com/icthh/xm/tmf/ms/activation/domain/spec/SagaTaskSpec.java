@@ -31,6 +31,8 @@ public class SagaTaskSpec implements Serializable {
     private Map<String, Object> taskParameters;
     private DependsStrategy dependsStrategy;
 
+    private String childTransactionKey;
+
     private Boolean iterable;
     private String iterableJsonPath;
     private Integer defaultIterationsCount;

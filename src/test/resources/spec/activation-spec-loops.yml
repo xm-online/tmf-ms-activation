@@ -34,7 +34,7 @@ transactions:
         iterable: true
         iterableJsonPath: "$.data.items"
         saveTaskContext: true
-  - key: SIMPLE-WHILE-LOOP
+  - key: SIMPLE-DO-WHILE-LOOP
     retryPolicy: RETRY
     retryCount: 2
     tasks:
@@ -43,6 +43,18 @@ transactions:
       - key: B
         iterable: true
         defaultIterationsCount: 1
+        saveTaskContext: true
+        next: [C]
+      - key: C
+  - key: SIMPLE-WHILE-LOOP
+    retryPolicy: RETRY
+    retryCount: 2
+    tasks:
+      - key: A
+        next: [B]
+      - key: B
+        iterable: true
+        defaultIterationsCount: 0
         saveTaskContext: true
         next: [C]
       - key: C
