@@ -203,6 +203,7 @@ public class SagaServiceUnitTest {
 
         SagaTransaction transaction = mockTx(txId, NEW).setTypeKey(typeKey);
         when(transactionRepository.findById(txId)).thenReturn(of(transaction));
+        mockSaveEvent();
 
         SagaTransactionSpec transactionSpec = specService.getTransactionSpec(transaction);
         SagaTaskSpec firstTaskSpec = transactionSpec.getTask(firstTaskKey);
@@ -239,6 +240,7 @@ public class SagaServiceUnitTest {
 
         SagaTransaction transaction = mockTx(txId, NEW).setTypeKey(typeKey);
         when(transactionRepository.findById(txId)).thenReturn(of(transaction));
+        mockSaveEvent();
 
         SagaTransactionSpec transactionSpec = specService.getTransactionSpec(transaction);
 
@@ -285,6 +287,7 @@ public class SagaServiceUnitTest {
         SagaTransaction transaction = mockTx(txId, NEW).setTypeKey(typeKey);
         when(transactionRepository.findById(txId)).thenReturn(of(transaction));
         when(sagaEventRepository.existsById(anyString())).thenReturn(true);
+        mockSaveEvent();
 
         SagaTransactionSpec transactionSpec = specService.getTransactionSpec(transaction);
         SagaTaskSpec firstTaskSpec = transactionSpec.getTask(firstTaskKey);
@@ -360,10 +363,19 @@ public class SagaServiceUnitTest {
                 "NEXT-TASK-REJECTED-1",
                 "NEXT-TASK-REJECTED-2"
             ));
+        mockSaveEvent();
 
         sagaService.onSagaEvent(sagaEvent);
 
         verify(transactionRepository).save(refEq(transaction.setSagaTransactionState(FINISHED)));
+    }
+
+    private void mockSaveEvent() {
+        when(sagaEventRepository.save(any())).then(mock -> {
+            SagaEvent event = mock.getArgument(0);
+            event.setId(UUID.randomUUID().toString());
+            return event;
+        });
     }
 
     @Test
@@ -840,6 +852,7 @@ public class SagaServiceUnitTest {
             isSaved.setValue(true);
             return tx1;
         });
+        mockSaveEvent();
 
         sagaService.createNewSaga(tx1);
         sagaService.createNewSaga(tx2);
@@ -865,6 +878,7 @@ public class SagaServiceUnitTest {
         when(transactionRepository.findByKey(tx2.getKey())).thenReturn(empty());
         when(transactionRepository.save(tx1)).thenReturn(tx1);
         when(transactionRepository.save(tx2)).thenReturn(tx2);
+        mockSaveEvent();
 
         sagaService.createNewSaga(tx1);
         sagaService.createNewSaga(tx2);
