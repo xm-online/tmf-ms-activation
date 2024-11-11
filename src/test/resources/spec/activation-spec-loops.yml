@@ -58,3 +58,28 @@ transactions:
         saveTaskContext: true
         next: [C]
       - key: C
+  - key: LOOP_WITH_CHILD_TRANSACTION
+    retryPolicy: RETRY
+    retryCount: 2
+    tasks:
+      - key: GENERATE
+        next: [LOOP]
+        saveTaskContext: true
+      - key: LOOP
+        iterable: true
+        iterableJsonPath: "$.items"
+        saveTaskContext: true
+        childTransactionKey: CHILD_TRANSACTION
+        next: [SUM]
+      - key: SUM
+        saveTaskContext: true
+  - key: CHILD_TRANSACTION
+    retryPolicy: RETRY
+    retryCount: 2
+    tasks:
+      - key: CONVERT_TO_CODE
+        saveTaskContext: true
+        next: [SQRT]
+      - key: SQRT
+        saveTaskContext: true
+

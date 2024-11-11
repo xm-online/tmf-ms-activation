@@ -90,6 +90,9 @@ public class SagaIntTest {
     private LepManagementService lepManager;
 
     @Autowired
+    private SagaTransactionRepository transactionRepository;
+
+    @Autowired
     private TestEventSender testEventSender;
 
     @Autowired
@@ -565,6 +568,48 @@ public class SagaIntTest {
         assertEquals(iterableIterationsLogs + abcTasksLogs, logs.size());
     }
 
+    @Test
+    public void testLoopWithChildTransaction() {
+        specService.onRefresh("/config/tenants/TEST_TENANT/activation/activation-spec.yml", loadFile("spec/activation-spec-loops.yml"));
+        addLep("LOOP_WITH_CHILD_TRANSACTION", "GENERATE",
+            "return [items: ['a', 'c', 'k']]"
+        );
+        addLep("LOOP_WITH_CHILD_TRANSACTION", "LOOP",
+            "return [item: lepContext.inArgs.sagaEvent.taskContext.items[lepContext.inArgs.sagaEvent.iteration]]"
+        );
+        addLep("CHILD_TRANSACTION", "CONVERT_TO_CODE",
+            "return [code: ((lepContext.inArgs.sagaTransaction.context.item as char) as int)]"
+        );
+        addLep("CHILD_TRANSACTION", "SQRT",
+            "return [sqrt: lepContext.inArgs.sagaEvent.taskContext.code * lepContext.inArgs.sagaEvent.taskContext.code]"
+        );
+        addLep("LOOP_WITH_CHILD_TRANSACTION", "SUM",
+            "return [result: lepContext.inArgs.sagaEvent.taskContext.contexts.sum { it.sqrt }]"
+        );
+
+        SagaTransaction saga = sagaService.createNewSaga(new SagaTransaction()
+            .setKey(UUID.randomUUID().toString())
+            .setTypeKey("LOOP_WITH_CHILD_TRANSACTION")
+            .setContext(Map.of())
+            .setSagaTransactionState(NEW)
+        );
+
+        testEventSender.startSagaProcessing();
+
+        List<SagaLog> logs = sagaService.getLogsByTransaction(saga.getId());
+        assertEquals(12, logs.size());
+        assertEquals(FINISHED, sagaService.getByKey(saga.getKey()).getSagaTransactionState());
+        transactionRepository.findByParentTxId(saga.getId()).forEach(childTx -> {
+            assertEquals(FINISHED, childTx.getSagaTransactionState());
+        });
+        assertEquals('a' * 'a' + 'c' * 'c' + 'k' * 'k', logs.get(11).getTaskContext().get("result"));
+    }
+
+    private void addLep(String txKey, String taskKey, String body) {
+        String activationFolder = "/config/tenants/TEST_TENANT/activation";
+        resourceLoader.onRefresh(activationFolder + "/lep/tasks/Task$$" + txKey + "$$" + taskKey + ".groovy",
+            body);
+    }
 
     @Test
     public void testIterableDoWhileLoopTask() {
