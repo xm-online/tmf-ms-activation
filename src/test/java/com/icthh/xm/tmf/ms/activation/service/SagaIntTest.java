@@ -90,6 +90,9 @@ public class SagaIntTest {
     private LepManagementService lepManager;
 
     @Autowired
+    private SagaTransactionRepository transactionRepository;
+
+    @Autowired
     private TestEventSender testEventSender;
 
     @Autowired
@@ -536,7 +539,7 @@ public class SagaIntTest {
     }
 
     @Test
-    public void testIterableDoWhileLoopTask() {
+    public void testIterableWhileLoopTask() {
         String basePath = "/config/tenants/TEST_TENANT/activation";
         specService.onRefresh(basePath + "/activation-spec.yml", loadFile("spec/activation-spec-loops.yml"));
         resourceLoader.onRefresh(basePath + "/lep/tasks/Task$$SIMPLE-WHILE-LOOP$$A.groovy", "return [:]");
@@ -547,11 +550,84 @@ public class SagaIntTest {
                 "]");
 
         resourceLoader.onRefresh(basePath + "/lep/tasks/ContinueIterableLoopCondition$$SIMPLE-WHILE-LOOP$$B.groovy",
-            "return lepContext.inArgs.sagaEvent.iteration + 1 < 10");
+            "return lepContext.inArgs.sagaEvent.iteration < 10");
 
         SagaTransaction saga = sagaService.createNewSaga(new SagaTransaction()
             .setKey(UUID.randomUUID().toString())
             .setTypeKey("SIMPLE-WHILE-LOOP")
+            .setContext(Map.of())
+            .setSagaTransactionState(NEW)
+        );
+
+        testEventSender.startSagaProcessing();
+
+        List<SagaLog> logs = sagaService.getLogsByTransaction(saga.getId());
+        assertEquals(FINISHED, sagaService.getByKey(saga.getKey()).getSagaTransactionState());
+        int iterableIterationsLogs = 10 * 2;
+        int abcTasksLogs = 3 * 2;
+        assertEquals(iterableIterationsLogs + abcTasksLogs, logs.size());
+    }
+
+    @Test
+    public void testLoopWithChildTransaction() {
+        specService.onRefresh("/config/tenants/TEST_TENANT/activation/activation-spec.yml", loadFile("spec/activation-spec-loops.yml"));
+        addLep("LOOP_WITH_CHILD_TRANSACTION", "GENERATE",
+            "return [items: ['a', 'c', 'k']]"
+        );
+        addLep("LOOP_WITH_CHILD_TRANSACTION", "LOOP",
+            "return [item: lepContext.inArgs.sagaEvent.taskContext.items[lepContext.inArgs.sagaEvent.iteration]]"
+        );
+        addLep("CHILD_TRANSACTION", "CONVERT_TO_CODE",
+            "return [code: ((lepContext.inArgs.sagaTransaction.context.item as char) as int)]"
+        );
+        addLep("CHILD_TRANSACTION", "SQRT",
+            "return [sqrt: lepContext.inArgs.sagaEvent.taskContext.code * lepContext.inArgs.sagaEvent.taskContext.code]"
+        );
+        addLep("LOOP_WITH_CHILD_TRANSACTION", "SUM",
+            "return [result: lepContext.inArgs.sagaEvent.taskContext.contexts.sum { it.sqrt }]"
+        );
+
+        SagaTransaction saga = sagaService.createNewSaga(new SagaTransaction()
+            .setKey(UUID.randomUUID().toString())
+            .setTypeKey("LOOP_WITH_CHILD_TRANSACTION")
+            .setContext(Map.of())
+            .setSagaTransactionState(NEW)
+        );
+
+        testEventSender.startSagaProcessing();
+
+        List<SagaLog> logs = sagaService.getLogsByTransaction(saga.getId());
+        assertEquals(12, logs.size());
+        assertEquals(FINISHED, sagaService.getByKey(saga.getKey()).getSagaTransactionState());
+        transactionRepository.findByParentTxId(saga.getId()).forEach(childTx -> {
+            assertEquals(FINISHED, childTx.getSagaTransactionState());
+        });
+        assertEquals('a' * 'a' + 'c' * 'c' + 'k' * 'k', logs.get(11).getTaskContext().get("result"));
+    }
+
+    private void addLep(String txKey, String taskKey, String body) {
+        String activationFolder = "/config/tenants/TEST_TENANT/activation";
+        resourceLoader.onRefresh(activationFolder + "/lep/tasks/Task$$" + txKey + "$$" + taskKey + ".groovy",
+            body);
+    }
+
+    @Test
+    public void testIterableDoWhileLoopTask() {
+        String basePath = "/config/tenants/TEST_TENANT/activation";
+        specService.onRefresh(basePath + "/activation-spec.yml", loadFile("spec/activation-spec-loops.yml"));
+        resourceLoader.onRefresh(basePath + "/lep/tasks/Task$$SIMPLE-DO-WHILE-LOOP$$A.groovy", "return [:]");
+
+        resourceLoader.onRefresh(basePath + "/lep/tasks/Task$$SIMPLE-DO-WHILE-LOOP$$B.groovy",
+            "return [" +
+                "index: lepContext.inArgs.sagaEvent.iteration" +
+                "]");
+
+        resourceLoader.onRefresh(basePath + "/lep/tasks/ContinueIterableLoopCondition$$SIMPLE-DO-WHILE-LOOP$$B.groovy",
+            "return lepContext.inArgs.sagaEvent.iteration < 10");
+
+        SagaTransaction saga = sagaService.createNewSaga(new SagaTransaction()
+            .setKey(UUID.randomUUID().toString())
+            .setTypeKey("SIMPLE-DO-WHILE-LOOP")
             .setContext(Map.of())
             .setSagaTransactionState(NEW)
         );

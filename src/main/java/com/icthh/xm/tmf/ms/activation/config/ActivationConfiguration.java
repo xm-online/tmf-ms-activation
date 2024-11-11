@@ -9,7 +9,9 @@ import com.icthh.xm.tmf.ms.activation.service.SagaTaskExecutor;
 import com.icthh.xm.tmf.ms.activation.service.SagaTaskExecutorImpl;
 import com.icthh.xm.tmf.ms.activation.service.SagaTaskLepExecutor;
 import com.icthh.xm.tmf.ms.activation.service.TransactionStatusStrategy;
+import com.icthh.xm.tmf.ms.activation.service.TxFinishEventPublisher;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -20,8 +22,9 @@ public class ActivationConfiguration {
     @ConditionalOnMissingBean(TransactionStatusStrategy.class)
     public TransactionStatusStrategy transactionStatusStrategy(SagaTaskExecutor taskExecutor,
                                                                SagaTransactionRepository transactionRepository,
-                                                               SagaLogRepository logRepository) {
-        return new FinishTransactionStrategy(taskExecutor, transactionRepository, logRepository);
+                                                               SagaLogRepository logRepository,
+                                                               TxFinishEventPublisher txFinishEventPublisher) {
+        return new FinishTransactionStrategy(taskExecutor, transactionRepository, logRepository, txFinishEventPublisher);
     }
 
     @Bean
@@ -34,6 +37,11 @@ public class ActivationConfiguration {
     @ConditionalOnMissingBean(SagaTaskExecutor.class)
     public SagaTaskExecutor sagaTaskExecutor(SagaTaskLepExecutor lepExecutor) {
         return new SagaTaskExecutorImpl(lepExecutor);
+    }
+
+    @Bean
+    public TxFinishEventPublisher txFinishEventPublisher(ApplicationContext applicationContext) {
+        return applicationContext::publishEvent;
     }
 
 }

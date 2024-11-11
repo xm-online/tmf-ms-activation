@@ -31,6 +31,10 @@ public class SagaTransactionSpec {
     private Long retryCount = -1L;
     private Integer backOff = 5;
     private Integer maxBackOff = 30;
+    /**
+     * When this flag is true, transaction will change state to FINISHED after onFinish executed
+     */
+    private Boolean retryOnFinish;
     private Boolean saveTaskContext;
     // by default dependent task retries until all "depends" are completed
     // if this flag is true, then dependent task retries only after finish "depends"

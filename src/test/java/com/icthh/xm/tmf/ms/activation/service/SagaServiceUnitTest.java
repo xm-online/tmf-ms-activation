@@ -98,6 +98,8 @@ public class SagaServiceUnitTest {
     @Mock
     private RetryService retryService;
     @Mock
+    private TxFinishEventPublisher txFinishEventPublisher;
+    @Mock
     private SagaEventRepository sagaEventRepository;
     @Captor
     private ArgumentCaptor<SagaLog> sagaLogArgumentCaptor;
@@ -123,7 +125,8 @@ public class SagaServiceUnitTest {
     @Before
     public void before() throws IOException {
         specService = new SagaSpecService(tenantUtils, new MapSpecResolver());
-        var transactionStatusStrategy = new FinishTransactionStrategy(taskExecutor, transactionRepository, logRepository);
+        var transactionStatusStrategy = new FinishTransactionStrategy(taskExecutor, transactionRepository,
+            logRepository, txFinishEventPublisher);
         sagaService = new SagaServiceImpl(logRepository, transactionRepository, specService, eventsManager,
             tenantUtils, taskExecutor, retryService, sagaEventRepository, transactionStatusStrategy);
         sagaService.setClock(clock);
@@ -200,6 +203,7 @@ public class SagaServiceUnitTest {
 
         SagaTransaction transaction = mockTx(txId, NEW).setTypeKey(typeKey);
         when(transactionRepository.findById(txId)).thenReturn(of(transaction));
+        mockSaveEvent();
 
         SagaTransactionSpec transactionSpec = specService.getTransactionSpec(transaction);
         SagaTaskSpec firstTaskSpec = transactionSpec.getTask(firstTaskKey);
@@ -236,6 +240,7 @@ public class SagaServiceUnitTest {
 
         SagaTransaction transaction = mockTx(txId, NEW).setTypeKey(typeKey);
         when(transactionRepository.findById(txId)).thenReturn(of(transaction));
+        mockSaveEvent();
 
         SagaTransactionSpec transactionSpec = specService.getTransactionSpec(transaction);
 
@@ -282,6 +287,7 @@ public class SagaServiceUnitTest {
         SagaTransaction transaction = mockTx(txId, NEW).setTypeKey(typeKey);
         when(transactionRepository.findById(txId)).thenReturn(of(transaction));
         when(sagaEventRepository.existsById(anyString())).thenReturn(true);
+        mockSaveEvent();
 
         SagaTransactionSpec transactionSpec = specService.getTransactionSpec(transaction);
         SagaTaskSpec firstTaskSpec = transactionSpec.getTask(firstTaskKey);
@@ -319,7 +325,7 @@ public class SagaServiceUnitTest {
             .setTypeKey(taskKey)
             .setTransactionId(txId);
 
-        when(taskExecutor.executeTask(eq(taskSpec), eq(sagaEvent), eq(transaction), eq(new Continuation())))
+        when(taskExecutor.executeTask(eq(taskSpec), eq(sagaEvent), eq(transaction), eq(new Continuation(false))))
             .thenAnswer(invocationOnMock -> {
                     SagaTaskSpec spec = invocationOnMock.getArgument(0);
                     spec.setNext(StringUtils.isEmpty(nextTaskKey) ? emptyList() : List.of(nextTaskKey));
@@ -357,10 +363,19 @@ public class SagaServiceUnitTest {
                 "NEXT-TASK-REJECTED-1",
                 "NEXT-TASK-REJECTED-2"
             ));
+        mockSaveEvent();
 
         sagaService.onSagaEvent(sagaEvent);
 
         verify(transactionRepository).save(refEq(transaction.setSagaTransactionState(FINISHED)));
+    }
+
+    private void mockSaveEvent() {
+        when(sagaEventRepository.save(any())).then(mock -> {
+            SagaEvent event = mock.getArgument(0);
+            event.setId(UUID.randomUUID().toString());
+            return event;
+        });
     }
 
     @Test
@@ -454,7 +469,7 @@ public class SagaServiceUnitTest {
         when(tenantUtils.getTenantKey()).thenReturn("XM");
         String txId = UUID.randomUUID().toString();
         SagaTaskSpec sagaTaskSpec = sagaTaskSpec();
-        Continuation continuation = new Continuation();
+        Continuation continuation = new Continuation(false);
 
         when(transactionRepository.findById(txId)).thenReturn(of(mockTx(txId, NEW)));
         when(logRepository.findFinishLogTypeKeyAndIteration(eq(txId), eq("NEXT-JOIN-TASK"), isNull())).thenReturn(Optional.empty());
@@ -554,7 +569,7 @@ public class SagaServiceUnitTest {
         when(tenantUtils.getTenantKey()).thenReturn("XM");
         String txId = UUID.randomUUID().toString();
         SagaTaskSpec sagaTaskSpec = sagaTaskSpec();
-        Continuation continuation = new Continuation();
+        Continuation continuation = new Continuation(false);
 
         when(transactionRepository.findById(txId)).thenReturn(of(mockTx(txId, NEW)));
         when(logRepository.findFinishLogTypeKeyAndIteration(eq(txId), eq("NEXT-JOIN-TASK"), isNull())).thenReturn(Optional.empty());
@@ -602,7 +617,7 @@ public class SagaServiceUnitTest {
         when(tenantUtils.getTenantKey()).thenReturn("XM");
         String txId = UUID.randomUUID().toString();
         SagaTaskSpec sagaTaskSpec = sagaTaskSpec();
-        Continuation continuation = new Continuation();
+        Continuation continuation = new Continuation(false);
 
         when(transactionRepository.findById(txId)).thenReturn(of(mockTx(txId, NEW)));
         when(logRepository.findFinishLogTypeKeyAndIteration(eq(txId), eq("NEXT-JOIN-TASK"), isNull())).thenReturn(Optional.empty());
@@ -679,7 +694,7 @@ public class SagaServiceUnitTest {
         when(tenantUtils.getTenantKey()).thenReturn("XM");
         String txId = UUID.randomUUID().toString();
         SagaTaskSpec sagaTaskSpec = sagaTaskSpec().setKey("SOME-OTHER-TASK").setDepends(emptyList()).setNext(emptyList());
-        Continuation continuation = new Continuation();
+        Continuation continuation = new Continuation(false);
 
         when(transactionRepository.findById(txId)).thenReturn(of(mockTx(txId, NEW)));
         when(logRepository.findFinishLogTypeKeyAndIteration(eq(txId), eq("SOME-OTHER-TASK"), isNull())).thenReturn(Optional.empty());
@@ -739,7 +754,7 @@ public class SagaServiceUnitTest {
         CountDownLatch latch = new CountDownLatch(1);
         String eventTypeKey = "SIMPLE-TASK";
         SagaEvent sagaEvent = mockEvent(txId, eventTypeKey, taskId);
-        Continuation continuation = new Continuation();
+        Continuation continuation = new Continuation(false);
 
         SagaTransaction transaction = mockTx(txId, NEW).setTypeKey(txTypeKey);
         SagaTaskSpec taskSpec = specService.getTransactionSpec(transaction).getTask(eventTypeKey);
@@ -789,7 +804,7 @@ public class SagaServiceUnitTest {
         String taskId = UUID.randomUUID().toString();
         String eventTypeKey = "SUSPEND-TASK";
         SagaEvent sagaEvent = mockEvent(txId, eventTypeKey, taskId);
-        Continuation continuation = new Continuation();
+        Continuation continuation = new Continuation(true);
 
         SagaTransaction transaction = mockTx(txId, NEW).setTypeKey(txTypeKey);
         SagaTaskSpec taskSpec = specService.getTransactionSpec(transaction).getTask(eventTypeKey);
@@ -837,6 +852,7 @@ public class SagaServiceUnitTest {
             isSaved.setValue(true);
             return tx1;
         });
+        mockSaveEvent();
 
         sagaService.createNewSaga(tx1);
         sagaService.createNewSaga(tx2);
@@ -862,6 +878,7 @@ public class SagaServiceUnitTest {
         when(transactionRepository.findByKey(tx2.getKey())).thenReturn(empty());
         when(transactionRepository.save(tx1)).thenReturn(tx1);
         when(transactionRepository.save(tx2)).thenReturn(tx2);
+        mockSaveEvent();
 
         sagaService.createNewSaga(tx1);
         sagaService.createNewSaga(tx2);

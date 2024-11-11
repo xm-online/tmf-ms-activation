@@ -1,6 +1,5 @@
 package com.icthh.xm.tmf.ms.activation.service;
 
-import com.icthh.xm.tmf.ms.activation.domain.SagaLog;
 import com.icthh.xm.tmf.ms.activation.domain.SagaTransaction;
 import com.icthh.xm.tmf.ms.activation.domain.spec.SagaTaskSpec;
 import com.icthh.xm.tmf.ms.activation.domain.spec.SagaTransactionSpec;
@@ -15,8 +14,8 @@ import java.util.Map;
 import java.util.Set;
 
 import static com.icthh.xm.tmf.ms.activation.domain.SagaTransactionState.FINISHED;
+import static java.lang.Boolean.TRUE;
 import static java.util.stream.Collectors.toList;
-import static java.util.stream.Collectors.toSet;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -25,13 +24,29 @@ public class FinishTransactionStrategy implements TransactionStatusStrategy {
     private final SagaTaskExecutor taskExecutor;
     private final SagaTransactionRepository transactionRepository;
     private final SagaLogRepository logRepository;
+    private final TxFinishEventPublisher txFinishEventPublisher;
 
     public void updateTransactionStatus(SagaTransaction transaction, SagaTransactionSpec transactionSpec,
                                         Map<String, Object> taskContext) {
         if (isAllTaskFinished(transaction, transactionSpec)) {
-            transactionRepository.save(transaction.setSagaTransactionState(FINISHED));
-            taskExecutor.onFinish(transaction, taskContext);
+            if (TRUE.equals(transactionSpec.getRetryOnFinish())) {
+                runOnFinishBeforeTransactionMarkedAsFinished(transaction, taskContext);
+            } else {
+                runOnFinishAfterTransactionMarkedAsFinished(transaction, taskContext);
+            }
         }
+    }
+
+    private void runOnFinishAfterTransactionMarkedAsFinished(SagaTransaction transaction, Map<String, Object> taskContext) {
+        transactionRepository.save(transaction.setSagaTransactionState(FINISHED));
+        taskExecutor.onFinish(transaction, taskContext);
+        txFinishEventPublisher.emitEvent(transaction, taskContext);
+    }
+
+    private void runOnFinishBeforeTransactionMarkedAsFinished(SagaTransaction transaction, Map<String, Object> taskContext) {
+        taskExecutor.onFinish(transaction, taskContext);
+        txFinishEventPublisher.emitEvent(transaction, taskContext);
+        transactionRepository.save(transaction.setSagaTransactionState(FINISHED));
     }
 
     protected boolean isAllTaskFinished(SagaTransaction transaction, SagaTransactionSpec transactionSpec) {
