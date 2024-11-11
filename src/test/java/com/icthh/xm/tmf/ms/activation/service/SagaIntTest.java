@@ -32,6 +32,7 @@ import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.cloud.stream.test.binder.MessageCollectorAutoConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Lazy;
@@ -68,6 +69,11 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.spy;
 
 @Slf4j
 @RunWith(SpringRunner.class)
@@ -77,7 +83,7 @@ public class SagaIntTest {
     @Autowired
     private SagaService sagaService;
 
-    @Autowired
+    @SpyBean
     private SagaLogRepository logRepository;
 
     @Autowired
@@ -102,6 +108,7 @@ public class SagaIntTest {
     public void setup() {
         initContext(tenantContextHolder, lepManager);
         this.testEventSender.immediatelyProcessing = false;
+        reset(logRepository, testEventSender);
     }
 
     private static void initContext(TenantContextHolder tenantContextHolder, LepManagementService lepManager) {
@@ -280,6 +287,82 @@ public class SagaIntTest {
     }
 
     @Test
+    public void shouldSendEventForNextTaskOnlyAfterEndingPreviousOnes() {
+        String sagaKey = "TEST-TASKS-ORDER";
+
+        specService.onRefresh("/config/tenants/TEST_TENANT/activation/activation-spec.yml",
+            loadFile("spec/activation-spec.yml"));
+        resourceLoader.onRefresh("/config/tenants/TEST_TENANT/activation/lep/tasks/Task$$" + sagaKey
+            + "$$FIRST-CALL.groovy", "return [items: ['A']]");
+
+        List<String> actualOrder = new ArrayList<>();
+        //@formatter:off
+        List<String> expectedOrder = List.of(
+            "EVENT:FIRST-CALL",
+            "LOG:FIRST-CALL",
+                "EVENT:SECOND-CALL",
+                    "EVENT:SECOND-CALL(Iteration #0)",
+                    "LOG:SECOND-CALL(Iteration #0)",
+                "LOG:SECOND-CALL",
+                    "EVENT:THIRD-CALL",
+                    "LOG:THIRD-CALL"
+        );
+        //@formatter:on
+
+        // Track EVENT_END log
+        doAnswer(invocation -> {
+            SagaLog log = invocation.getArgument(0, SagaLog.class);
+            actualOrder.add(buildLogKey(log));
+
+            if ("FIRST-CALL".equals(log.getEventTypeKey())) {
+                Thread.sleep(2_000);
+            }
+
+            return invocation.callRealMethod();
+        }).when(logRepository).save(argThat(log -> EVENT_END == log.getLogType()));
+
+        // Track each event
+        doAnswer(invocation -> {
+            SagaEvent event = invocation.getArgument(0, SagaEvent.class);
+            actualOrder.add(buildEventKey(event));
+
+            return invocation.callRealMethod();
+        }).when(testEventSender).sendEvent(any(SagaEvent.class));
+
+        SagaTransaction saga = sagaService.createNewSaga(new SagaTransaction()
+            .setKey(UUID.randomUUID().toString())
+            .setTypeKey(sagaKey)
+            .setContext(Map.of())
+            .setSagaTransactionState(NEW)
+        );
+
+        testEventSender.startSagaProcessing();
+        assertEquals(FINISHED, sagaService.getByKey(saga.getKey()).getSagaTransactionState());
+        assertEquals("The next event should only be sent after saving the EVENT_END for the current task",
+            expectedOrder, actualOrder);
+    }
+
+    private String buildEventKey(SagaEvent sagaEvent) {
+        String key = "EVENT:" + sagaEvent.getTypeKey();
+
+        if (sagaEvent.getIteration() != null) {
+            key += String.format("(Iteration #%d)", sagaEvent.getIteration());
+        }
+
+        return key;
+    }
+
+    private String buildLogKey(SagaLog sagaLog) {
+        String key = "LOG:" + sagaLog.getEventTypeKey();
+
+        if (sagaLog.getIteration() != null) {
+            key += String.format("(Iteration #%d)", sagaLog.getIteration());
+        }
+
+        return key;
+    }
+
+    @Test
     public void testDependCheckEventuallyStrategy() {
         specService.onRefresh("/config/tenants/TEST_TENANT/activation/activation-spec.yml", loadFile("spec/activation-spec-test-depends.yml"));
 
@@ -346,7 +429,7 @@ public class SagaIntTest {
         assertEquals(new HashSet<>(Set.of(
             "TEST-REJECT", "TEST-VERSION", "TASK-WITH-REJECTED-BY-CONDITION-TASK-AND-DELETED-EVENT",
             "TASK-WITH-REJECTED-AND-NON-REJECTED", "TASK-WITH-REJECTED-BY-CONDITION-TASKS",
-            "TASK-AND-TASK-WITH-SUSPEND-TX", "TEST-SAGA-TYPE-KEY", "SIMPLE"
+            "TASK-AND-TASK-WITH-SUSPEND-TX", "TEST-SAGA-TYPE-KEY", "SIMPLE", "TEST-TASKS-ORDER"
         )), txKeys);
 
         SagaTransaction saga = sagaService.createNewSaga(new SagaTransaction()
@@ -782,7 +865,7 @@ public class SagaIntTest {
         @Primary
         @Bean
         public EventsSender eventsSender(@Lazy EventHandler eventHandler, TenantContextHolder tenantContextHolder, LepManagementService lepManager) {
-            return new TestEventSender(eventHandler, () -> initContext(tenantContextHolder, lepManager));
+            return spy(new TestEventSender(eventHandler, () -> initContext(tenantContextHolder, lepManager)));
         }
     }
 

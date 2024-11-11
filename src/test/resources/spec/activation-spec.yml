@@ -76,3 +76,14 @@ transactions:
         field: 'paramField'
       iterable: true
       iterableJsonPath: "$.items"
+- key: TEST-TASKS-ORDER
+  tasks:
+    - key: FIRST-CALL
+      next:
+        - SECOND-CALL
+    - key: SECOND-CALL
+      iterable: true
+      iterableJsonPath: "$.items"
+      next:
+        - THIRD-CALL
+    - key: THIRD-CALL

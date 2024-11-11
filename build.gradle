@@ -379,6 +379,7 @@ dependencies {
     testImplementation "org.assertj:assertj-core"
     testImplementation "junit:junit"
     testImplementation "org.mockito:mockito-core"
+    testImplementation 'org.mockito:mockito-inline:3.8.0'
     testImplementation "org.hamcrest:hamcrest-library"
     testImplementation ("com.github.database-rider:rider-spring:${database_rider_version}") {
         exclude module: 'slf4j-api'
