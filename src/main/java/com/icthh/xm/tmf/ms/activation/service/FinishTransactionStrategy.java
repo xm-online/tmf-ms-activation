@@ -30,15 +30,23 @@ public class FinishTransactionStrategy implements TransactionStatusStrategy {
                                         Map<String, Object> taskContext) {
         if (isAllTaskFinished(transaction, transactionSpec)) {
             if (TRUE.equals(transactionSpec.getRetryOnFinish())) {
-                taskExecutor.onFinish(transaction, taskContext);
-                txFinishEventPublisher.emitEvent(transaction, taskContext);
-                transactionRepository.save(transaction.setSagaTransactionState(FINISHED));
+                runOnFinishBeforeTransactionMarkedAsFinished(transaction, taskContext);
             } else {
-                transactionRepository.save(transaction.setSagaTransactionState(FINISHED));
-                taskExecutor.onFinish(transaction, taskContext);
-                txFinishEventPublisher.emitEvent(transaction, taskContext);
+                runOnFinishAfterTransactionMarkedAsFinished(transaction, taskContext);
             }
         }
+    }
+
+    private void runOnFinishAfterTransactionMarkedAsFinished(SagaTransaction transaction, Map<String, Object> taskContext) {
+        transactionRepository.save(transaction.setSagaTransactionState(FINISHED));
+        taskExecutor.onFinish(transaction, taskContext);
+        txFinishEventPublisher.emitEvent(transaction, taskContext);
+    }
+
+    private void runOnFinishBeforeTransactionMarkedAsFinished(SagaTransaction transaction, Map<String, Object> taskContext) {
+        taskExecutor.onFinish(transaction, taskContext);
+        txFinishEventPublisher.emitEvent(transaction, taskContext);
+        transactionRepository.save(transaction.setSagaTransactionState(FINISHED));
     }
 
     protected boolean isAllTaskFinished(SagaTransaction transaction, SagaTransactionSpec transactionSpec) {
