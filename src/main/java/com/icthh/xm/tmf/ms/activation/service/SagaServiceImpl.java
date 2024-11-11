@@ -241,6 +241,7 @@ public class SagaServiceImpl implements SagaService {
                 .setKey(sagaEvent.getId())
                 .setTypeKey(taskSpec.getChildTransactionKey())
                 .setContext(taskContext)
+                .setParentTxId(sagaEvent.getTransactionId())
                 .setParentEventId(sagaEvent.getId()));
         }
     }

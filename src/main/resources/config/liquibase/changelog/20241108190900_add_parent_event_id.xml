@@ -11,6 +11,9 @@
             <column name="parent_event_id" type="varchar(255)">
                 <constraints nullable="true"/>
             </column>
+            <column name="parent_tx_id" type="varchar(255)">
+                <constraints nullable="true"/>
+            </column>
         </addColumn>
     </changeSet>
 
