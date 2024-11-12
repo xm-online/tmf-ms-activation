@@ -663,7 +663,8 @@ public class SagaServiceImpl implements SagaService {
     }
 
     private void generateFirstEvents(SagaTransaction sagaTransaction, SagaTransactionSpec spec) {
-        generateEvents(sagaTransaction.getId(), null, spec.getFirstTasks(), emptyMap());
+        Map<String, Object> context = TRUE.equals(spec.getPropagateTransactionContextToFirstTasks()) ? sagaTransaction.getContext() : emptyMap();
+        generateEvents(sagaTransaction.getId(), null, spec.getFirstTasks(), context);
     }
 
     private void generateEvents(String sagaTransactionId, String parentTypeKey, List<SagaTaskSpec> sagaTaskSpecs,
