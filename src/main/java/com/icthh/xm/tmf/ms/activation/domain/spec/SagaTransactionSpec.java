@@ -35,6 +35,7 @@ public class SagaTransactionSpec {
      * When this flag is true, transaction will change state to FINISHED after onFinish executed
      */
     private Boolean retryOnFinish;
+    private Boolean propagateTransactionContextToFirstTasks;
     private Boolean saveTaskContext;
     // by default dependent task retries until all "depends" are completed
     // if this flag is true, then dependent task retries only after finish "depends"
