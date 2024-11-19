@@ -10,7 +10,6 @@ addons:
     branches:
     - master
     - main
-    - arm
 
 script:
   - set -e
@@ -24,7 +23,7 @@ script:
   - export DOCKER_REPO=$(echo  -n $TRAVIS_REPO_SLUG | sed -e 's/^xm-online\//xmonline\//g')
   - export IMAGE_BRANCH=$(echo -n $TRAVIS_BRANCH | sed -e 's/\//-/g')
   - export PROJECT_VERSION="$IMAGE_BRANCH"
-  - if [ "$IMAGE_BRANCH" == "master" ] || [ "$IMAGE_BRANCH" == "arm" ]; 
+  - if [ "$IMAGE_BRANCH" == "master" ] || [ "$IMAGE_BRANCH" == "main" ]; 
     then 
         PROJECT_VERSION=$(./gradlew -q  getProjectVersion);
         TAGS="$PROJECT_VERSION $PROJECT_VERSION-$TRAVIS_BUILD_NUMBER $(echo $PROJECT_VERSION | awk -F '.' '{printf $1"."$2" "$1}') latest";
@@ -59,4 +58,3 @@ branches:
        only:
          - master
          - main
-         - arm
