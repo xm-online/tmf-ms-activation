@@ -24,7 +24,7 @@ import org.apache.kafka.common.PartitionInfo;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.serialization.ByteArrayDeserializer;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.cloud.stream.binder.kafka.properties.KafkaBinderConfigurationProperties;
+import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
 import org.springframework.kafka.core.ConsumerFactory;
 import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
 import org.springframework.stereotype.Component;
@@ -42,7 +42,7 @@ public class ActivationKafkaOffsetsMetric implements MetricSet {
     private String group;
 
     private final TenantListRepository tenantListRepository;
-    private final KafkaBinderConfigurationProperties binderConfigurationProperties;
+    private final KafkaProperties kafkaProperties;
     private final ApplicationProperties applicationProperties;
 
     private ConsumerFactory<?, ?> defaultConsumerFactory;
@@ -114,12 +114,12 @@ public class ActivationKafkaOffsetsMetric implements MetricSet {
             Map<String, Object> props = new HashMap<>();
             props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, ByteArrayDeserializer.class);
             props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, ByteArrayDeserializer.class);
-            if (!ObjectUtils.isEmpty(binderConfigurationProperties.mergedConsumerConfiguration())) {
-                props.putAll(binderConfigurationProperties.mergedConsumerConfiguration());
+            if (!ObjectUtils.isEmpty(kafkaProperties.buildConsumerProperties())) {
+                props.putAll(kafkaProperties.buildConsumerProperties());
             }
             if (!props.containsKey(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG)) {
                 props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG,
-                    this.binderConfigurationProperties.getKafkaConnectionString());
+                    this.kafkaProperties.getBootstrapServers());
             }
             props.put("group.id", group);
             this.defaultConsumerFactory = new DefaultKafkaConsumerFactory<>(props);
