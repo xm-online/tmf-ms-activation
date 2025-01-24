@@ -1,5 +1,6 @@
 package com.icthh.xm.tmf.ms.activation.events.bindings;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.icthh.xm.commons.topic.domain.DynamicConsumer;
 import com.icthh.xm.commons.topic.domain.TopicConfig;
 import com.icthh.xm.commons.topic.service.DynamicConsumerConfiguration;
@@ -14,7 +15,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-import static org.apache.commons.lang3.StringUtils.lowerCase;
 import static org.apache.commons.lang3.StringUtils.upperCase;
 
 @Slf4j
@@ -33,9 +33,9 @@ public class DynamicTopicConsumerConfiguration implements DynamicConsumerConfigu
     private final ApplicationEventPublisher applicationEventPublisher;
 
     public DynamicTopicConsumerConfiguration(ApplicationEventPublisher applicationEventPublisher,
-                                             EventHandler eventHandler) {
+                                             EventHandler eventHandler, ObjectMapper objectMapper) {
         this.applicationEventPublisher = applicationEventPublisher;
-        this.messageEventHandlerFacade = new MessageEventHandlerFacade(eventHandler);
+        this.messageEventHandlerFacade = new MessageEventHandlerFacade(eventHandler, objectMapper);
         this.dynamicConsumersByTenant = new ConcurrentHashMap<>();
     }
 
@@ -86,6 +86,6 @@ public class DynamicTopicConsumerConfiguration implements DynamicConsumerConfigu
     }
 
     public static String buildChanelName(String tenantKey) {
-        return SAGA_EVENTS_PREFIX + lowerCase(tenantKey);
+        return SAGA_EVENTS_PREFIX + tenantKey.toUpperCase();
     }
 }

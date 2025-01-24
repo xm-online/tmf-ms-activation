@@ -1,12 +1,12 @@
 package com.icthh.xm.tmf.ms.activation.events;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.icthh.xm.commons.logging.util.MdcUtils;
 import com.icthh.xm.commons.topic.domain.TopicConfig;
 import com.icthh.xm.commons.topic.message.MessageHandler;
 import com.icthh.xm.tmf.ms.activation.domain.SagaEvent;
 import com.icthh.xm.tmf.ms.activation.events.bindings.EventHandler;
+import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.time.StopWatch;
@@ -17,17 +17,13 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.commons.lang3.StringUtils.unwrap;
 
 @Slf4j
+@RequiredArgsConstructor
 public class MessageEventHandlerFacade implements MessageHandler {
 
     private static final String WRAP_TOKEN = "\"";
 
     private final EventHandler eventHandler;
     private final ObjectMapper objectMapper;
-
-    public MessageEventHandlerFacade(EventHandler eventHandler) {
-        this.eventHandler = eventHandler;
-        this.objectMapper = initObjectMapper();
-    }
 
     @Override
     public void onMessage(String message, String tenant, TopicConfig topicConfig) {
@@ -49,10 +45,6 @@ public class MessageEventHandlerFacade implements MessageHandler {
         } finally {
             MdcUtils.removeRid();
         }
-    }
-
-    private ObjectMapper initObjectMapper() {
-        return new ObjectMapper().registerModule(new JavaTimeModule());
     }
 
     @SneakyThrows

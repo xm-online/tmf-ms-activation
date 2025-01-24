@@ -13,8 +13,9 @@ public class DynamicTopicMessagingConfiguration {
 
     @Bean
     public DynamicTopicConsumerConfiguration dynamicTopicConsumerConfiguration(ApplicationEventPublisher applicationEventPublisher,
-                                                                               EventHandler eventHandler) {
-        return new DynamicTopicConsumerConfiguration(applicationEventPublisher, eventHandler);
+                                                                               EventHandler eventHandler,
+                                                                               ObjectMapper objectMapper) {
+        return new DynamicTopicConsumerConfiguration(applicationEventPublisher, eventHandler, objectMapper);
     }
 
     @Bean

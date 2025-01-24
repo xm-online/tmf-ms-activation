@@ -13,12 +13,13 @@ import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.kafka.core.KafkaTemplate;
-import org.springframework.kafka.support.KafkaHeaders;
-import org.springframework.messaging.Message;
-import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.retry.annotation.Backoff;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Component;
+
+import java.util.Base64;
+
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 @Slf4j
 @Component
@@ -26,9 +27,7 @@ import org.springframework.stereotype.Component;
 @LepService(group = "service.kafka")
 public class KafkaEventsSender implements EventsSender {
 
-    public static final String PARTITION_KEY = "partitionKey";
-
-    private final ObjectMapper kafkaEventSendObjectMapper = initObjectMapper();
+    private final ObjectMapper objectMapper;
     private final KafkaTemplate<String, String> template;
     private final QueueNameResolver queueNameResolver;
 
@@ -41,20 +40,29 @@ public class KafkaEventsSender implements EventsSender {
                multiplierExpression = "${application.kafkaEventSender.retry.multiplier}"))
     @Override
     public void sendEvent(SagaEvent sagaEvent) {
-        try {
-            String queueName = queueNameResolver.resolveQueueName(sagaEvent);
-            Message<SagaEvent> message = MessageBuilder.withPayload(sagaEvent)
-                .setHeader(KafkaHeaders.MESSAGE_KEY, sagaEvent.getId())
-                .setHeader(PARTITION_KEY, self.getPartitionKey(sagaEvent))
-                .build();
+        String queueName = queueNameResolver.resolveQueueName(sagaEvent);
+        Integer partitionKey = getPartitionKeyForTopic(queueName, sagaEvent);
+        String payload = getMessagePayload(sagaEvent);
 
-            template.send(queueName, kafkaEventSendObjectMapper.writeValueAsString(message));
-            log.info("Saga event successfully sent: {}", sagaEvent);
+        template.send(queueName, partitionKey, sagaEvent.getId(), payload);
+
+        log.info("Saga event successfully sent: {}", sagaEvent);
+    }
+
+    private String getMessagePayload(SagaEvent sagaEvent) {
+        try {
+            String sagaEventJson = objectMapper.writeValueAsString(sagaEvent);
+            return Base64.getEncoder().encodeToString(sagaEventJson.getBytes(UTF_8));
 
         } catch (JsonProcessingException e) {
-            log.warn("Cannot send saga event: {}", sagaEvent);
-            throw new BusinessException("Cannot send saga event: " + sagaEvent);
+            log.warn("Cannot convert message to json: {}", sagaEvent, e);
+            throw new BusinessException("Cannot convert message to json: " + sagaEvent);
         }
+    }
+
+    public Integer getPartitionKeyForTopic(String topic, SagaEvent sagaEvent) {
+        int partitionCount = template.partitionsFor(topic).size();
+        return Math.abs(getPartitionKey(sagaEvent).hashCode()) % partitionCount;
     }
 
     @LogicExtensionPoint("GetPartitionKey")
@@ -66,9 +74,5 @@ public class KafkaEventsSender implements EventsSender {
     @SneakyThrows
     public void resendEvent(SagaEvent sagaEvent) {
         sendEvent(sagaEvent);
-    }
-
-    private ObjectMapper initObjectMapper() {
-        return new ObjectMapper().registerModule(new JavaTimeModule());
     }
 }
