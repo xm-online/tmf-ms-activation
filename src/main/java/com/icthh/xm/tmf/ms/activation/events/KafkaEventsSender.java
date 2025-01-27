@@ -2,7 +2,6 @@ package com.icthh.xm.tmf.ms.activation.events;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.icthh.xm.commons.exceptions.BusinessException;
 import com.icthh.xm.commons.lep.spring.LepService;
 import com.icthh.xm.commons.lep.LogicExtensionPoint;
@@ -62,7 +61,7 @@ public class KafkaEventsSender implements EventsSender {
 
     public Integer getPartitionKeyForTopic(String topic, SagaEvent sagaEvent) {
         int partitionCount = template.partitionsFor(topic).size();
-        return Math.abs(getPartitionKey(sagaEvent).hashCode()) % partitionCount;
+        return Math.abs(self.getPartitionKey(sagaEvent).hashCode()) % partitionCount;
     }
 
     @LogicExtensionPoint("GetPartitionKey")
