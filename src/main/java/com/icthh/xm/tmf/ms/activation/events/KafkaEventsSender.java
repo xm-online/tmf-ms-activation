@@ -60,7 +60,7 @@ public class KafkaEventsSender implements EventsSender {
     }
 
     public Integer getPartitionKeyForTopic(String topic, SagaEvent sagaEvent) {
-        int partitionCount = template.partitionsFor(topic).size();
+        int partitionCount = Math.max(template.partitionsFor(topic).size(), 1);
         return Math.abs(self.getPartitionKey(sagaEvent).hashCode()) % partitionCount;
     }
 
