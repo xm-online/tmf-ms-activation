@@ -1,6 +1,6 @@
 package com.icthh.xm.tmf.ms.activation.events.bindings;
 
-import static com.icthh.xm.tmf.ms.activation.events.bindings.MessagingConfiguration.SAGA_EVENTS_PREFIX;
+import static com.icthh.xm.tmf.ms.activation.events.bindings.DynamicTopicConsumerConfiguration.SAGA_EVENTS_PREFIX;
 
 import java.util.Map;
 import org.apache.kafka.common.serialization.Serializer;

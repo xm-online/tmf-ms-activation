@@ -52,17 +52,6 @@ spring:
             config:
                 watch:
                     enabled: false
-        stream:
-            kafka:
-                binder:
-                    brokers: localhost:9092
-                    autoCreateTopics: true
-                    autoAddPartitions: true
-                    minPartitionCount: 16
-            # The maximum number of deployed instances of the application.
-            # If we use the default or value less than real count of instances,
-            # several instances won't have access to the Kafka at the same time
-            instance-count: 16
     jpa:
         open-in-view: false
         properties:

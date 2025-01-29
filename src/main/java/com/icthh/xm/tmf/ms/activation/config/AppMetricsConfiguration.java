@@ -34,8 +34,6 @@ public class AppMetricsConfiguration extends MetricsConfigurerAdapter {
 
     @PostConstruct
     public void init() {
-        metricRegistry.register("spring.cloud.stream.binder", kafkaOffsetsMetric);
-
         if (hikariDataSource != null) {
             log.debug("Monitoring the datasource");
             // remove the factory created by HikariDataSourceMetricsPostProcessor until JHipster migrate to Micrometer
