@@ -2,6 +2,7 @@ package com.icthh.xm.tmf.ms.activation.config;
 
 import static org.mockito.Mockito.mock;
 
+import com.icthh.xm.commons.config.client.service.TenantAliasServiceImpl;
 import javax.annotation.PostConstruct;
 
 import com.icthh.xm.commons.config.client.repository.CommonConfigRepository;
@@ -53,7 +54,7 @@ public class SecurityBeanOverrideConfiguration {
 
     @Bean
     public TenantAliasService tenantAliasService() {
-        return new TenantAliasService(mock(CommonConfigRepository.class), mock(TenantListRepository.class));
+        return new TenantAliasServiceImpl(mock(CommonConfigRepository.class), mock(TenantListRepository.class));
     }
 
     @PostConstruct
