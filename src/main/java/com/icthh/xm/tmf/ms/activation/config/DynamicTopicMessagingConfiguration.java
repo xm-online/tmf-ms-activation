@@ -19,7 +19,7 @@ public class DynamicTopicMessagingConfiguration {
     }
 
     @Bean
-    public MessagingConfiguration schedulerChannelManager(DynamicTopicConsumerConfiguration dynamicTopicConsumerConfiguration,
+    public MessagingConfiguration dynamicTopicChannelManager(DynamicTopicConsumerConfiguration dynamicTopicConsumerConfiguration,
                                                           ObjectMapper objectMapper) {
         return new MessagingConfiguration(dynamicTopicConsumerConfiguration, objectMapper);
     }
