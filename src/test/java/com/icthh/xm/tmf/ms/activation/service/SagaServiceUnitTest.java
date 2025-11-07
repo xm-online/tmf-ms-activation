@@ -1,6 +1,7 @@
 package com.icthh.xm.tmf.ms.activation.service;
 
 import com.icthh.xm.commons.exceptions.BusinessException;
+import com.icthh.xm.tmf.ms.activation.AbstractUnitTest;
 import com.icthh.xm.tmf.ms.activation.domain.SagaEvent;
 import com.icthh.xm.tmf.ms.activation.domain.SagaEventError;
 import com.icthh.xm.tmf.ms.activation.domain.SagaLog;
@@ -15,10 +16,12 @@ import com.icthh.xm.tmf.ms.activation.events.EventsSender;
 import com.icthh.xm.tmf.ms.activation.repository.SagaEventRepository;
 import com.icthh.xm.tmf.ms.activation.repository.SagaLogRepository;
 import com.icthh.xm.tmf.ms.activation.repository.SagaTransactionRepository;
+import com.icthh.xm.tmf.ms.activation.utils.LazyObjectProvider;
 import com.icthh.xm.tmf.ms.activation.utils.TenantUtils;
 import lombok.SneakyThrows;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.mutable.MutableBoolean;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -28,7 +31,6 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.springframework.core.io.ClassPathResource;
-import org.testcontainers.shaded.org.apache.commons.lang.mutable.MutableBoolean;
 
 import java.io.IOException;
 import java.time.Clock;
@@ -77,7 +79,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
-public class SagaServiceUnitTest {
+public class SagaServiceUnitTest extends AbstractUnitTest {
 
     public static final String TEST_TYPE_KEY = "TEST-SAGA-TYPE-KEY";
     public static final String MOCK_KEY = "mockKey";
@@ -128,9 +130,9 @@ public class SagaServiceUnitTest {
         var transactionStatusStrategy = new FinishTransactionStrategy(taskExecutor, transactionRepository,
             logRepository, txFinishEventPublisher);
         sagaService = new SagaServiceImpl(logRepository, transactionRepository, specService, eventsManager,
-            tenantUtils, taskExecutor, retryService, sagaEventRepository, transactionStatusStrategy);
+            tenantUtils, taskExecutor, retryService, sagaEventRepository, transactionStatusStrategy,
+            new LazyObjectProvider<>(() -> sagaService));
         sagaService.setClock(clock);
-        sagaService.setSelf(sagaService);
         specService.onRefresh("/config/tenants/XM/activation/activation-spec.yml", loadFile("spec/activation-spec.yml"));
         when(taskExecutor.onCheckWaitCondition(any(), any(), any())).thenReturn(true);
     }

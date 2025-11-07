@@ -1,18 +1,34 @@
 jib {
     from {
-        image = "adoptopenjdk:11-jre-hotspot"
+        image = "eclipse-temurin:21-jre-alpine"
+        platforms {
+            platform {
+                architecture = "${findProperty('jibArchitecture') ?: 'amd64'}"
+                os = "linux"
+            }
+        }
     }
     to {
         image = "activation:latest"
     }
     container {
-        entrypoint = ["bash", "-c", "chmod +x /entrypoint.sh && sync && /entrypoint.sh"]
-        ports = ["8712"]
+        entrypoint = ["bash", "-c", "/entrypoint.sh"]
+        ports = ["8081"]
         environment = [
             SPRING_OUTPUT_ANSI_ENABLED: "ALWAYS",
+            JHIPSTER_SLEEP: "0",
+            TZ: "Etc/UTC",
+            LANG: "en_US.UTF-8",
+            LANGUAGE: "en_US:en",
+            TERM: "xterm",
             JHIPSTER_SLEEP: "0"
         ]
         creationTime = "USE_CURRENT_TIMESTAMP"
+        user = 1000
+    }
+    extraDirectories {
+      paths = file("src/main/docker/jib")
+      permissions = ["/entrypoint.sh": "755"]
     }
 }
 

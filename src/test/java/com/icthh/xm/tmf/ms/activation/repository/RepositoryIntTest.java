@@ -20,7 +20,7 @@ import org.springframework.data.domain.PageRequest;
 
 @Slf4j
 @DataSet(value = "init-tx.xml")
-public class RepositoryTest extends BaseDaoTest {
+public class RepositoryIntTest extends BaseDaoTest {
 
     @Autowired
     private SagaTransactionRepository sagaTransactionRepository;
@@ -69,6 +69,6 @@ public class RepositoryTest extends BaseDaoTest {
 
     private Instant moveToSystemTime(String date) {
         return LocalDateTime.parse(date).toInstant(
-            ZoneId.systemDefault().getRules().getOffset(LocalDateTime.parse(date)));
+            ZoneId.of("UTC").getRules().getOffset(LocalDateTime.parse(date)));
     }
 }

@@ -17,7 +17,7 @@ logging:
     level:
         ROOT: INFO
         com.icthh.xm.tmf.ms.activation: INFO
-        io.github.jhipster: INFO
+        tech.jhipster: INFO
 
 spring:
     devtools:
@@ -39,7 +39,7 @@ spring:
         hikari:
             auto-commit: false
     jpa:
-        database-platform: io.github.jhipster.domain.util.FixedPostgreSQL82Dialect
+        database-platform: com.icthh.xm.commons.migration.db.jsonb.CustomPostgreSQLDialect
         database: POSTGRESQL
         show-sql: false
         properties:
@@ -59,7 +59,7 @@ spring:
         username:
         password:
     thymeleaf:
-        cache: true
+        cache: false
     zipkin: # Use the "zipkin" Maven profile to have the Spring Cloud Zipkin dependencies
         base-url: http://localhost:9411
         enabled: false
@@ -89,6 +89,7 @@ spring:
 # ===================================================================
 server:
     port: 8712
+    shutdown: graceful
     compression:
         enabled: true
         mime-types: text/html,text/xml,text/plain,text/css, application/javascript, application/json

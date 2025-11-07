@@ -27,7 +27,7 @@ import static org.mockito.Mockito.when;
 
 @Slf4j
 @DirtiesContext(classMode = DirtiesContext.ClassMode.BEFORE_CLASS)
-public class ApplicationStartupTest extends AbstractSpringBootTest {
+public class ApplicationStartupIntTest extends AbstractSpringBootTest {
 
     @MockBean
     private RetryService retryService;

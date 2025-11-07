@@ -7,8 +7,8 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 
-import javax.persistence.AttributeConverter;
-import javax.persistence.Converter;
+import jakarta.persistence.AttributeConverter;
+import jakarta.persistence.Converter;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.HashMap;
@@ -16,11 +16,11 @@ import java.util.Map;
 
 @Slf4j
 @Converter
-public class MapToStringConverter implements AttributeConverter<Map<String, Object>, String> {
+public class ActivationMapToStringConverter implements AttributeConverter<Map<String, Object>, String> {
 
     private ObjectMapper mapper = new ObjectMapper();
 
-    public MapToStringConverter() {
+    public ActivationMapToStringConverter() {
         mapper.registerModule(new JavaTimeModule());
     }
 

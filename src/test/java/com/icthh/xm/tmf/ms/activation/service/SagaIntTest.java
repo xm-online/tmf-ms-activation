@@ -8,6 +8,7 @@ import com.icthh.xm.commons.tenant.TenantContextHolder;
 import com.icthh.xm.commons.tenant.TenantContextUtils;
 import com.icthh.xm.tmf.ms.activation.ActivationApp;
 import com.icthh.xm.tmf.ms.activation.config.SecurityBeanOverrideConfiguration;
+import com.icthh.xm.tmf.ms.activation.config.SelfInjectionConfiguration;
 import com.icthh.xm.tmf.ms.activation.domain.SagaEvent;
 import com.icthh.xm.tmf.ms.activation.domain.SagaLog;
 import com.icthh.xm.tmf.ms.activation.domain.SagaLogType;
@@ -19,12 +20,13 @@ import com.icthh.xm.tmf.ms.activation.events.bindings.EventHandler;
 import com.icthh.xm.tmf.ms.activation.repository.SagaEventRepository;
 import com.icthh.xm.tmf.ms.activation.repository.SagaLogRepository;
 import com.icthh.xm.tmf.ms.activation.repository.SagaTransactionRepository;
+import com.icthh.xm.tmf.ms.activation.utils.LazyObjectProvider;
 import com.icthh.xm.tmf.ms.activation.utils.TenantUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.IOUtils;
-import org.hibernate.envers.internal.tools.MutableInteger;
+import org.hibernate.internal.util.MutableInteger;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -75,7 +77,9 @@ import static org.mockito.Mockito.spy;
 
 @Slf4j
 @RunWith(SpringRunner.class)
-@SpringBootTest(classes = {SagaIntTest.SagaIntTestConfiguration.class, ActivationApp.class, SecurityBeanOverrideConfiguration.class})
+@SpringBootTest(classes = {SagaIntTest.SagaIntTestConfiguration.class, ActivationApp.class,
+    SecurityBeanOverrideConfiguration.class,
+    SelfInjectionConfiguration.class})
 public class SagaIntTest {
 
     @Autowired
@@ -867,6 +871,7 @@ public class SagaIntTest {
 
     public static class SagaIntTestConfiguration {
 
+
         @Primary
         @Bean
         public RetryService retryService(
@@ -875,7 +880,8 @@ public class SagaIntTest {
             SagaEventRepository sagaEventRepository,
             SagaTransactionRepository transactionRepository,
             TenantUtils tenantUtils,
-            SeparateTransactionExecutor separateTransactionExecutor
+            SeparateTransactionExecutor separateTransactionExecutor,
+            LazyObjectProvider<RetryService> selfProvider
         ) {
             return new RetryService(
                 threadPoolTaskScheduler,
@@ -883,7 +889,8 @@ public class SagaIntTest {
                 sagaEventRepository,
                 transactionRepository,
                 tenantUtils,
-                separateTransactionExecutor
+                separateTransactionExecutor,
+                selfProvider
             ) {
                 @Override
                 public void retry(SagaEvent sagaEvent, SagaTransaction sagaTransaction, SagaTaskSpec sagaTaskSpec) {

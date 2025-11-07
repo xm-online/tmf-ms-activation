@@ -52,7 +52,7 @@ import org.springframework.web.context.WebApplicationContext;
 @WebMvcTest(controllers = SagaTransactionResource.class)
 @ContextConfiguration(classes = {SagaTransactionResource.class, ExceptionTranslator.class})
 @EnableSpringDataWebSupport
-public class SagaTransactionResourceTest {
+public class SagaTransactionResourceIntTest {
 
     @Autowired
     private WebApplicationContext wac;

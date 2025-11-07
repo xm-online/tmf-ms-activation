@@ -5,7 +5,6 @@ import com.icthh.xm.commons.domainevent.service.EventPublisher;
 import com.icthh.xm.commons.domainevent.service.builder.DomainEventFactory;
 import com.icthh.xm.commons.lep.api.BaseLepContext;
 import com.icthh.xm.commons.lep.api.LepContextFactory;
-import com.icthh.xm.commons.lep.commons.CommonsService;
 import com.icthh.xm.commons.topic.service.KafkaTemplateService;
 import com.icthh.xm.lep.api.LepMethod;
 import com.icthh.xm.tmf.ms.activation.service.MailService;

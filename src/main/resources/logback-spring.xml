@@ -15,11 +15,11 @@
     
     <logger name="com.icthh.xm" level="#logback.loglevel#"/>
 
-    <logger name="io.github.jhipster" level="#logback.loglevel#"/>
+    <logger name="tech.jhipster" level="#logback.loglevel#"/>
 
-    <logger name="javax.activation" level="WARN"/>
-    <logger name="javax.mail" level="WARN"/>
-    <logger name="javax.xml.bind" level="WARN"/>
+    <logger name="jakarta.activation" level="WARN"/>
+    <logger name="jakarta.mail" level="WARN"/>
+    <logger name="jakarta.xml.bind" level="WARN"/>
     <logger name="ch.qos.logback" level="WARN"/>
     <logger name="com.codahale.metrics" level="WARN"/>
     <logger name="com.netflix" level="WARN"/>

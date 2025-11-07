@@ -18,7 +18,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 @Slf4j
 @DataSet(value = "init-logs.xml")
-public class LogsRepositoryTest extends BaseDaoTest {
+public class LogsRepositoryIntTest extends BaseDaoTest {
 
     @Autowired
     private SagaLogRepository sagaLogRepository;

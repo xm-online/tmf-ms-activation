@@ -8,6 +8,8 @@ import static org.mockito.Mockito.when;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.icthh.xm.commons.exceptions.BusinessException;
+import com.icthh.xm.tmf.ms.activation.config.ActivationConfiguration;
+import com.icthh.xm.tmf.ms.activation.config.SelfInjectionConfiguration;
 import com.icthh.xm.tmf.ms.activation.domain.SagaEvent;
 import org.junit.Before;
 import org.junit.Test;
@@ -24,9 +26,9 @@ import java.util.UUID;
 
 @EnableRetry
 @RunWith(SpringRunner.class)
-@SpringBootTest(classes = {KafkaEventsSender.class, QueueNameResolverConfiguration.class})
+@SpringBootTest(classes = {KafkaEventsSender.class, QueueNameResolverConfiguration.class, SelfInjectionConfiguration.class})
 @EnableTransactionManagement(proxyTargetClass = true)
-public class KafkaEventsSenderTest {
+public class KafkaEventsSenderIntTest {
 
     @Autowired
     private EventsSender kafkaEventsSender;

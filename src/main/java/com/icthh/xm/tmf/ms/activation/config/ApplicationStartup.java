@@ -1,8 +1,6 @@
 package com.icthh.xm.tmf.ms.activation.config;
 
 import com.icthh.xm.commons.config.client.repository.TenantListRepository;
-import com.icthh.xm.commons.logging.util.MdcUtils;
-import com.icthh.xm.commons.permission.inspector.PrivilegeInspector;
 import com.icthh.xm.commons.tenant.TenantKey;
 import com.icthh.xm.tmf.ms.activation.service.RetryService;
 import com.icthh.xm.tmf.ms.activation.utils.TenantUtils;
@@ -20,15 +18,12 @@ import java.util.Optional;
 @SuppressWarnings("unused")
 public class ApplicationStartup implements ApplicationListener<ApplicationReadyEvent> {
 
-    private final ApplicationProperties applicationProperties;
-    private final PrivilegeInspector privilegeInspector;
     private final RetryService retryService;
     private final TenantListRepository tenantListRepository;
     private final TenantUtils tenantUtils;
 
     @Override
     public void onApplicationEvent(ApplicationReadyEvent event) {
-        initPriveleges();
         rescheduleSagaEvents();
     }
 
@@ -44,14 +39,5 @@ public class ApplicationStartup implements ApplicationListener<ApplicationReadyE
             tenantUtils.doInTenantContext(retryService::rescheduleAllEvents, tenant)
         );
         tenantKeyBefore.ifPresent(tenantUtils::setTenantKey);
-    }
-
-    private void initPriveleges() {
-        if (applicationProperties.isKafkaEnabled()) {
-            privilegeInspector.readPrivileges(MdcUtils.getRid());
-        } else {
-            log.warn("WARNING! Privileges inspection is disabled by "
-                + "configuration parameter 'application.kafka-enabled'");
-        }
     }
 }

@@ -16,7 +16,7 @@
 logging:
     level:
         ROOT: DEBUG
-        io.github.jhipster: DEBUG
+        tech.jhipster: DEBUG
         com.icthh.xm.tmf.ms.activation: DEBUG
 spring:
     profiles:
@@ -40,17 +40,18 @@ spring:
             port: 8500
     datasource:
         type: com.zaxxer.hikari.HikariDataSource
-        url: jdbc:h2:mem:activation;DB_CLOSE_DELAY=-1
+        url: jdbc:h2:mem:activation;DB_CLOSE_DELAY=-1;MODE=PostgreSQL
         username: activation
         password:
     h2:
         console:
             enabled: false
     jpa:
-        database-platform: io.github.jhipster.domain.util.FixedH2Dialect
+        database-platform: com.icthh.xm.commons.migration.db.jsonb.CustomPostgreSQLDialect
         database: H2
         show-sql: true
         properties:
+            hibernate.model.generator_name_as_sequence_name: false
             hibernate.id.new_generator_mappings: true
             hibernate.connection.provider_disables_autocommit: true
             hibernate.cache.use_second_level_cache: false
@@ -58,15 +59,8 @@ spring:
             hibernate.generate_statistics: true
     liquibase:
         contexts: dev
-    mail:
-        host: localhost
-        port: 25
-        username:
-        password:
     main:
       allow-bean-definition-overriding: true
-    messages:
-        cache-duration: PT1S # 1 second, see the ISO 8601 standard
     thymeleaf:
         cache: false
     zipkin: # Use the "zipkin" Maven profile to have the Spring Cloud Zipkin dependencies

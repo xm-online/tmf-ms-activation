@@ -35,7 +35,7 @@ import static java.util.UUID.randomUUID;
 import static org.mockito.ArgumentMatchers.refEq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @Slf4j
@@ -106,9 +106,9 @@ public class SagaServiceImplIntTest extends AbstractSpringBootTest {
                 .setTypeKey("TEST_NOT_FOUND_TYPE_KEY");
         sagaService.onSagaEvent(sagaEvent);
         verify(eventsSender).resendEvent(sagaEvent);
-        verifyZeroInteractions(sagaTaskExecutor);
-        verifyZeroInteractions(retryService);
-        verifyZeroInteractions(sagaEventRepository);
+        verifyNoInteractions(sagaTaskExecutor);
+        verifyNoInteractions(retryService);
+        verifyNoInteractions(sagaEventRepository);
     }
 
     @Test
@@ -133,9 +133,9 @@ public class SagaServiceImplIntTest extends AbstractSpringBootTest {
         sagaService.onSagaEvent(sagaEvent);
         verify(sagaEventRepository).save(refEq(savedSagaEvent, "id"));
         verifyNoMoreInteractions(sagaEventRepository);
-        verifyZeroInteractions(eventsSender);
-        verifyZeroInteractions(sagaTaskExecutor);
-        verifyZeroInteractions(retryService);
+        verifyNoInteractions(eventsSender);
+        verifyNoInteractions(sagaTaskExecutor);
+        verifyNoInteractions(retryService);
     }
 
     @Test(expected = InvalidSagaSpecificationException.class)

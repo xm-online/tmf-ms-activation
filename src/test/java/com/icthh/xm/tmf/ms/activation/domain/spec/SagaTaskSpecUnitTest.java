@@ -1,10 +1,11 @@
 package com.icthh.xm.tmf.ms.activation.domain.spec;
 
+import com.icthh.xm.tmf.ms.activation.AbstractUnitTest;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 
-public class SagaTaskSpecTest {
+public class SagaTaskSpecUnitTest extends AbstractUnitTest {
 
     private static final Integer TEN_INT = 10;
     private static final Long TEN_LONG = 10L;

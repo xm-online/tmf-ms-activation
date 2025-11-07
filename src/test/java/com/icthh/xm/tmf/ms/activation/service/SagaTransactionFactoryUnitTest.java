@@ -2,6 +2,7 @@ package com.icthh.xm.tmf.ms.activation.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import com.icthh.xm.tmf.ms.activation.AbstractUnitTest;
 import com.icthh.xm.tmf.ms.activation.domain.SagaTransaction;
 import java.util.HashMap;
 import java.util.Map;
@@ -9,7 +10,7 @@ import java.util.UUID;
 import org.junit.Before;
 import org.junit.Test;
 
-public class SagaTransactionFactoryUnitTest {
+public class SagaTransactionFactoryUnitTest extends AbstractUnitTest {
 
     private SagaTransactionFactory sagaTransactionFactory;
 

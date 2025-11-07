@@ -3,6 +3,7 @@ package com.icthh.xm.tmf.ms.activation.web.rest.v4;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -35,15 +36,16 @@ import org.mockito.ArgumentMatchers;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
 
 @RunWith(SpringRunner.class)
-@WebMvcTest(controllers = ServiceResourceApiController.class, secure = false)
+@WebMvcTest(controllers = ServiceResourceApiController.class)
 @ContextConfiguration(classes = {ServiceResourceApiController.class, ServiceResourceApiImpl.class,
     ExceptionTranslator.class, ResponseEnricherServiceImpl.class, ServiceMapperImpl.class})
-public class ServiceResourceApiImplTest {
+public class ServiceResourceApiImplIntTest {
 
     @MockBean
     private SagaService sagaService;
@@ -111,6 +113,7 @@ public class ServiceResourceApiImplTest {
 
         //when
         mockMvc.perform(post("/tmf-api/ServiceActivationAndConfiguration/v4/service")
+                .with(jwt().authorities(new SimpleGrantedAuthority("SUPER-ADMIN")))
             .contentType(TestUtil.APPLICATION_JSON_UTF8)
             .content(TestUtil.convertObjectToJsonBytes(serviceCreate)))
         //then

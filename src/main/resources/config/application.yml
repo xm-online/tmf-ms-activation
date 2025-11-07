@@ -1,123 +1,162 @@
-
-feign:
-    hystrix:
-        enabled: true
-
-# See https://github.com/Netflix/Hystrix/wiki/Configuration
-hystrix:
-    command:
-        default:
-            execution:
-                isolation:
-                    strategy: SEMAPHORE
-# See https://github.com/spring-cloud/spring-cloud-netflix/issues/1330
-#                    thread:
-#                        timeoutInMilliseconds: 10000
-    shareSecurityContext: true
-
 management:
-    endpoints:
-        web:
-            base-path: /management
-            exposure:
-                include: ["configprops", "env", "health", "info", "threaddump", "logfile", "jhimetrics", "prometheus" ]
-    endpoint:
-        health:
-            show-details: when_authorized
-    info:
-        git:
-            mode: full
+  endpoints:
+    web:
+      base-path: /management
+      exposure:
+        include:
+          - configprops
+          - env
+          - health
+          - info
+          - jhimetrics
+          - jhiopenapigroups
+          - logfile
+          - loggers
+          - prometheus
+          - threaddump
+          - caches
+          - metrics
+          - liquibase
+  endpoint:
     health:
-        mail:
-            enabled: false # When using the MailService, configure an SMTP server and set this to true
-        binders:
-            enabled: false
+      show-details: when_authorized
+      roles: 'SUPER-ADMIN'
+      probes:
+        enabled: true
+      group:
+        liveness:
+          include: livenessState
+        readiness:
+          include: readinessState,db
+    jhimetrics:
+      enabled: true
+  info:
+    git:
+      mode: full
+    env:
+      enabled: true
+  health:
+    mail:
+      enabled: false # When using the MailService, configure an SMTP server and set this to true
+  observations:
+    key-values:
+      application: ${spring.application.name}
+  prometheus:
     metrics:
-        enable:
-            http: true
-            jvm: true
-            logback: true
-            process: true
-            system: true
-        export:
-            prometheus:
-                enabled: true
-                step: 60
+      export:
+        enabled: true
+        step: 60
+  metrics:
+    enable:
+      http: true
+      jvm: true
+      logback: true
+      process: true
+      system: true
+    distribution:
+      percentiles-histogram:
+        all: true
+      percentiles:
+        all: 0, 0.5, 0.75, 0.95, 0.99, 1.0
+    tags:
+      application: ${spring.application.name}
+
+
 spring:
-    application:
-        name: activation
-    cloud:
-        consul:
-            discovery:
-                healthCheckPath: /management/health
-                instanceId: ${spring.application.name}:${spring.application.instance-id:${random.value}}
-            config:
-                watch:
-                    enabled: false
+  aop:
+    proxy-target-class: true
+  main:
+    allow-bean-definition-overriding: true
+    web-application-type: servlet
+  application:
+    name: activation
+  cloud:
+    consul:
+      enabled: true
+      discovery:
+        healthCheckPath: /management/health
+        instanceId: ${spring.application.name}:${spring.application.instance-id:${random.value}}
+        service-name: ${spring.application.name}
+      config:
+        watch:
+          enabled: false
+  data:
     jpa:
-        open-in-view: false
-        properties:
-            hibernate.jdbc.time_zone: UTC
-            hibernate.model.generator_name_as_sequence_name: false
-        hibernate:
-            ddl-auto: none
-            naming:
-                physical-strategy: org.springframework.boot.orm.jpa.hibernate.SpringPhysicalNamingStrategy
-                implicit-strategy: org.springframework.boot.orm.jpa.hibernate.SpringImplicitNamingStrategy
-    messages:
-        basename: i18n/messages
-    mvc:
-        favicon:
-            enabled: false
-    thymeleaf:
-        mode: HTML
+      repositories:
+        bootstrap-mode: default
+  jpa:
+    open-in-view: false
+    properties:
+      hibernate.model.generator_name_as_sequence_name: false
+      hibernate.id.new_generator_mappings: true
+      hibernate.jdbc.time_zone: UTC
+      hibernate.timezone.default_storage: NORMALIZE
+      hibernate.type.preferred_instant_jdbc_type: TIMESTAMP
+      hibernate.jdbc.batch_size: 25
+      hibernate.order_inserts: true
+      hibernate.order_updates: true
+    hibernate:
+      ddl-auto: none
+      naming:
+        physical-strategy: org.hibernate.boot.model.naming.CamelCaseToUnderscoresNamingStrategy
+        implicit-strategy: org.springframework.boot.orm.jpa.hibernate.SpringImplicitNamingStrategy
+  messages:
+    basename: i18n/messages
+  jackson:
+    deserialization:
+      fail-on-unknown-properties: false
+    serialization:
+      write-dates-as-timestamps: false
+    default-property-inclusion: non_empty
+  kafka:
+    bootstrap-servers: localhost:9092
+    consumer:
+      group-id: activation
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      properties:
+        session.timeout.ms: 30000
+        heartbeat.interval.ms: 3000
+        request.timeout.ms: 31000
+        max.poll.interval.ms: 300000
+      max-poll-records: 1
+    listener:
+      concurrency: 16
+      ack-mode: manual_immediate
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: com.icthh.xm.tmf.ms.activation.events.bindings.RoutingSerializer
+      batch-size: 0
+    properties:
+      reconnect.backoff.ms: 1000
+      partition.assignment.strategy: org.apache.kafka.clients.consumer.RangeAssignor
+    admin:
+      fail-fast: true
 
-    kafka:
-        bootstrap-servers: localhost:9092
-        consumer:
-            group-id: activation
-            key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-            value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-            properties:
-                session.timeout.ms: 30000
-                heartbeat.interval.ms: 3000
-                request.timeout.ms: 31000
-                max.poll.interval.ms: 300000
-            max-poll-records: 1
-        listener:
-            concurrency: 16
-            ack-mode: manual_immediate
-        producer:
-            key-serializer: org.apache.kafka.common.serialization.StringSerializer
-            value-serializer: com.icthh.xm.tmf.ms.activation.events.bindings.RoutingSerializer
-            batch-size: 0
-        properties:
-            reconnect.backoff.ms: 1000
-            partition.assignment.strategy: org.apache.kafka.clients.consumer.RangeAssignor
-        admin:
-            fail-fast: true
-
-    liquibase:
-        default-schema: XM
-
-liquibase:
+  liquibase:
     default-schema: XM
 
+liquibase:
+  default-schema: XM
+
 security:
-    oauth2:
-        resource:
-            filter-order: 3
+  oauth2:
+    resource:
+      filter-order: 3
 
 server:
-    servlet:
-        session:
-            cookie:
-                http-only: true
+  servlet:
+    session:
+      cookie:
+        http-only: true
 
 # Properties to be exposed on the /info management endpoint
 info:
-    # Comma separated list of profiles that will trigger the ribbon to show
-    display-ribbon-on-profiles: "dev"
+  # Comma separated list of profiles that will trigger the ribbon to show
+  display-ribbon-on-profiles: "dev"
+
+springdoc:
+  show-actuator: true
 
 # ===================================================================
 # JHipster specific properties
@@ -126,34 +165,37 @@ info:
 # ===================================================================
 
 jhipster:
-    async:
-        core-pool-size: 2
-        max-pool-size: 50
-        queue-capacity: 10000
+  async:
+    core-pool-size: 2
+    max-pool-size: 50
+    queue-capacity: 10000
     # By default CORS is disabled. Uncomment to enable.
     #cors:
-        #allowed-origins: "*"
-        #allowed-methods: "*"
-        #allowed-headers: "*"
-        #exposed-headers: "Authorization,Link,X-Total-Count"
-        #allow-credentials: true
-        #max-age: 1800
-    mail:
-        from: activation@localhost
-    swagger:
-        default-include-pattern: /(api|tmf-api|DSEntityProvisioning/api)/.*
-        title: activation API
-        description: activation API documentation
-        version: 0.0.1
-        terms-of-service-url:
-        contact-name:
-        contact-url:
-        contact-email:
-        license:
-        license-url:
+    #allowed-origins: "*"
+    #allowed-methods: "*"
+    #allowed-headers: "*"
+    #exposed-headers: "Authorization,Link,X-Total-Count"
+    #allow-credentials: true
+    #max-age: 1800
+  api-docs:
+    default-include-pattern: ${server.servlet.context-path:}/api/**
+    management-include-pattern: ${server.servlet.context-path:}/management/**
+    title: Activation API
+    description: Activation API documentation
+  security:
+    content-security-policy: "default-src 'self'; frame-src 'self' data:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://storage.googleapis.com; style-src 'self' https://fonts.googleapis.com 'unsafe-inline'; img-src 'self' data:; font-src 'self' https://fonts.gstatic.com data:"
+  swagger:
+    default-include-pattern: /(api|tmf-api|DSEntityProvisioning/api)/.*
+    title: activation API
+    description: activation API documentation
+    version: 0.0.1
+    terms-of-service-url:
+    contact-name:
+    contact-url:
+    contact-email:
+    license:
+    license-url:
 
-logging:
-    file: build/activation.log
 base-package: com.icthh.xm.tmf.ms.activation
 
 # ===================================================================
@@ -168,38 +210,38 @@ base-package: com.icthh.xm.tmf.ms.activation
 # application:
 
 xm-config:
-    enabled: true
-    xm-config-url: http://config
-    kafka-config-topic: config_topic
+  enabled: true
+  xm-config-url: http://config
+  kafka-config-topic: config_topic
 
 application:
-    kafkaOffsetsMetricTimeout: 5
-    retryThreadCount: 3
-    kafka-enabled: true
-    kafka-system-topic: system_topic
-    kafka-system-queue: system_queue
-    tenant-with-creation-access-list: XM, MANAGER
-    # The concurrency of the inbound consumer.
-    # Shows how many messages the consumer can process at the same time.
-    # The number of created partitions in the Kafka same topic is equal to
-    # application.kafka-concurrency-count * spring.cloud.stream.instance-count
-    kafka-concurrency-count: 16
-    db-schema-suffix:
-    tenant-ignored-path-list: /swagger-resources/configuration/ui, /management/health, /oauth/token_key, /h2-console
-    lep:
-        tenant-script-storage: XM_MS_CONFIG
-        lep-resource-path-pattern: /config/tenants/{tenantName}/activation/lep/resources/**/*
-        full-recompile-on-lep-update: true
+  kafkaOffsetsMetricTimeout: 5
+  retryThreadCount: 3
+  kafka-enabled: true
+  kafka-system-topic: system_topic
+  kafka-system-queue: system_queue
+  tenant-with-creation-access-list: XM, MANAGER
+  # The concurrency of the inbound consumer.
+  # Shows how many messages the consumer can process at the same time.
+  # The number of created partitions in the Kafka same topic is equal to
+  # application.kafka-concurrency-count * spring.cloud.stream.instance-count
+  kafka-concurrency-count: 16
+  db-schema-suffix:
+  tenant-ignored-path-list: /swagger-resources/configuration/ui, /management/health, /oauth/token_key, /h2-console, /v2/api-docs, /api/profile-info, /swagger-resources/configuration/ui, /management/health, /management/prometheus
+  lep:
+    tenant-script-storage: XM_MS_CONFIG
+    lep-resource-path-pattern: /config/tenants/{tenantName}/activation/lep/resources/**/*
+    full-recompile-on-lep-update: true
+  retry:
+    max-attempts: 3
+    delay: 1000 #in milliseconds
+    multiplier: 2
+  kafkaEventSender:
     retry:
-        max-attempts: 3
-        delay: 1000 #in milliseconds
-        multiplier: 2
-    kafkaEventSender:
-        retry:
-            max-attempts: 10
-            delay: 100 #in milliseconds
-            multiplier: 2
-    load-balanced-rest-template:
-        connection-request-timeout: 0
-        connect-timeout: 0
-        read-timeout: 0
+      max-attempts: 10
+      delay: 100 #in milliseconds
+      multiplier: 2
+  load-balanced-rest-template:
+    connection-request-timeout: 0
+    connect-timeout: 0
+    read-timeout: 0

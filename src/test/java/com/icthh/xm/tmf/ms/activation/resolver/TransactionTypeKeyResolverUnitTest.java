@@ -25,7 +25,7 @@ import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
-public class TransactionTypeKeyResolverTest {
+public class TransactionTypeKeyResolverUnitTest {
 
     private static final String TYPE_KEY = "DDS_ACTIVATION";
 

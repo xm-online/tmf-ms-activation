@@ -12,10 +12,10 @@ import com.icthh.xm.tmf.ms.activation.repository.SagaEventRepository;
 import com.icthh.xm.tmf.ms.activation.repository.SagaTransactionRepository;
 import com.icthh.xm.tmf.ms.activation.resolver.TaskTypeKeyResolver;
 import com.icthh.xm.tmf.ms.activation.resolver.TransactionTypeKeyResolver;
+import com.icthh.xm.tmf.ms.activation.utils.LazyObjectProvider;
 import com.icthh.xm.tmf.ms.activation.utils.TenantUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.DependsOn;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 import org.springframework.stereotype.Service;
@@ -24,7 +24,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
@@ -33,8 +32,8 @@ import static com.google.common.base.Predicates.alwaysTrue;
 import static com.google.common.base.Predicates.not;
 import static com.icthh.xm.tmf.ms.activation.domain.SagaEvent.SagaEventStatus.FAILED;
 import static com.icthh.xm.tmf.ms.activation.domain.SagaEvent.SagaEventStatus.ON_RETRY;
-import static com.icthh.xm.tmf.ms.activation.domain.SagaEvent.SagaEventStatus.WAIT_DEPENDS_TASK;
 import static com.icthh.xm.tmf.ms.activation.domain.SagaEvent.SagaEventStatus.WAIT_CONDITION_TASK;
+import static com.icthh.xm.tmf.ms.activation.domain.SagaEvent.SagaEventStatus.WAIT_DEPENDS_TASK;
 
 @Slf4j
 @Service
@@ -52,7 +51,11 @@ public class RetryService {
 
     private final Map<String, Boolean> scheduledEventsId = new ConcurrentHashMap<>();
 
-    private RetryService self;
+    private final LazyObjectProvider<RetryService> self;
+
+    private RetryService self() {
+        return self.get();
+    }
 
     @Transactional
     public void rescheduleAllEvents() {
@@ -71,7 +74,7 @@ public class RetryService {
             log.warn("Retry limit exceeded for event {}. {} > {}", sagaEvent, sagaEvent.getRetryNumber(),
                 task.getRetryCount());
             try {
-                self.retryLimitExceededWithTaskTypeResolver(sagaEvent, sagaTransaction, task, eventStatus);
+                self().retryLimitExceededWithTaskTypeResolver(sagaEvent, sagaTransaction, task, eventStatus);
             } catch (Throwable e) { // Because of fact that groovy code can have compilation errors
                 log.error("Error unable to start compensation lep: {}", e.getMessage(), e);
             }
@@ -82,15 +85,15 @@ public class RetryService {
     }
 
     public void retry(SagaEvent sagaEvent, SagaTransaction sagaTransaction, SagaTaskSpec sagaTaskSpec) {
-        self.retry(sagaEvent, sagaTransaction, sagaTaskSpec, ON_RETRY);
+        self().retry(sagaEvent, sagaTransaction, sagaTaskSpec, ON_RETRY);
     }
 
     public void retryForTaskWaitCondition(SagaEvent sagaEvent, SagaTransaction sagaTransaction, SagaTaskSpec sagaTaskSpec) {
-        self.retry(sagaEvent, sagaTransaction, sagaTaskSpec, WAIT_CONDITION_TASK);
+        self().retry(sagaEvent, sagaTransaction, sagaTaskSpec, WAIT_CONDITION_TASK);
     }
 
     public void retryForWaitDependsTask(SagaEvent sagaEvent, SagaTransaction sagaTransaction, SagaTaskSpec sagaTaskSpec) {
-        self.retry(sagaEvent, sagaTransaction, sagaTaskSpec, WAIT_DEPENDS_TASK);
+        self().retry(sagaEvent, sagaTransaction, sagaTaskSpec, WAIT_DEPENDS_TASK);
     }
 
     private void scheduleRetry(SagaEvent sagaEvent, SagaEvent.SagaEventStatus eventStatus) {
@@ -124,7 +127,7 @@ public class RetryService {
     }
 
     public void doResend(SagaEvent sagaEvent) {
-        doResend(sagaEvent, self::removeAndSend);
+        doResend(sagaEvent, self()::removeAndSend);
     }
 
 
@@ -180,12 +183,6 @@ public class RetryService {
         return sagaTransaction.getSagaTransactionState().equals(SagaTransactionState.CANCELED);
     }
 
-    @Autowired
-    public void setSelf(RetryService self) {
-        this.self = self;
-    }
-
-
     @Transactional
     @LogicExtensionPoint("RetryLimitExceeded")
     public Map<String, Object> retryLimitExceeded(SagaEvent sagaEvent, SagaTaskSpec task, SagaEvent.SagaEventStatus eventStatus) {
@@ -208,18 +205,18 @@ public class RetryService {
     @LogicExtensionPoint(value = "RetryLimitExceeded", resolver = TaskTypeKeyResolver.class)
     public Map<String, Object> retryLimitExceededWithTaskTypeResolver(SagaEvent sagaEvent, SagaTransaction sagaTransaction, SagaTaskSpec task, SagaEvent.SagaEventStatus eventStatus) {
         log.info("No handler for RetryLimitExceededWithTaskTypeResolver");
-        return self.retryLimitExceededWithTransactionTypeResolver(sagaEvent, sagaTransaction, task, eventStatus);
+        return self().retryLimitExceededWithTransactionTypeResolver(sagaEvent, sagaTransaction, task, eventStatus);
     }
 
     @Transactional
     @LogicExtensionPoint(value = "RetryLimitExceeded", resolver = TransactionTypeKeyResolver.class)
     public Map<String, Object> retryLimitExceededWithTransactionTypeResolver(SagaEvent sagaEvent, SagaTransaction sagaTransaction, SagaTaskSpec task, SagaEvent.SagaEventStatus eventStatus) {
         log.info("No handler for RetryLimitExceededWithTaskTypeResolver");
-        return self.retryLimitExceeded(sagaEvent, task, eventStatus);
+        return self().retryLimitExceeded(sagaEvent, task, eventStatus);
     }
 
     // Method that allow to resend lost kafka event from db
     public void doResendInQueueEvent(SagaEvent sagaEvent) {
-        doResend(sagaEvent, (event) -> self.removeAndSend(event, alwaysTrue()));
+        doResend(sagaEvent, (event) -> self().removeAndSend(event, alwaysTrue()));
     }
 }

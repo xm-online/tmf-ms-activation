@@ -1,5 +1,6 @@
 package com.icthh.xm.tmf.ms.activation.repository;
 
+import com.github.database.rider.core.api.configuration.DBUnit;
 import com.github.database.rider.spring.api.DBRider;
 import org.junit.After;
 import org.junit.runner.RunWith;

@@ -20,22 +20,20 @@ import com.icthh.xm.tmf.ms.activation.resolver.TaskTypeKeyResolver;
 import com.icthh.xm.tmf.ms.activation.resolver.TransactionTypeKeyResolver;
 import com.icthh.xm.tmf.ms.activation.service.SagaSpecService.InvalidSagaSpecificationException;
 import com.icthh.xm.tmf.ms.activation.utils.JsonPathUtil;
+import com.icthh.xm.tmf.ms.activation.utils.LazyObjectProvider;
 import com.icthh.xm.tmf.ms.activation.utils.TenantUtils;
 import com.icthh.xm.tmf.ms.activation.utils.TransactionUtils;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
-import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.NotImplementedException;
 import org.apache.commons.lang3.time.StopWatch;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.time.Clock;
@@ -102,8 +100,7 @@ public class SagaServiceImpl implements SagaService {
     private Clock clock = Clock.systemUTC();
     private final Map<String, Boolean> executingTask = new ConcurrentHashMap<>();
 
-    @Setter(onMethod = @__(@Autowired))
-    private SagaServiceImpl self;
+    private final LazyObjectProvider<SagaServiceImpl> sagaServiceProvider;
 
     @LogicExtensionPoint(value = "CreateNewSaga", resolver = TransactionTypeKeyResolver.class)
     @Override
@@ -137,7 +134,7 @@ public class SagaServiceImpl implements SagaService {
         } catch (Exception e) {
             log.error("Error handle saga event", e);
             // For avoid stop partition, in some crazy situation, send to end of the queue.
-            self.resendEvent(sagaEvent);
+            self().resendEvent(sagaEvent);
         }
     }
 
@@ -196,7 +193,7 @@ public class SagaServiceImpl implements SagaService {
                 return;
             }
 
-            if (!TRUE.equals(self.checkCondition(taskSpec, sagaEvent, transaction))) {
+            if (!TRUE.equals(self().checkCondition(taskSpec, sagaEvent, transaction))) {
                 log.info("Task by event {} rejected by condition. Transaction: {}", sagaEvent, transaction);
                 rejectTask(transaction.getId(), sagaEvent.getTypeKey(), sagaEvent.getTypeKey(), context);
                 updateTransactionStrategy.updateTransactionStatus(transaction, transactionSpec, sagaEvent.getTaskContext());
@@ -207,7 +204,7 @@ public class SagaServiceImpl implements SagaService {
                 int countOfIteration = generateIterableEvents(transaction.getId(), sagaEvent.getTypeKey(), taskSpec, sagaEvent.getTaskContext());
                 sagaEvent.setIterationsCount(countOfIteration);
                 if (countOfIteration <= 0) {
-                    self.finishIterableTask(sagaEvent, transaction, transactionSpec, taskSpec, Map.of());
+                    self().finishIterableTask(sagaEvent, transaction, transactionSpec, taskSpec, Map.of());
                 }
                 return;
             }
@@ -219,7 +216,7 @@ public class SagaServiceImpl implements SagaService {
 
             Map<String, Object> taskContext = taskExecutor.executeTask(taskSpec, sagaEvent, transaction, continuation);
 
-            nextTasks.removeAll(taskSpec.getNext());
+            taskSpec.getNext().forEach(nextTasks::remove);
             nextTasks.forEach(task -> rejectTask(transaction.getId(), taskSpec.getKey(), task, context));
 
             runChildTransaction(taskSpec, sagaEvent, taskContext, continuation);
@@ -334,7 +331,7 @@ public class SagaServiceImpl implements SagaService {
         Context context = draftContext.createContext();
         sagaEvent.getTaskContext().putAll(taskContext);
 
-        self.internalContinueTask(context.getTransaction(), sagaEvent, context.getTaskSpec(), context);
+        self().internalContinueTask(context.getTransaction(), sagaEvent, context.getTaskSpec(), context);
     }
 
     @LogicExtensionPoint(value = "ContinueTask", resolver = TaskTypeKeyResolver.class)
@@ -369,9 +366,9 @@ public class SagaServiceImpl implements SagaService {
     private void continuation(SagaEvent sagaEvent, SagaTransaction transaction, SagaTransactionSpec transactionSpec,
                               SagaTaskSpec taskSpec, Map<String, Object> taskContext) {
         if (taskSpec.isIterable()) {
-            self.finishIterableTask(sagaEvent, transaction, transactionSpec, taskSpec, taskContext);
+            self().finishIterableTask(sagaEvent, transaction, transactionSpec, taskSpec, taskContext);
         } else {
-            self.finishTask(sagaEvent, transaction, transactionSpec, taskSpec, taskContext, sagaEvent.getIteration());
+            self().finishTask(sagaEvent, transaction, transactionSpec, taskSpec, taskContext, sagaEvent.getIteration());
         }
     }
 
@@ -426,7 +423,7 @@ public class SagaServiceImpl implements SagaService {
             resultTaskContext.put(LOOP_RESULT_CONTEXTS, taskContexts);
         }
         SagaEvent event = sagaEventRepository.findByTransactionIdAndTypeKeyAndIterationIsNull(transaction.getId(), sagaEvent.getTypeKey());
-        self.finishTask(event, transaction, transactionSpec, taskSpec, resultTaskContext, null);
+        self().finishTask(event, transaction, transactionSpec, taskSpec, resultTaskContext, null);
         deleteSagaEvent(event);
     }
 
@@ -491,7 +488,7 @@ public class SagaServiceImpl implements SagaService {
     private boolean isTransactionExists(SagaEvent sagaEvent, DraftContext context) {
         if (context.getTransaction().isEmpty()) {
             log.error("Transaction with id {} not found.", sagaEvent.getTransactionId());
-            self.resendEvent(sagaEvent);
+            self().resendEvent(sagaEvent);
             return false;
         }
         return true;
@@ -820,9 +817,13 @@ public class SagaServiceImpl implements SagaService {
         }
     }
 
+    private SagaServiceImpl self() {
+        return sagaServiceProvider.get();
+    }
+
     @Data
     @AllArgsConstructor
-    private static class Context {
+    public static class Context {
         private SagaTransaction transaction;
         private SagaTransactionSpec transactionSpec;
         private SagaTaskSpec taskSpec;

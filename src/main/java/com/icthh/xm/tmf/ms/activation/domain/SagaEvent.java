@@ -3,20 +3,20 @@ package com.icthh.xm.tmf.ms.activation.domain;
 import static com.icthh.xm.tmf.ms.activation.domain.SagaEvent.SagaEventStatus.IN_QUEUE;
 import static com.icthh.xm.tmf.ms.activation.domain.SagaEvent.SagaEventStatus.SUSPENDED;
 
-import com.icthh.xm.tmf.ms.activation.repository.converter.MapToStringConverter;
+import com.icthh.xm.tmf.ms.activation.repository.converter.ActivationMapToStringConverter;
 import java.io.Serializable;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
-import javax.persistence.Column;
-import javax.persistence.Convert;
-import javax.persistence.Embedded;
-import javax.persistence.Entity;
-import javax.persistence.EnumType;
-import javax.persistence.Enumerated;
-import javax.persistence.Id;
-import javax.persistence.Table;
+import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
+import jakarta.persistence.Embedded;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import lombok.ToString;
@@ -41,7 +41,7 @@ public class SagaEvent implements Serializable {
     private String parentTypeKey;
     @Column(name = "transaction_id")
     private String transactionId;
-    @Convert(converter = MapToStringConverter.class)
+    @Convert(converter = ActivationMapToStringConverter.class)
     @Column(name = "task_context")
     private Map<String, Object> taskContext = new HashMap<>();
 

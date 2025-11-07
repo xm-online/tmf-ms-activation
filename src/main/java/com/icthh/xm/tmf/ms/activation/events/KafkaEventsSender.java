@@ -3,14 +3,13 @@ package com.icthh.xm.tmf.ms.activation.events;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.icthh.xm.commons.exceptions.BusinessException;
-import com.icthh.xm.commons.lep.spring.LepService;
 import com.icthh.xm.commons.lep.LogicExtensionPoint;
+import com.icthh.xm.commons.lep.spring.LepService;
 import com.icthh.xm.tmf.ms.activation.domain.SagaEvent;
+import com.icthh.xm.tmf.ms.activation.utils.LazyObjectProvider;
 import lombok.RequiredArgsConstructor;
-import lombok.Setter;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.retry.annotation.Backoff;
 import org.springframework.retry.annotation.Retryable;
@@ -30,8 +29,7 @@ public class KafkaEventsSender implements EventsSender {
     private final KafkaTemplate<String, String> template;
     private final QueueNameResolver queueNameResolver;
 
-    @Setter(onMethod = @__(@Autowired))
-    private KafkaEventsSender self;
+    private final LazyObjectProvider<KafkaEventsSender> selfProvider;
 
     @Retryable(include = BusinessException.class,
                maxAttemptsExpression = "${application.kafkaEventSender.retry.max-attempts}",
@@ -61,7 +59,7 @@ public class KafkaEventsSender implements EventsSender {
 
     public Integer getPartitionKeyForTopic(String topic, SagaEvent sagaEvent) {
         int partitionCount = Math.max(template.partitionsFor(topic).size(), 1);
-        return Math.abs(self.getPartitionKey(sagaEvent).hashCode()) % partitionCount;
+        return Math.abs(selfProvider.get().getPartitionKey(sagaEvent).hashCode()) % partitionCount;
     }
 
     @LogicExtensionPoint("GetPartitionKey")

@@ -3,8 +3,8 @@ package com.icthh.xm.tmf.ms.activation.domain;
 import lombok.Data;
 import lombok.experimental.Accessors;
 
-import javax.persistence.Column;
-import javax.persistence.Embeddable;
+import jakarta.persistence.Column;
+import jakarta.persistence.Embeddable;
 
 @Data
 @Embeddable
