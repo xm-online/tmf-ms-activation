@@ -17,6 +17,7 @@ import com.icthh.xm.tmf.ms.activation.domain.spec.SagaTaskSpec;
 import com.icthh.xm.tmf.ms.activation.domain.spec.SagaTransactionSpec;
 import com.icthh.xm.tmf.ms.activation.events.EventsSender;
 import com.icthh.xm.tmf.ms.activation.events.bindings.EventHandler;
+import com.icthh.xm.tmf.ms.activation.repository.OriginLogRepository;
 import com.icthh.xm.tmf.ms.activation.repository.SagaEventRepository;
 import com.icthh.xm.tmf.ms.activation.repository.SagaLogRepository;
 import com.icthh.xm.tmf.ms.activation.repository.SagaTransactionRepository;
@@ -32,6 +33,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.context.annotation.Bean;
@@ -40,6 +42,7 @@ import org.springframework.context.annotation.Primary;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.test.util.AopTestUtils;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -67,13 +70,13 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.when;
 
 @Slf4j
 @RunWith(SpringRunner.class)
@@ -87,6 +90,10 @@ public class SagaIntTest {
 
     @SpyBean
     private SagaLogRepository logRepository;
+
+    @Qualifier("originLogRepository")
+    @Autowired
+    private OriginLogRepository originLogRepository;
 
     @Autowired
     private LepManagementService lepManager;
@@ -320,7 +327,7 @@ public class SagaIntTest {
                 Thread.sleep(2_000);
             }
 
-            return invocation.callRealMethod();
+            return originLogRepository.save(log);
         }).when(logRepository).save(argThat(log -> EVENT_END == log.getLogType()));
 
         // Track each event
@@ -914,6 +921,8 @@ public class SagaIntTest {
         public EventsSender eventsSender(@Lazy EventHandler eventHandler, TenantContextHolder tenantContextHolder, LepManagementService lepManager) {
             return spy(new TestEventSender(eventHandler, () -> initContext(tenantContextHolder, lepManager)));
         }
+
+
     }
 
     private static List<Consumer<SagaEvent>> BEFORE_EVENTS = new ArrayList<>();
