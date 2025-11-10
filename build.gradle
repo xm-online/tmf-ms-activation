@@ -23,7 +23,6 @@ plugins {
     id "io.spring.nohttp"
     id 'pmd'
     id "com.github.spotbugs"
-    id "com.github.andygoossens.gradle-modernizer-plugin"
     id "org.liquibase.gradle"
     id 'io.spring.dependency-management' version '1.1.4'
     id 'war'
