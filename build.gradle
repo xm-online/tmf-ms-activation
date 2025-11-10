@@ -24,7 +24,7 @@ plugins {
     id 'pmd'
     id "com.github.spotbugs"
     id "org.liquibase.gradle"
-    id 'io.spring.dependency-management' version '1.1.4'
+    id 'io.spring.dependency-management'
     id 'war'
     //jhipster-needle-gradle-plugins - JHipster will add additional gradle plugins here
 }
