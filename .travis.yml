@@ -2,14 +2,7 @@ language: java
 jdk:
 - oraclejdk21
 install: true
-addons:
-  sonarcloud:
-    organization: xm-online
-    token:
-      secure: ECxAG4LwK9L/6oFlYQtX5G4giil7YHRR6xaQfrZsoT54DiUmUOGeoNFOCCfWd0I3BeRZkB32gt+isNccwrEbE9JJb3A23lxg0vFaLdkvabmYc4yuCyIdA2IrBdrknoCHhlGIU1RN1V+kbXb9ZnZU90wNn+ECs4JwIHzPgqVoF3tsso89CQivlZjX/Btlpb5/WfMeXCjUNsArTx4JG6iLYtMfFYBppR8ASbkTRhSq6rXsmrTRT7GJa14OTAZ5uzBM5F4k6QFnJihIcLDH9kPDCpgW4ZLTJbeU6UmQS09FgV4hXbtTcu0YanHkV3zFSgTV9O0AY0oYzqxsyQTMY0cOprBCeDqeZj24ZEDnqZNlR/B9WIVaJvcbDx7vPnMVMBhW/KGZs9uz5WUGYcCBi7mZA7nUAP1jrh8p4ZDeNg9z5VZwktsEAuevRGvJZBqKoDPNAh+o6KTEMr7hNQueTOEDxrrU2XwIWV0rA5iGI5dTEud7gtUnbnL5gAw/TTgAhABMNbf9XYu0qbjKbwH43lxnDOD6vXBfU4gMbqUrssyj5OroENDt+AUO9IXUk65nizl1LX3PAaryuR5lADl/K5gq1xvCq0qzXp/o0+eW+kb9ygUOt9N0RRtjV5BYbV+VqP5DKIizFOZBvLoxeRdHLJdxoEZFwfRPdIyp+TUcNkDsTPk=
-    branches:
-    - master
-    - main
+
 
 script:
   - set -e
