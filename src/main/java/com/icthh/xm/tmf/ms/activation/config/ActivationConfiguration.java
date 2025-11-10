@@ -11,6 +11,7 @@ import com.icthh.xm.tmf.ms.activation.service.SagaTaskLepExecutor;
 import com.icthh.xm.tmf.ms.activation.service.TransactionStatusStrategy;
 import com.icthh.xm.tmf.ms.activation.service.TxFinishEventPublisher;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -38,4 +39,8 @@ public class ActivationConfiguration {
         return new SagaTaskExecutorImpl(lepExecutor);
     }
 
+    @Bean
+    public TxFinishEventPublisher txFinishEventPublisher(ApplicationContext applicationContext) {
+        return applicationContext::publishEvent;
+    }
 }
