@@ -228,6 +228,7 @@ dependencies {
     implementation "org.springframework.security:spring-security-config"
     implementation "org.springframework.security:spring-security-data"
     implementation "org.springframework.security:spring-security-web"
+    implementation "org.springframework.boot:spring-boot-starter-mail"
 
     implementation "org.springdoc:springdoc-openapi-starter-webmvc-ui:${springdocOpenapiVersion}"
     implementation 'io.micrometer:micrometer-tracing'
@@ -287,6 +288,9 @@ dependencies {
 
 
     constraints {
+        implementation("org.apache.commons:commons-compress:${apacheCommonCompress}")
+        implementation("io.github.classgraph:classgraph:${gitClassGraph}")
+
         implementation("io.undertow:undertow-core") {
             version {
                 strictly("${undertowVersion}")

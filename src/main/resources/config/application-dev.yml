@@ -19,15 +19,9 @@ logging:
         tech.jhipster: DEBUG
         com.icthh.xm.tmf.ms.activation: DEBUG
 spring:
-    profiles:
-        active: dev
-        include:
-            - swagger
-            # Uncomment to activate TLS for the dev profile
-            #- tls
     devtools:
         restart:
-            enabled: true
+            enabled: false
         livereload:
             enabled: false # we use Webpack dev server + BrowserSync for livereload
     jackson:
@@ -61,14 +55,14 @@ spring:
         contexts: dev
     main:
       allow-bean-definition-overriding: true
-    thymeleaf:
-        cache: false
-    zipkin: # Use the "zipkin" Maven profile to have the Spring Cloud Zipkin dependencies
-        base-url: http://localhost:9411
-        enabled: false
-        locator:
-            discovery:
-                enabled: true
+    mail:
+      host: localhost
+      port: 1025
+      username:
+      password:
+      properties:
+        mail.smtp.auth: false
+        mail.smtp.starttls.enable: false
     kafka:
         bootstrap-servers: localhost:9092
 server:
@@ -101,26 +95,12 @@ jhipster:
     mail: # specific JHipster mail property, for standard properties see MailProperties
         from: activation@localhost
         base-url: http://127.0.0.1:8712
-    metrics: # DropWizard Metrics configuration, used by MetricsConfiguration
-        logs: # Reports Dropwizard metrics in the logs
-            enabled: false
     logging:
         logstash: # Forward logs to logstash over a socket, used by LoggingConfiguration
             enabled: false
             host: localhost
             port: 5000
-            queue-size: 512
-oauth2:
-    signature-verification:
-        public-key-endpoint-uri: http://config/api/token_key
-        #ttl for public keys to verify JWT tokens (in ms)
-        ttl: 3600000
-        #max. rate at which public keys will be fetched (in ms)
-        public-key-refresh-rate-limit: 10000
-    web-client-configuration:
-        #keep in sync with UAA configuration
-        client-id: web_app
-        secret: changeit
+
 
 # ===================================================================
 # Application specific properties
