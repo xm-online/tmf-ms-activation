@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.icthh.xm.tmf.ms.activation.events.bindings.ActivationDynamicTopicConsumerConfiguration;
 import com.icthh.xm.tmf.ms.activation.events.bindings.EventHandler;
 import com.icthh.xm.tmf.ms.activation.events.bindings.MessagingConfiguration;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -12,7 +13,8 @@ import org.springframework.context.annotation.Configuration;
 public class DynamicTopicMessagingConfiguration {
 
     @Bean
-    public ActivationDynamicTopicConsumerConfiguration dynamicTopicConsumerConfiguration(ApplicationEventPublisher applicationEventPublisher,
+    @ConditionalOnMissingBean(ActivationDynamicTopicConsumerConfiguration.class)
+    public ActivationDynamicTopicConsumerConfiguration activationDynamicTopicConsumerConfiguration(ApplicationEventPublisher applicationEventPublisher,
                                                                                          EventHandler eventHandler,
                                                                                          ObjectMapper objectMapper) {
         return new ActivationDynamicTopicConsumerConfiguration(applicationEventPublisher, eventHandler, objectMapper);
