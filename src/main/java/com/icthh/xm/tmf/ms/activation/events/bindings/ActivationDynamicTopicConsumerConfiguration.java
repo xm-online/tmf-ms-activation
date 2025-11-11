@@ -68,16 +68,14 @@ public class ActivationDynamicTopicConsumerConfiguration implements DynamicConsu
         dynamicConsumersByTenant.computeIfAbsent(tenantMapKey, v -> new ArrayList<>()).add(dynamicConsumer);
     }
 
-    private TopicConfig buildTopicConfig(String chanelName, String consumerGroup, String startOffset) {
+    protected TopicConfig buildTopicConfig(String chanelName, String consumerGroup, String startOffset) {
         TopicConfig topicConfig = new TopicConfig();
         topicConfig.setKey(chanelName);
         topicConfig.setTypeKey(chanelName);
         topicConfig.setTopicName(chanelName);
         topicConfig.setRetriesCount(Integer.MAX_VALUE);
         topicConfig.setGroupId(consumerGroup);
-        // todo: uncomment after migration to xm-commons 4.x
-//        topicConfig.setAutoOffsetReset(startOffset);
-//        topicConfig.setMetadataMaxAge(String.valueOf(kafkaMetadataMaxAge));
+        topicConfig.setAutoOffsetReset(startOffset);
         return topicConfig;
     }
 
