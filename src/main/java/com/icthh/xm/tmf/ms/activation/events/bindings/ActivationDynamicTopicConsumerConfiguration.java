@@ -18,7 +18,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import static org.apache.commons.lang3.StringUtils.upperCase;
 
 @Slf4j
-public class DynamicTopicConsumerConfiguration implements DynamicConsumerConfiguration {
+public class ActivationDynamicTopicConsumerConfiguration implements DynamicConsumerConfiguration {
 
     public static final String SAGA_EVENTS_PREFIX = "saga-events-";
 
@@ -32,8 +32,8 @@ public class DynamicTopicConsumerConfiguration implements DynamicConsumerConfigu
     private final MessageEventHandlerFacade messageEventHandlerFacade;
     private final ApplicationEventPublisher applicationEventPublisher;
 
-    public DynamicTopicConsumerConfiguration(ApplicationEventPublisher applicationEventPublisher,
-                                             EventHandler eventHandler, ObjectMapper objectMapper) {
+    public ActivationDynamicTopicConsumerConfiguration(ApplicationEventPublisher applicationEventPublisher,
+                                                       EventHandler eventHandler, ObjectMapper objectMapper) {
         this.applicationEventPublisher = applicationEventPublisher;
         this.messageEventHandlerFacade = new MessageEventHandlerFacade(eventHandler, objectMapper);
         this.dynamicConsumersByTenant = new ConcurrentHashMap<>();
