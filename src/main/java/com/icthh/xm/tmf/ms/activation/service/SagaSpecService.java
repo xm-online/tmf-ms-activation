@@ -61,7 +61,7 @@ public class SagaSpecService implements RefreshableConfiguration {
         }
     }
 
-    private String extractTenant(final String updatedKey) {
+    public String extractTenant(final String updatedKey) {
         if (matcher.match(PATH_PATTERN, updatedKey)) {
             return matcher.extractUriTemplateVariables(PATH_PATTERN, updatedKey).get(TENANT_NAME);
         }
