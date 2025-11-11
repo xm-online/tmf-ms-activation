@@ -329,7 +329,7 @@ public class SagaServiceImpl implements SagaService {
         }
 
         Context context = draftContext.createContext();
-        sagaEvent.getTaskContext().putAll(taskContext);
+        sagaEvent.getTaskContext().putAll(firstNonNull(taskContext, Map.of()));
 
         self().internalContinueTask(context.getTransaction(), sagaEvent, context.getTaskSpec(), context);
     }
