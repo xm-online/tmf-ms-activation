@@ -157,8 +157,8 @@ public class SagaServiceUnitTest extends AbstractUnitTest {
         verify(transactionRepository).save(refEq(mockTx()));
         verify(sagaEventRepository).save(refEq(inQueueEvent(txId, "FIRST-PARALEL-TASK", null, null), "id"));
         verify(sagaEventRepository).save(refEq(inQueueEvent(txId, "SECOND-PARALEL-TASK", null, null), "id"));
-        verify(eventsManager).sendEvent(refEq(inQueueEvent(txId, "FIRST-PARALEL-TASK", "savedFirstTaskId", null)));
-        verify(eventsManager).sendEvent(refEq(inQueueEvent(txId, "SECOND-PARALEL-TASK", "savedSecondTaskId", null)));
+        verify(eventsManager).sendEvent(eq(TEST_TYPE_KEY), refEq(inQueueEvent(txId, "FIRST-PARALEL-TASK", "savedFirstTaskId", null)));
+        verify(eventsManager).sendEvent(eq(TEST_TYPE_KEY), refEq(inQueueEvent(txId, "SECOND-PARALEL-TASK", "savedSecondTaskId", null)));
 
         noMoreInteraction();
     }
@@ -498,7 +498,7 @@ public class SagaServiceUnitTest extends AbstractUnitTest {
         verify(sagaEventRepository).existsById("saved-event" + txId);
         verify(sagaEventRepository).deleteById("saved-event" + txId);
         verify(sagaEventRepository).save(refEq(inQueueEvent(txId, "SOME-OTHER-TASK", null, "NEXT-JOIN-TASK"), "id"));
-        verify(eventsManager).sendEvent(refEq(inQueueEvent(txId, "SOME-OTHER-TASK", "saved-event" + txId, "NEXT-JOIN-TASK")));
+        verify(eventsManager).sendEvent(eq(TEST_TYPE_KEY), refEq(inQueueEvent(txId, "SOME-OTHER-TASK", "saved-event" + txId, "NEXT-JOIN-TASK")));
         verify(logRepository).findLogs(eq(EVENT_END), eq(mockTx(txId, NEW)), eq("NEXT-JOIN-TASK"), isNull());
         verify(logRepository).save(refEq(createLog(txId, "NEXT-JOIN-TASK", EVENT_END)));
         verify(logRepository).getFinishLogsTypeKeys(eq(txId), eq(allTasks));
@@ -862,7 +862,7 @@ public class SagaServiceUnitTest extends AbstractUnitTest {
         verify(transactionRepository, times(2)).findByKey(eq(key));
         verify(transactionRepository, times(countTransactionWillStarted)).save(refEq(tx1));
         verify(sagaEventRepository, times(2)).save(any());
-        verify(eventsManager, times(2)).sendEvent(any());
+        verify(eventsManager, times(2)).sendEvent(any(), any());
 
         noMoreInteraction();
     }
@@ -890,7 +890,7 @@ public class SagaServiceUnitTest extends AbstractUnitTest {
         verify(transactionRepository).save(refEq(tx1));
         verify(transactionRepository).save(refEq(tx2));
         verify(sagaEventRepository, times(4)).save(any());
-        verify(eventsManager, times(4)).sendEvent(any());
+        verify(eventsManager, times(4)).sendEvent(any(), any());
 
         noMoreInteraction();
     }

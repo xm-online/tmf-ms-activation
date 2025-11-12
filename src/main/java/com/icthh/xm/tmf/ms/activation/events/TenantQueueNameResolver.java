@@ -7,6 +7,11 @@ import static com.icthh.xm.tmf.ms.activation.events.bindings.ActivationDynamicTo
 public class TenantQueueNameResolver implements QueueNameResolver {
 
     @Override
+    public String resolveQueueName(String transactionTypeKey, SagaEvent sagaEvent) {
+        return buildChanelName(sagaEvent.getTenantKey().toUpperCase());
+    }
+
+    @Override
     public String resolveQueueName(SagaEvent sagaEvent) {
         return buildChanelName(sagaEvent.getTenantKey().toUpperCase());
     }

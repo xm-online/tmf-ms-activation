@@ -201,7 +201,7 @@ public class SagaServiceImpl implements SagaService {
             }
 
             if (taskSpec.isIterable() && sagaEvent.getIteration() == null) {
-                int countOfIteration = generateIterableEvents(transaction.getId(), sagaEvent.getTypeKey(), taskSpec, sagaEvent.getTaskContext());
+                int countOfIteration = generateIterableEvents(transaction, sagaEvent.getTypeKey(), taskSpec, sagaEvent.getTaskContext());
                 sagaEvent.setIterationsCount(countOfIteration);
                 if (countOfIteration <= 0) {
                     self().finishIterableTask(sagaEvent, transaction, transactionSpec, taskSpec, Map.of());
@@ -375,7 +375,7 @@ public class SagaServiceImpl implements SagaService {
     private void generateNextEvents(SagaEvent sagaEvent, SagaTransaction transaction, SagaTransactionSpec transactionSpec,
                                     SagaTaskSpec taskSpec, Map<String, Object> taskContext) {
         var tasks = taskSpec.getNext().stream().map(transactionSpec::getTask).collect(toList());
-        generateEvents(transaction.getId(), sagaEvent.getTypeKey(), tasks, taskContext);
+        generateEvents(transaction, sagaEvent.getTypeKey(), tasks, taskContext);
     }
 
     @Transactional
@@ -408,7 +408,7 @@ public class SagaServiceImpl implements SagaService {
                 iterationCount
             );
             if (taskExecutor.continueIterableLoopCondition(taskSpec, iterableEvent, transaction)) {
-                saveAndSendEvent(iterableEvent);
+                saveAndSendEvent(transaction.getTypeKey(), iterableEvent);
             } else {
                 finishLoop(sagaEvent, transaction, transactionSpec, taskSpec);
             }
@@ -457,7 +457,7 @@ public class SagaServiceImpl implements SagaService {
                 .filter(not(SagaEvent::isInQueue))
                 .peek(SagaEvent::markAsInQueue)
                 .map(sagaEventRepository::save)
-                .forEach(eventsManager::sendEvent);
+                .forEach(it -> eventsManager.sendEvent(transactionSpec.getKey(), it));
         }
     }
 
@@ -661,17 +661,17 @@ public class SagaServiceImpl implements SagaService {
 
     private void generateFirstEvents(SagaTransaction sagaTransaction, SagaTransactionSpec spec) {
         Map<String, Object> context = TRUE.equals(spec.getPropagateTransactionContextToFirstTasks()) ? sagaTransaction.getContext() : emptyMap();
-        generateEvents(sagaTransaction.getId(), null, spec.getFirstTasks(), context);
+        generateEvents(sagaTransaction, null, spec.getFirstTasks(), context);
     }
 
-    private void generateEvents(String sagaTransactionId, String parentTypeKey, List<SagaTaskSpec> sagaTaskSpecs,
+    private void generateEvents(SagaTransaction sagaTransaction, String parentTypeKey, List<SagaTaskSpec> sagaTaskSpecs,
                                 Map<String, Object> taskContext) {
         sagaTaskSpecs.stream()
-            .map(task -> createEvent(sagaTransactionId, parentTypeKey, task, taskContext))
-            .forEach(this::saveAndSendEvent);
+            .map(task -> createEvent(sagaTransaction.getId(), parentTypeKey, task, taskContext))
+            .forEach(it -> this.saveAndSendEvent(sagaTransaction.getTypeKey(), it));
     }
 
-    private int generateIterableEvents(String sagaTransactionId, String parentTypeKey, SagaTaskSpec task,
+    private int generateIterableEvents(SagaTransaction sagaTransaction, String parentTypeKey, SagaTaskSpec task,
                                        Map<String, Object> taskContext) {
         String iterablePath = task.getIterableJsonPath();
         Object iterable = JsonPathUtil.getByPath(taskContext, iterablePath, task);
@@ -680,21 +680,21 @@ public class SagaServiceImpl implements SagaService {
             log.warn("Iterable by path {} is {}. Task {} will not be created.", iterablePath, iterable, task.getKey());
         }
         range(0, countOfIteration).forEach(iteration ->
-                generateIterableEvent(sagaTransactionId, parentTypeKey, task, taskContext, iteration, countOfIteration)
+                generateIterableEvent(sagaTransaction, parentTypeKey, task, taskContext, iteration, countOfIteration)
             );
         return countOfIteration;
     }
 
-    private void generateIterableEvent(String sagaTransactionId, String parentTypeKey, SagaTaskSpec task,
+    private void generateIterableEvent(SagaTransaction sagaTransaction, String parentTypeKey, SagaTaskSpec task,
                                        Map<String, Object> taskContext, Integer iteration, Integer countOfIteration) {
-        SagaEvent sagaEvent = createIterableEvent(sagaTransactionId, parentTypeKey, task, taskContext, iteration, countOfIteration);
-        saveAndSendEvent(sagaEvent);
+        SagaEvent sagaEvent = createIterableEvent(sagaTransaction.getId(), parentTypeKey, task, taskContext, iteration, countOfIteration);
+        saveAndSendEvent(sagaTransaction.getTypeKey(), sagaEvent);
     }
 
-    private void saveAndSendEvent(SagaEvent sagaEvent) {
+    private void saveAndSendEvent(String txTypeKey, SagaEvent sagaEvent) {
         sagaEvent.markAsInQueue();
         sagaEvent = sagaEventRepository.save(sagaEvent);
-        sendEventOnCommitted(sagaEvent);
+        sendEventOnCommitted(txTypeKey, sagaEvent);
     }
 
     private SagaEvent createIterableEvent(String sagaTransactionId, String parentTypeKey, SagaTaskSpec task,
@@ -805,15 +805,15 @@ public class SagaServiceImpl implements SagaService {
         this.clock = clock;
     }
 
-    private void sendEventOnCommitted(SagaEvent event) {
+    private void sendEventOnCommitted(String txTypeKey, SagaEvent event) {
         if (TransactionSynchronizationManager.isActualTransactionActive()) {
             TransactionUtils.executeIfCommited(
-                () -> eventsManager.sendEvent(event),
+                () -> eventsManager.sendEvent(txTypeKey, event),
                 () -> log.warn("Event was not sent due to the parent task's failed completion. Event: {}", event)
             );
         } else {
             log.warn("Send event without transaction synchronization. ID: {}", event.getId());
-            eventsManager.sendEvent(event);
+            eventsManager.sendEvent(txTypeKey, event);
         }
     }
 

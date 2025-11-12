@@ -36,8 +36,12 @@ public class KafkaEventsSender implements EventsSender {
                backoff = @Backoff(delayExpression = "${application.kafkaEventSender.retry.delay}",
                multiplierExpression = "${application.kafkaEventSender.retry.multiplier}"))
     @Override
-    public void sendEvent(SagaEvent sagaEvent) {
-        String queueName = queueNameResolver.resolveQueueName(sagaEvent);
+    public void sendEvent(String transactionTypeKey, SagaEvent sagaEvent) {
+        String queueName = queueNameResolver.resolveQueueName(transactionTypeKey, sagaEvent);
+        sendTo(sagaEvent, queueName);
+    }
+
+    private void sendTo(SagaEvent sagaEvent, String queueName) {
         Integer partitionKey = getPartitionKeyForTopic(queueName, sagaEvent);
         String payload = getMessagePayload(sagaEvent);
 
@@ -70,6 +74,7 @@ public class KafkaEventsSender implements EventsSender {
     @Override
     @SneakyThrows
     public void resendEvent(SagaEvent sagaEvent) {
-        sendEvent(sagaEvent);
+        String queueName = queueNameResolver.resolveQueueName(sagaEvent);
+        sendTo(sagaEvent, queueName);
     }
 }

@@ -27,7 +27,6 @@ import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.core.io.ClassPathResource;
-import org.springframework.test.annotation.DirtiesContext;
 
 import java.io.InputStream;
 import java.time.Instant;
@@ -47,7 +46,6 @@ import static org.junit.Assert.assertThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.refEq;
 import static org.mockito.Mockito.any;
-import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -153,7 +151,7 @@ public class RetryServiceIntTest extends AbstractSpringBootTest {
             retryService.retry(event, transaction, task, ON_RETRY);
             countDownLatch.countDown();
             return event;
-        }).when(eventsSender).sendEvent(refEq(inQueueSagaEvent(txId, id), excludedFields));
+        }).when(eventsSender).sendEvent(eq(transaction.getTypeKey()), refEq(inQueueSagaEvent(txId, id), excludedFields));
 
         retryService.retry(sagaEvent, transaction, task, ON_RETRY);
         countDownLatch.await(5, TimeUnit.SECONDS);
@@ -172,7 +170,7 @@ public class RetryServiceIntTest extends AbstractSpringBootTest {
         //verify that event was saved with state FAILED after retryLimitExceeded
         verify(eventRepository).save(refEq(failedSagaEvent(txId, id), "backOff", "taskContext", "retryNumber", "createDate"));
 
-        verify(eventsSender, times(3)).sendEvent(any());
+        verify(eventsSender, times(3)).sendEvent(any(), any());
 
         //verify that TX was saved with state NEW 3 times
         verify(transactionRepository, times(3)).save(newSagaTransaction(txId));
@@ -278,7 +276,7 @@ public class RetryServiceIntTest extends AbstractSpringBootTest {
             retryService.retry(event, mockTx(txId), task, ON_RETRY);
             countDownLatch.countDown();
             return event;
-        }).when(eventsSender).sendEvent(refEq(sagaEvent, excludedFields));
+        }).when(eventsSender).sendEvent(eq(TYPE.getTypeKey()), refEq(sagaEvent, excludedFields));
 
         retryService.retry(sagaEvent, mockTx(txId), task, ON_RETRY);
         countDownLatch.await(5, TimeUnit.SECONDS);
@@ -327,7 +325,7 @@ public class RetryServiceIntTest extends AbstractSpringBootTest {
             retryService.retry(event, mockTx(txId), task, ON_RETRY);
             countDownLatch.countDown();
             return event;
-        }).when(eventsSender).sendEvent(refEq(sagaEvent, excludedFields));
+        }).when(eventsSender).sendEvent(eq(TYPE.getTypeKey()), refEq(sagaEvent, excludedFields));
 
         retryService.retry(sagaEvent, mockTx(txId), task, ON_RETRY);
         countDownLatch.await(5, TimeUnit.SECONDS);
@@ -369,7 +367,7 @@ public class RetryServiceIntTest extends AbstractSpringBootTest {
 
         verify(eventRepository, times(2)).findById(eq(id));
         verify(eventRepository).save(refEq(sagaEvent, excludedFields));
-        verify(eventsSender).sendEvent(refEq(sagaEvent, excludedFields));
+        verify(eventsSender).sendEvent(eq(TYPE_KEY), refEq(sagaEvent, excludedFields));
 
         verifyNoMoreInteractions(eventsSender);
         verifyNoMoreInteractions(eventRepository);
@@ -417,7 +415,7 @@ public class RetryServiceIntTest extends AbstractSpringBootTest {
             retryService.retry(event, transaction, task, ON_RETRY);
             countDownLatch.countDown();
             return event;
-        }).when(eventsSender).sendEvent(refEq(inQueueSagaEvent(txId, id), excludedFields));
+        }).when(eventsSender).sendEvent(eq(TYPE_KEY), refEq(inQueueSagaEvent(txId, id), excludedFields));
 
         retryService.retry(sagaEvent, transaction, task, ON_RETRY);
         countDownLatch.await(5, TimeUnit.SECONDS);
@@ -430,7 +428,7 @@ public class RetryServiceIntTest extends AbstractSpringBootTest {
         verify(eventRepository, times(2)).save(
             refEq(onRetrySagaEvent(txId, id), "backOff", "taskContext", "retryNumber", "createDate"));
 
-        verify(eventsSender, times(1)).sendEvent(any());
+        verify(eventsSender, times(1)).sendEvent(any(), any());
         //verify that TX was saved with state NEW 1 times
         verify(transactionRepository, times(1)).save(newSagaTransaction(txId));
 

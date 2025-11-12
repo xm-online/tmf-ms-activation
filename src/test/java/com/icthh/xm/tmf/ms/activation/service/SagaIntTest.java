@@ -72,6 +72,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.reset;
@@ -332,11 +333,11 @@ public class SagaIntTest {
 
         // Track each event
         doAnswer(invocation -> {
-            SagaEvent event = invocation.getArgument(0, SagaEvent.class);
+            SagaEvent event = invocation.getArgument(1, SagaEvent.class);
             actualOrder.add(buildEventKey(event));
 
             return invocation.callRealMethod();
-        }).when(testEventSender).sendEvent(any(SagaEvent.class));
+        }).when(testEventSender).sendEvent(eq(sagaKey), any(SagaEvent.class));
 
         SagaTransaction saga = sagaService.createNewSaga(new SagaTransaction()
             .setKey(UUID.randomUUID().toString())
@@ -956,7 +957,7 @@ public class SagaIntTest {
         private final Runnable initContext;
 
         @Override
-        public void sendEvent(SagaEvent sagaEvent) {
+        public void sendEvent(String txTypeKey, SagaEvent sagaEvent) {
             log.info("sendEvent.typeKey: {}", sagaEvent.getTypeKey());
             sagaEvents.addLast(sagaEvent);
             if (immediatelyProcessing && started) {

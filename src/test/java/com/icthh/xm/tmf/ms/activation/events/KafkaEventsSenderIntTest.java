@@ -54,7 +54,7 @@ public class KafkaEventsSenderIntTest {
 
         when(objectMapper.writeValueAsString(any())).thenReturn(sagaEvent.toString());
 
-        this.kafkaEventsSender.sendEvent(sagaEvent);
+        this.kafkaEventsSender.sendEvent("anyTxKey", sagaEvent);
 
         verify(kafkaTemplate, times(4)).send(any(), any(), any(), any());
     }

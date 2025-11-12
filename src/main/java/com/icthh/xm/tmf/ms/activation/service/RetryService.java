@@ -164,7 +164,8 @@ public class RetryService {
 
     private void resendEvent(SagaEvent event) {
         final String txId = event.getTransactionId();
-        if (isTxCanceled(txId)) {
+        SagaTransaction sagaTransaction = getSagaTransaction(txId);
+        if (isTxCanceled(sagaTransaction)) {
             log.info("Resend event not allowed. Transaction:{} canceled", txId);
             return;
         }
@@ -175,12 +176,15 @@ public class RetryService {
             event.markAsInQueue();
             return sagaEventRepository.save(event);
         });
-        eventsSender.sendEvent(savedEvent);
+        eventsSender.sendEvent(sagaTransaction.getTypeKey(), savedEvent);
     }
 
-    private boolean isTxCanceled(final String txId) {
-        SagaTransaction sagaTransaction = transactionRepository.findById(txId).orElseThrow();
+    private boolean isTxCanceled(SagaTransaction sagaTransaction) {
         return sagaTransaction.getSagaTransactionState().equals(SagaTransactionState.CANCELED);
+    }
+
+    private SagaTransaction getSagaTransaction(String txId) {
+        return transactionRepository.findById(txId).orElseThrow();
     }
 
     @Transactional
