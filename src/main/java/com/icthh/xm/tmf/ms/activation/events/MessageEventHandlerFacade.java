@@ -31,7 +31,8 @@ public class MessageEventHandlerFacade implements MessageHandler {
             MdcUtils.putRid(MdcUtils.generateRid() + ":" + tenant);
             final StopWatch stopWatch = StopWatch.createStarted();
             String payloadString = unwrap(message, WRAP_TOKEN);
-            log.info("start processing message for tenant: [{}], base64 body = {}", tenant, payloadString);
+            log.info("start processing message for tenant: [{}] from topic {}, base64 body = {}",
+                tenant, topicConfig.getTopicName(), payloadString);
             String eventBody = new String(Base64.getDecoder().decode(payloadString), UTF_8);
             log.info("start processing message for tenant: [{}], json body = {}", tenant, eventBody);
 

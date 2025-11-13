@@ -47,7 +47,7 @@ public class KafkaEventsSender implements EventsSender {
 
         template.send(queueName, partitionKey, sagaEvent.getId(), payload);
 
-        log.info("Saga event successfully sent: {}", sagaEvent);
+        log.info("Saga event successfully sent: {} to {}", sagaEvent, queueName);
     }
 
     private String getMessagePayload(SagaEvent sagaEvent) {
