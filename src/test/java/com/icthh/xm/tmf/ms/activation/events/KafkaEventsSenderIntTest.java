@@ -26,7 +26,7 @@ import java.util.UUID;
 
 @EnableRetry
 @RunWith(SpringRunner.class)
-@SpringBootTest(classes = {KafkaEventsSender.class, QueueNameResolverConfiguration.class, SelfInjectionConfiguration.class})
+@SpringBootTest(classes = {KafkaEventsSender.class, KafkaTransport.class, QueueNameResolverConfiguration.class, SelfInjectionConfiguration.class})
 @EnableTransactionManagement(proxyTargetClass = true)
 public class KafkaEventsSenderIntTest {
 

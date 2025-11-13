@@ -10,7 +10,6 @@ import com.icthh.xm.tmf.ms.activation.utils.LazyObjectProvider;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.retry.annotation.Backoff;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Component;
@@ -26,7 +25,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 public class KafkaEventsSender implements EventsSender {
 
     private final ObjectMapper objectMapper;
-    private final KafkaTemplate<String, String> template;
+    private final KafkaTransport transport;
     private final QueueNameResolver queueNameResolver;
 
     private final LazyObjectProvider<KafkaEventsSender> selfProvider;
@@ -45,7 +44,7 @@ public class KafkaEventsSender implements EventsSender {
         Integer partitionKey = getPartitionKeyForTopic(queueName, sagaEvent);
         String payload = getMessagePayload(sagaEvent);
 
-        template.send(queueName, partitionKey, sagaEvent.getId(), payload);
+        transport.send(queueName, partitionKey, sagaEvent.getId(), payload);
 
         log.info("Saga event successfully sent: {} to {}", sagaEvent, queueName);
     }
@@ -62,7 +61,7 @@ public class KafkaEventsSender implements EventsSender {
     }
 
     public Integer getPartitionKeyForTopic(String topic, SagaEvent sagaEvent) {
-        int partitionCount = Math.max(template.partitionsFor(topic).size(), 1);
+        int partitionCount = Math.max(transport.partitionsFor(topic).size(), 1);
         return Math.abs(selfProvider.get().getPartitionKey(sagaEvent).hashCode()) % partitionCount;
     }
 
