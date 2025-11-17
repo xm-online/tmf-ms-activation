@@ -1,24 +1,24 @@
 package com.icthh.xm.tmf.ms.activation.domain;
 
-import static javax.persistence.EnumType.STRING;
+import static jakarta.persistence.EnumType.STRING;
 
 import java.io.Serializable;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
-import javax.persistence.Column;
-import javax.persistence.Convert;
-import javax.persistence.Entity;
-import javax.persistence.Enumerated;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
-import javax.persistence.Id;
-import javax.persistence.JoinColumn;
-import javax.persistence.ManyToOne;
-import javax.persistence.SequenceGenerator;
-import javax.persistence.Table;
+import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.SequenceGenerator;
+import jakarta.persistence.Table;
 
-import com.icthh.xm.tmf.ms.activation.repository.converter.MapToStringConverter;
+import com.icthh.xm.tmf.ms.activation.repository.converter.ActivationMapToStringConverter;
 import lombok.Data;
 import lombok.experimental.Accessors;
 
@@ -30,7 +30,7 @@ public class SagaLog implements Serializable {
 
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "sequenceGenerator")
-    @SequenceGenerator(name = "sequenceGenerator")
+    @SequenceGenerator(name = "sequenceGenerator", sequenceName = "hibernate_sequence")
     private Long id;
     @ManyToOne
     @JoinColumn(name = "saga_transaction_id")
@@ -44,7 +44,7 @@ public class SagaLog implements Serializable {
     @Column(name = "create_date")
     private Instant createDate;
 
-    @Convert(converter = MapToStringConverter.class)
+    @Convert(converter = ActivationMapToStringConverter.class)
     @Column(name = "task_context")
     private Map<String, Object> taskContext = new HashMap<>();
 

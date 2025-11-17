@@ -3,15 +3,13 @@ package com.icthh.xm.tmf.ms.activation.events;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.icthh.xm.commons.exceptions.BusinessException;
-import com.icthh.xm.commons.lep.spring.LepService;
 import com.icthh.xm.commons.lep.LogicExtensionPoint;
+import com.icthh.xm.commons.lep.spring.LepService;
 import com.icthh.xm.tmf.ms.activation.domain.SagaEvent;
+import com.icthh.xm.tmf.ms.activation.utils.LazyObjectProvider;
 import lombok.RequiredArgsConstructor;
-import lombok.Setter;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.retry.annotation.Backoff;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Component;
@@ -27,25 +25,28 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 public class KafkaEventsSender implements EventsSender {
 
     private final ObjectMapper objectMapper;
-    private final KafkaTemplate<String, String> template;
+    private final KafkaTransport transport;
     private final QueueNameResolver queueNameResolver;
 
-    @Setter(onMethod = @__(@Autowired))
-    private KafkaEventsSender self;
+    private final LazyObjectProvider<KafkaEventsSender> selfProvider;
 
     @Retryable(include = BusinessException.class,
                maxAttemptsExpression = "${application.kafkaEventSender.retry.max-attempts}",
                backoff = @Backoff(delayExpression = "${application.kafkaEventSender.retry.delay}",
                multiplierExpression = "${application.kafkaEventSender.retry.multiplier}"))
     @Override
-    public void sendEvent(SagaEvent sagaEvent) {
-        String queueName = queueNameResolver.resolveQueueName(sagaEvent);
+    public void sendEvent(String transactionTypeKey, SagaEvent sagaEvent) {
+        String queueName = queueNameResolver.resolveQueueName(transactionTypeKey, sagaEvent);
+        sendTo(sagaEvent, queueName);
+    }
+
+    private void sendTo(SagaEvent sagaEvent, String queueName) {
         Integer partitionKey = getPartitionKeyForTopic(queueName, sagaEvent);
         String payload = getMessagePayload(sagaEvent);
 
-        template.send(queueName, partitionKey, sagaEvent.getId(), payload);
+        transport.send(queueName, partitionKey, sagaEvent.getId(), payload);
 
-        log.info("Saga event successfully sent: {}", sagaEvent);
+        log.info("Saga event successfully sent: {} to {}", sagaEvent, queueName);
     }
 
     private String getMessagePayload(SagaEvent sagaEvent) {
@@ -60,8 +61,8 @@ public class KafkaEventsSender implements EventsSender {
     }
 
     public Integer getPartitionKeyForTopic(String topic, SagaEvent sagaEvent) {
-        int partitionCount = Math.max(template.partitionsFor(topic).size(), 1);
-        return Math.abs(self.getPartitionKey(sagaEvent).hashCode()) % partitionCount;
+        int partitionCount = Math.max(transport.partitionsFor(topic).size(), 1);
+        return Math.abs(selfProvider.get().getPartitionKey(sagaEvent).hashCode()) % partitionCount;
     }
 
     @LogicExtensionPoint("GetPartitionKey")
@@ -72,6 +73,7 @@ public class KafkaEventsSender implements EventsSender {
     @Override
     @SneakyThrows
     public void resendEvent(SagaEvent sagaEvent) {
-        sendEvent(sagaEvent);
+        String queueName = queueNameResolver.resolveQueueName(sagaEvent);
+        sendTo(sagaEvent, queueName);
     }
 }

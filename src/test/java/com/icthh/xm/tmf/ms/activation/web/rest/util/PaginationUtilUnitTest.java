@@ -7,6 +7,7 @@ import static org.junit.Assert.assertTrue;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.icthh.xm.tmf.ms.activation.AbstractUnitTest;
 import org.junit.Test;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -18,7 +19,7 @@ import org.springframework.http.HttpHeaders;
  *
  * @see PaginationUtil
  */
-public class PaginationUtilUnitTest {
+public class PaginationUtilUnitTest extends AbstractUnitTest {
 
     @Test
     public void generatePaginationHttpHeadersTest() {

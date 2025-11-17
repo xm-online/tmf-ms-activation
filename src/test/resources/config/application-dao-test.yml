@@ -14,10 +14,13 @@ spring:
         url: jdbc:h2:mem:db;DB_CLOSE_DELAY=-1;MODE=PostgreSQL
         driver-class-name: org.testcontainers.jdbc.ContainerDatabaseDriver
     jpa:
-        database-platform: io.github.jhipster.domain.util.FixedPostgreSQL82Dialect
+        database-platform: com.icthh.xm.commons.migration.db.jsonb.CustomPostgreSQLDialect
         show-sql: true
         hibernate:
-            ddl-auto: none
+          ddl-auto: none
+          naming:
+            physical-strategy: org.hibernate.boot.model.naming.CamelCaseToUnderscoresNamingStrategy
+            implicit-strategy: org.springframework.boot.orm.jpa.hibernate.SpringImplicitNamingStrategy
         properties:
             hibernate.model.generator_name_as_sequence_name: false
             hibernate.id.new_generator_mappings: true
@@ -25,4 +28,5 @@ spring:
             hibernate.cache.use_query_cache: false
             hibernate.generate_statistics: true
             hibernate.hbm2ddl.auto: none
+            hibernate.jdbc.time_zone: UTC
 

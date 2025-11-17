@@ -35,15 +35,15 @@ spring:
         hikari:
             auto-commit: false
     jpa:
-        database-platform: io.github.jhipster.domain.util.FixedPostgreSQL82Dialect
+        database-platform: com.icthh.xm.commons.migration.db.jsonb.CustomPostgreSQLDialect
         database: H2
         open-in-view: false
         show-sql: false
         hibernate:
             ddl-auto: none
             naming:
-                physical-strategy: org.springframework.boot.orm.jpa.hibernate.SpringPhysicalNamingStrategy
-                implicit-strategy: org.springframework.boot.orm.jpa.hibernate.SpringImplicitNamingStrategy
+              physical-strategy: org.hibernate.boot.model.naming.CamelCaseToUnderscoresNamingStrategy
+              implicit-strategy: org.springframework.boot.orm.jpa.hibernate.SpringImplicitNamingStrategy
         properties:
             hibernate.model.generator_name_as_sequence_name: false
             hibernate.id.new_generator_mappings: true
@@ -51,6 +51,7 @@ spring:
             hibernate.cache.use_second_level_cache: false
             hibernate.cache.use_query_cache: false
             hibernate.generate_statistics: true
+            hibernate.jdbc.time_zone: UTC
     liquibase:
         contexts: test
     mail:
@@ -113,7 +114,9 @@ management:
         enabled: true
 
 jhipster:
-    async:
+  security:
+    content-security-policy: "default-src 'self'; frame-src 'self' data:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://storage.googleapis.com; style-src 'self' https://fonts.googleapis.com 'unsafe-inline'; img-src 'self' data:; font-src 'self' https://fonts.gstatic.com data:"
+  async:
       core-pool-size: 2
       max-pool-size: 4
 
@@ -131,3 +134,4 @@ application:
       delay: 100 #in milliseconds
       multiplier: 2
   retryThreadCount: 3
+  tenant-ignored-path-list: /swagger-resources/configuration/ui, /management/health, /h2-console, /v2/api-docs, /api/profile-info, /swagger-resources/configuration/ui, /management/health, /management/prometheus

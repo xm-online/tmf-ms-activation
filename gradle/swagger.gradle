@@ -2,17 +2,23 @@
  * Plugin that provides API-first development using OpenAPI-generator to
  * generate Spring-MVC endpoint stubs at compile time from an OpenAPI definition file
  */
-
 buildscript {
     repositories {
-        maven { url "https://plugins.gradle.org/m2/" }
+        gradlePluginPortal()
+        mavenCentral()
     }
     dependencies {
-        classpath "org.openapitools:openapi-generator-gradle-plugin:${openapi_plugin_version}"
+        // Use your property if present, otherwise a sane default
+        classpath "org.openapitools:openapi-generator-gradle-plugin:" +
+            (project.hasProperty("openapiPluginVersion") ? project.property("openapiPluginVersion") : "7.1.0")
     }
 }
 
-task openApiGenerateV2(type: org.openapitools.generator.gradle.plugin.tasks.GenerateTask){
+apply plugin: "org.openapi.generator"
+
+import org.openapitools.generator.gradle.plugin.tasks.GenerateTask
+
+tasks.register("openApiGenerateV2", GenerateTask) {
     generatorName = "spring"
     inputSpec = "$rootDir/src/main/resources/swagger/api.yml".toString()
     outputDir = "$buildDir/openapi".toString()
@@ -21,10 +27,11 @@ task openApiGenerateV2(type: org.openapitools.generator.gradle.plugin.tasks.Gene
     apiFilesConstrainedTo = [""]
     modelFilesConstrainedTo = [""]
     supportingFilesConstrainedTo = ["ApiUtil.java"]
-    configOptions = [delegatePattern: "true"]
+    configOptions = [delegatePattern: "true", title: "activation", useSpringBoot3: "true", useJakartaEe: "true"]
+    validateSpec = true
 }
 
-task openApiGenerateV4(type: org.openapitools.generator.gradle.plugin.tasks.GenerateTask){
+tasks.register("openApiGenerateV4", GenerateTask) {
     generatorName = "spring"
     inputSpec = "$rootDir/src/main/resources/swagger/api_v4.yml".toString()
     outputDir = "$buildDir/openapi".toString()
@@ -33,7 +40,8 @@ task openApiGenerateV4(type: org.openapitools.generator.gradle.plugin.tasks.Gene
     apiFilesConstrainedTo = [""]
     modelFilesConstrainedTo = [""]
     supportingFilesConstrainedTo = ["ApiUtil.java"]
-    configOptions = [delegatePattern: "true"]
+    configOptions = [delegatePattern: "true", title: "activation", useSpringBoot3: "true", useJakartaEe: "true"]
+    validateSpec = true
     additionalProperties = [useTags: "true"]
 }
 
@@ -45,4 +53,4 @@ sourceSets {
     }
 }
 
-compileJava.dependsOn openApiGenerateV2, openApiGenerateV4
+compileJava.dependsOn("openApiGenerateV2", "openApiGenerateV4")

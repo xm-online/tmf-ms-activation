@@ -2,8 +2,8 @@ package com.icthh.xm.tmf.ms.activation.config;
 
 import com.icthh.xm.tmf.ms.activation.repository.SagaLogRepository;
 import com.icthh.xm.tmf.ms.activation.repository.SagaTransactionRepository;
-import com.icthh.xm.tmf.ms.activation.service.MapSpecResolver;
 import com.icthh.xm.tmf.ms.activation.service.FinishTransactionStrategy;
+import com.icthh.xm.tmf.ms.activation.service.MapSpecResolver;
 import com.icthh.xm.tmf.ms.activation.service.SagaSpecResolver;
 import com.icthh.xm.tmf.ms.activation.service.SagaTaskExecutor;
 import com.icthh.xm.tmf.ms.activation.service.SagaTaskExecutorImpl;
@@ -43,5 +43,4 @@ public class ActivationConfiguration {
     public TxFinishEventPublisher txFinishEventPublisher(ApplicationContext applicationContext) {
         return applicationContext::publishEvent;
     }
-
 }

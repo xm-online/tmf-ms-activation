@@ -9,7 +9,7 @@ public class QueueNameResolverConfiguration {
 
     @Bean
     @ConditionalOnMissingBean(QueueNameResolver.class)
-    public QueueNameResolver tenantQueueNameResolver() {
+    public QueueNameResolver queueNameResolver() {
         return new TenantQueueNameResolver();
     }
 }

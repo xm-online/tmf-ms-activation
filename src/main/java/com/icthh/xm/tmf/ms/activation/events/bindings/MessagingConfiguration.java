@@ -20,15 +20,15 @@ import org.springframework.beans.factory.annotation.Value;
 public class MessagingConfiguration implements RefreshableConfiguration {
 
     private final ObjectMapper objectMapper;
-    private final DynamicTopicConsumerConfiguration dynamicTopicConsumerConfiguration;
+    private final ActivationDynamicTopicConsumerConfiguration activationDynamicTopicConsumerConfiguration;
 
     @Value("${spring.application.name}")
     private String appName;
 
     @Autowired
-    public MessagingConfiguration(DynamicTopicConsumerConfiguration dynamicTopicConsumerConfiguration,
+    public MessagingConfiguration(ActivationDynamicTopicConsumerConfiguration activationDynamicTopicConsumerConfiguration,
                                   ObjectMapper objectMapper) {
-        this.dynamicTopicConsumerConfiguration = dynamicTopicConsumerConfiguration;
+        this.activationDynamicTopicConsumerConfiguration = activationDynamicTopicConsumerConfiguration;
         this.objectMapper = objectMapper;
     }
 
@@ -63,7 +63,7 @@ public class MessagingConfiguration implements RefreshableConfiguration {
 
     private void createChannels(String tenantName) {
         String tenantKey = upperCase(tenantName);
-        dynamicTopicConsumerConfiguration.buildDynamicConsumers(tenantKey);
-        dynamicTopicConsumerConfiguration.sendRefreshDynamicConsumersEvent(tenantKey);
+        activationDynamicTopicConsumerConfiguration.buildDynamicConsumers(tenantKey);
+        activationDynamicTopicConsumerConfiguration.sendRefreshDynamicConsumersEvent(tenantKey);
     }
 }

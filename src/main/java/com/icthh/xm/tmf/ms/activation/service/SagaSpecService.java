@@ -26,7 +26,7 @@ import static com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_UNKN
 public class SagaSpecService implements RefreshableConfiguration {
 
     private static final String TENANT_NAME = "tenantName";
-    private static final String PATH_PATTERN = "/config/tenants/{tenantName}/activation/activation-spec.yml";
+    public static final String PATH_PATTERN = "/config/tenants/{tenantName}/activation/activation-spec.yml";
     private static final String FOLDER_PATH_PATTERN = "/config/tenants/{tenantName}/activation/activation-specs/*.yml";
 
     private final TenantUtils tenantUtils;
@@ -61,7 +61,7 @@ public class SagaSpecService implements RefreshableConfiguration {
         }
     }
 
-    private String extractTenant(final String updatedKey) {
+    public String extractTenant(final String updatedKey) {
         if (matcher.match(PATH_PATTERN, updatedKey)) {
             return matcher.extractUriTemplateVariables(PATH_PATTERN, updatedKey).get(TENANT_NAME);
         }

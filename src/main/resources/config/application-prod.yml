@@ -17,7 +17,7 @@ logging:
     level:
         ROOT: INFO
         com.icthh.xm.tmf.ms.activation: INFO
-        io.github.jhipster: INFO
+        tech.jhipster: INFO
 
 spring:
     devtools:
@@ -39,7 +39,7 @@ spring:
         hikari:
             auto-commit: false
     jpa:
-        database-platform: io.github.jhipster.domain.util.FixedPostgreSQL82Dialect
+        database-platform: com.icthh.xm.commons.migration.db.jsonb.CustomPostgreSQLDialect
         database: POSTGRESQL
         show-sql: false
         properties:
@@ -59,7 +59,7 @@ spring:
         username:
         password:
     thymeleaf:
-        cache: true
+        cache: false
     zipkin: # Use the "zipkin" Maven profile to have the Spring Cloud Zipkin dependencies
         base-url: http://localhost:9411
         enabled: false
@@ -89,6 +89,7 @@ spring:
 # ===================================================================
 server:
     port: 8712
+    shutdown: graceful
     compression:
         enabled: true
         mime-types: text/html,text/xml,text/plain,text/css, application/javascript, application/json
@@ -112,26 +113,11 @@ jhipster:
     mail: # specific JHipster mail property, for standard properties see MailProperties
         from: activation@localhost
         base-url: http://my-server-url-to-change # Modify according to your server's URL
-    metrics: # DropWizard Metrics configuration, used by MetricsConfiguration
-        logs: # Reports Dropwizard metrics in the logs
-            enabled: false
     logging:
         logstash: # Forward logs to logstash over a socket, used by LoggingConfiguration
             enabled: false
             host: localhost
             port: 5000
-            queue-size: 512
-oauth2:
-    signature-verification:
-        public-key-endpoint-uri: http://config/api/token_key
-        #ttl for public keys to verify JWT tokens (in ms)
-        ttl: 3600000
-        #max. rate at which public keys will be fetched (in ms)
-        public-key-refresh-rate-limit: 10000
-    web-client-configuration:
-        #keep in sync with UAA configuration
-        client-id: web_app
-        secret: changeit
 
 # ===================================================================
 # Application specific properties

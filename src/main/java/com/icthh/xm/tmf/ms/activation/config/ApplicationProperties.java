@@ -12,7 +12,7 @@ import java.util.List;
  * Properties specific to Activation.
  * <p>
  * Properties are configured in the application.yml file.
- * See {@link io.github.jhipster.config.JHipsterProperties} for a good example.
+ * See {@link tech.jhipster.config.JHipsterProperties} for a good example.
  */
 @Getter
 @Setter

@@ -50,7 +50,7 @@ public class ActivationKafkaOffsetsMetric implements MetricSet {
 
     @Getter
     @RequiredArgsConstructor
-    private class Offsets {
+    private static class Offsets {
 
         private final long totalLag;
         private final long totalCurrentOffset;

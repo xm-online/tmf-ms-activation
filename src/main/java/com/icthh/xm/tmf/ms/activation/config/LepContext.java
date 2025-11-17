@@ -7,7 +7,6 @@ import com.icthh.xm.commons.domainevent.service.EventPublisher;
 import com.icthh.xm.commons.domainevent.service.builder.DomainEventFactory;
 import com.icthh.xm.commons.lep.api.BaseLepContext;
 import com.icthh.xm.commons.lep.processor.GroovyMap;
-import com.icthh.xm.commons.logging.trace.TraceService.TraceServiceField;
 import com.icthh.xm.commons.topic.service.KafkaTemplateService;
 import com.icthh.xm.tmf.ms.activation.config.TaskIterationLepAdditionalContext.TaskIterationField;
 import com.icthh.xm.tmf.ms.activation.config.TaskLepAdditionalContext.TaskContextField;
@@ -19,7 +18,7 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.web.client.RestTemplate;
 
 @GroovyMap
-public class LepContext extends BaseLepContext implements OutboxTransportServiceField, TraceServiceField,
+public class LepContext extends BaseLepContext implements OutboxTransportServiceField,
     TransactionContextField, TaskContextField, TaskIterationField, TaskParametersField {
 
     public LepServices services;
