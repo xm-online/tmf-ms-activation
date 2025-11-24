@@ -19,7 +19,7 @@ import java.util.List;
 @Profile(JHipsterConstants.SPRING_PROFILE_API_DOCS)
 public class OpenApiConfiguration {
 
-    public static final String API_FIRST_PACKAGE = "com.icthh.xm.tmf.ms.activation.web.rest";
+    public static final String API_FIRST_PACKAGE = "com.icthh.xm.tmf.ms.activation.web.api";
 
     @Bean
     @ConditionalOnMissingBean(name = "apiFirstGroupedOpenAPI")
