@@ -1,6 +1,7 @@
 package com.icthh.xm.tmf.ms.activation.config;
 
 import com.icthh.xm.commons.permission.access.XmPermissionEvaluator;
+import com.icthh.xm.commons.permission.constants.RoleConstant;
 import com.icthh.xm.commons.security.jwt.TokenProvider;
 import com.icthh.xm.commons.security.spring.config.SecurityConfiguration;
 import lombok.SneakyThrows;
@@ -29,6 +30,7 @@ public class XmSecurityConfiguration extends SecurityConfiguration {
                 .requestMatchers("/api/**").authenticated()
                 .requestMatchers("/tmf-api/**").authenticated()
                 .requestMatchers("/DSEntityProvisioning/**").authenticated()
+                .requestMatchers("/v3/api-docs/**").hasAuthority(RoleConstant.SUPER_ADMIN)
         );
         return super.applyUrlSecurity(http);
     }
