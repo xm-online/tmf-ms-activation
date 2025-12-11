@@ -15,9 +15,10 @@ public class DynamicTopicMessagingConfiguration {
     @Bean
     @ConditionalOnMissingBean(ActivationDynamicTopicConsumerConfiguration.class)
     public ActivationDynamicTopicConsumerConfiguration activationDynamicTopicConsumerConfiguration(ApplicationEventPublisher applicationEventPublisher,
-                                                                                         EventHandler eventHandler,
-                                                                                         ObjectMapper objectMapper) {
-        return new ActivationDynamicTopicConsumerConfiguration(applicationEventPublisher, eventHandler, objectMapper);
+                                                                                                   EventHandler eventHandler,
+                                                                                                   ObjectMapper objectMapper,
+                                                                                                   ApplicationProperties applicationProperties) {
+        return new ActivationDynamicTopicConsumerConfiguration(applicationEventPublisher, eventHandler, objectMapper, applicationProperties);
     }
 
     @Bean

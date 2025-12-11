@@ -5,6 +5,7 @@ import com.icthh.xm.commons.topic.domain.DynamicConsumer;
 import com.icthh.xm.commons.topic.domain.TopicConfig;
 import com.icthh.xm.commons.topic.service.DynamicConsumerConfiguration;
 import com.icthh.xm.commons.topic.service.dto.RefreshDynamicConsumersEvent;
+import com.icthh.xm.tmf.ms.activation.config.ApplicationProperties;
 import com.icthh.xm.tmf.ms.activation.events.MessageEventHandlerFacade;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -31,12 +32,16 @@ public class ActivationDynamicTopicConsumerConfiguration implements DynamicConsu
     private final Map<String, List<DynamicConsumer>> dynamicConsumersByTenant;
     private final MessageEventHandlerFacade messageEventHandlerFacade;
     private final ApplicationEventPublisher applicationEventPublisher;
+    private final ApplicationProperties applicationProperties;
 
     public ActivationDynamicTopicConsumerConfiguration(ApplicationEventPublisher applicationEventPublisher,
-                                                       EventHandler eventHandler, ObjectMapper objectMapper) {
+                                                       EventHandler eventHandler,
+                                                       ObjectMapper objectMapper,
+                                                       ApplicationProperties applicationProperties) {
         this.applicationEventPublisher = applicationEventPublisher;
         this.messageEventHandlerFacade = new MessageEventHandlerFacade(eventHandler, objectMapper);
         this.dynamicConsumersByTenant = new ConcurrentHashMap<>();
+        this.applicationProperties = applicationProperties;
     }
 
     @Override
@@ -76,6 +81,7 @@ public class ActivationDynamicTopicConsumerConfiguration implements DynamicConsu
         topicConfig.setRetriesCount(Integer.MAX_VALUE);
         topicConfig.setGroupId(consumerGroup);
         topicConfig.setAutoOffsetReset(startOffset);
+        topicConfig.setConcurrency(applicationProperties.getKafkaConcurrencyCount());
         return topicConfig;
     }
 
