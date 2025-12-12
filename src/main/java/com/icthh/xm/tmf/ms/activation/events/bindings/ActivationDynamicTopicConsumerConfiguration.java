@@ -23,8 +23,8 @@ public class ActivationDynamicTopicConsumerConfiguration implements DynamicConsu
 
     public static final String SAGA_EVENTS_PREFIX = "saga-events-";
 
+    private static final String AUTO_OFFSET_RESET_LATEST = "latest";
     private static final String AUTO_OFFSET_RESET_EARLIEST = "earliest";
-    private static final Integer DEFAULT_KAFKA_CONCURRENCY_COUNT = 4;
 
     @Value("${spring.application.name}")
     private String appName;
@@ -81,14 +81,7 @@ public class ActivationDynamicTopicConsumerConfiguration implements DynamicConsu
         topicConfig.setRetriesCount(Integer.MAX_VALUE);
         topicConfig.setGroupId(consumerGroup);
         topicConfig.setAutoOffsetReset(startOffset);
-
-        int kafkaConcurrencyCount = applicationProperties.getKafkaConcurrencyCount();
-        if (kafkaConcurrencyCount <= 0) {
-            log.warn("buildTopicConfig: concurrency setting is less than 1, using default: {}",
-                DEFAULT_KAFKA_CONCURRENCY_COUNT);
-            kafkaConcurrencyCount = DEFAULT_KAFKA_CONCURRENCY_COUNT;
-        }
-        topicConfig.setConcurrency(kafkaConcurrencyCount);
+        topicConfig.setConcurrency(applicationProperties.getKafkaConcurrencyCount());
         return topicConfig;
     }
 
