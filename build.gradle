@@ -264,6 +264,7 @@ dependencies {
     implementation "com.icthh.xm.commons:xm-commons-logging-configurable:${xm_commons_version}"
     implementation "com.icthh.xm.commons:xm-commons-logging-trace:${xm_commons_version}"
     implementation "com.icthh.xm.commons:xm-commons-mail:${xm_commons_version}"
+    implementation "com.icthh.xm.commons:xm-commons-cache:${xm_commons_version}"
 
     testCompileOnly "org.projectlombok:lombok:${lombok_version}"
     testAnnotationProcessor "org.projectlombok:lombok:${lombok_version}"

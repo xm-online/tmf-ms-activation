@@ -1,5 +1,6 @@
 package com.icthh.xm.tmf.ms.activation.config;
 
+import com.icthh.xm.commons.cache.TenantCacheManager;
 import com.icthh.xm.commons.config.client.service.TenantConfigService;
 import com.icthh.xm.commons.domainevent.service.EventPublisher;
 import com.icthh.xm.commons.domainevent.service.builder.DomainEventFactory;
@@ -25,6 +26,7 @@ public class XmActivationLepContextFactory implements LepContextFactory {
     private final KafkaTemplateService kafkaTemplateService;
     private final EventPublisher eventPublisher;
     private final DomainEventFactory domainEventFactory;
+    private final TenantCacheManager tenantCacheManager;
 
     public XmActivationLepContextFactory(TenantConfigService tenantConfigService,
                                          @Qualifier("loadBalancedRestTemplate") RestTemplate restTemplate,
@@ -33,7 +35,8 @@ public class XmActivationLepContextFactory implements LepContextFactory {
                                          SagaService sagaService,
                                          KafkaTemplateService kafkaTemplateService,
                                          EventPublisher eventPublisher,
-                                         DomainEventFactory domainEventFactory) {
+                                         DomainEventFactory domainEventFactory,
+                                         TenantCacheManager tenantCacheManager) {
         this.tenantConfigService = tenantConfigService;
         this.restTemplate = restTemplate;
         this.applicationContext = applicationContext;
@@ -42,6 +45,7 @@ public class XmActivationLepContextFactory implements LepContextFactory {
         this.kafkaTemplateService = kafkaTemplateService;
         this.eventPublisher = eventPublisher;
         this.domainEventFactory = domainEventFactory;
+        this.tenantCacheManager = tenantCacheManager;
     }
 
     @Override
@@ -53,6 +57,7 @@ public class XmActivationLepContextFactory implements LepContextFactory {
         lepContext.services.sagaService = sagaService;
         lepContext.services.eventPublisher = eventPublisher;
         lepContext.services.domainEventFactory = domainEventFactory;
+        lepContext.services.tenantCacheManager = tenantCacheManager;
         lepContext.templates = new LepContext.LepTemplates();
         lepContext.templates.kafka = kafkaTemplateService;
         lepContext.templates.rest = restTemplate;
