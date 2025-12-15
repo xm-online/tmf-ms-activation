@@ -31,10 +31,9 @@ public class MessageEventHandlerFacade implements MessageHandler {
             MdcUtils.putRid(MdcUtils.generateRid() + ":" + tenant);
             final StopWatch stopWatch = StopWatch.createStarted();
             String payloadString = unwrap(message, WRAP_TOKEN);
-            log.info("start processing message for tenant: [{}] from topic {}, base64 body = {}",
-                tenant, topicConfig.getTopicName(), payloadString);
             String eventBody = new String(Base64.getDecoder().decode(payloadString), UTF_8);
-            log.info("start processing message for tenant: [{}], json body = {}", tenant, eventBody);
+            log.info("start processing message for tenant: [{}], base64 body = {}, json body = {}",
+                tenant, formatBody(topicConfig, payloadString), formatBody(topicConfig, eventBody));
 
             eventHandler.onEvent(mapToEvent(eventBody), tenant);
 
@@ -51,5 +50,9 @@ public class MessageEventHandlerFacade implements MessageHandler {
     @SneakyThrows
     private SagaEvent mapToEvent(String eventBody) {
         return objectMapper.readValue(eventBody, SagaEvent.class);
+    }
+
+    private String formatBody(TopicConfig topicConfig, String rawBody) {
+        return topicConfig.getLogBody() ? rawBody : "***";
     }
 }
