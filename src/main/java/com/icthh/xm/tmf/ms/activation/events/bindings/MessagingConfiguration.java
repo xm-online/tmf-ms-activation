@@ -47,10 +47,7 @@ public class MessagingConfiguration implements RefreshableConfiguration, Applica
         TypeReference<Map<String, Set<TenantState>>> typeRef = new TypeReference<>() {};
         Map<String, Set<TenantState>> tenantsByServiceMap = objectMapper.readValue(config, typeRef);
         Set<TenantState> tenantKeys = tenantsByServiceMap.get(appName);
-        tenantKeys.stream().map(TenantState::getName).forEach(it -> {
-            appTenantKeys.add(it);
-            createChannels(it);
-        });
+        tenantKeys.stream().map(TenantState::getName).forEach(appTenantKeys::add);
     }
 
     @Override
@@ -71,13 +68,11 @@ public class MessagingConfiguration implements RefreshableConfiguration, Applica
     private void createChannels(String tenantName) {
         String tenantKey = upperCase(tenantName);
         activationDynamicTopicConsumerConfiguration.buildDynamicConsumers(tenantKey);
+        activationDynamicTopicConsumerConfiguration.sendRefreshDynamicConsumersEvent(tenantKey);
     }
     
     @Override
     public void onApplicationEvent(ApplicationReadyEvent event) {
-        appTenantKeys.forEach(tenantName -> {
-            String tenantKey = upperCase(tenantName);
-            activationDynamicTopicConsumerConfiguration.sendRefreshDynamicConsumersEvent(tenantKey);
-        });
+        appTenantKeys.forEach(this::createChannels);
     }
 }
