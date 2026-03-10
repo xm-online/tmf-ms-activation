@@ -9,18 +9,24 @@ import com.icthh.xm.commons.config.client.api.RefreshableConfiguration;
 import com.icthh.xm.commons.config.domain.TenantState;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.ApplicationListener;
 
 @Slf4j
 @RequiredArgsConstructor
-public class MessagingConfiguration implements RefreshableConfiguration {
+public class MessagingConfiguration implements RefreshableConfiguration, ApplicationListener<ApplicationReadyEvent> {
 
     private final ObjectMapper objectMapper;
     private final ActivationDynamicTopicConsumerConfiguration activationDynamicTopicConsumerConfiguration;
+    private final Set<String> appTenantKeys = ConcurrentHashMap.newKeySet();
+    private final AtomicBoolean appStarted = new AtomicBoolean(false);
 
     @Value("${spring.application.name}")
     private String appName;
@@ -43,7 +49,12 @@ public class MessagingConfiguration implements RefreshableConfiguration {
         TypeReference<Map<String, Set<TenantState>>> typeRef = new TypeReference<>() {};
         Map<String, Set<TenantState>> tenantsByServiceMap = objectMapper.readValue(config, typeRef);
         Set<TenantState> tenantKeys = tenantsByServiceMap.get(appName);
-        tenantKeys.stream().map(TenantState::getName).forEach(this::createChannels);
+        if (appStarted.get()) {
+            tenantKeys.stream().map(TenantState::getName).forEach(it -> {
+                appTenantKeys.add(it);
+                createChannels(it);
+            });
+        }
     }
 
     @Override
@@ -65,5 +76,11 @@ public class MessagingConfiguration implements RefreshableConfiguration {
         String tenantKey = upperCase(tenantName);
         activationDynamicTopicConsumerConfiguration.buildDynamicConsumers(tenantKey);
         activationDynamicTopicConsumerConfiguration.sendRefreshDynamicConsumersEvent(tenantKey);
+    }
+    
+    @Override
+    public void onApplicationEvent(ApplicationReadyEvent event) {
+        appStarted.set(true);
+        appTenantKeys.forEach(this::createChannels);
     }
 }
