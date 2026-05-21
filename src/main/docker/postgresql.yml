@@ -1,11 +1,12 @@
 version: '2'
 services:
     activation-postgresql:
-        image: postgres:10.4
+        image: postgres:18.4
         # volumes:
         #     - ~/volumes/jhipster/activation/postgresql/:/var/lib/postgresql/data/
         environment:
             - POSTGRES_USER=activation
             - POSTGRES_PASSWORD=
+            - POSTGRES_DB=activation
         ports:
-            - 5432:5432
+            - "127.0.0.1:${POSTGRES_PORT}:5432"

@@ -1,6 +1,6 @@
 package com.icthh.xm.tmf.ms.activation.config;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import com.icthh.xm.tmf.ms.activation.events.bindings.ActivationDynamicTopicConsumerConfiguration;
 import com.icthh.xm.tmf.ms.activation.events.bindings.EventHandler;
 import com.icthh.xm.tmf.ms.activation.events.bindings.MessagingConfiguration;

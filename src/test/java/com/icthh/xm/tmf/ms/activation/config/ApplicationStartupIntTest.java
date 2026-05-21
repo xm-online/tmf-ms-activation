@@ -9,13 +9,13 @@ import com.icthh.xm.tmf.ms.activation.AbstractSpringBootTest;
 import com.icthh.xm.tmf.ms.activation.service.RetryService;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.annotation.DirtiesContext;
 
 import java.util.Optional;
@@ -29,7 +29,7 @@ import static org.mockito.Mockito.when;
 @DirtiesContext(classMode = DirtiesContext.ClassMode.BEFORE_CLASS)
 public class ApplicationStartupIntTest extends AbstractSpringBootTest {
 
-    @MockBean
+    @MockitoBean
     private RetryService retryService;
     @Autowired
     private LepManagementService lepManager;
@@ -40,16 +40,16 @@ public class ApplicationStartupIntTest extends AbstractSpringBootTest {
     @Mock
     private XmAuthenticationContextHolder authContextHolder;
 
-    @After
+    @AfterEach
     public void destroy() {
         lepManager.endThreadContext();
         tenantContextHolder.getPrivilegedContext().destroyCurrentContext();
     }
 
-    @Before
+    @BeforeEach
     public void init() {
         TenantContextUtils.setTenant(tenantContextHolder, "TEST_TENANT");
-        MockitoAnnotations.initMocks(this);
+        MockitoAnnotations.openMocks(this);
         when(authContextHolder.getContext()).thenReturn(context);
         when(context.getUserKey()).thenReturn(Optional.of("userKey"));
 

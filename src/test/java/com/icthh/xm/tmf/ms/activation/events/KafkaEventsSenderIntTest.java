@@ -5,27 +5,25 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import com.icthh.xm.commons.exceptions.BusinessException;
-import com.icthh.xm.tmf.ms.activation.config.ActivationConfiguration;
 import com.icthh.xm.tmf.ms.activation.config.SelfInjectionConfiguration;
 import com.icthh.xm.tmf.ms.activation.domain.SagaEvent;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.retry.annotation.EnableRetry;
-import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
 
 import java.util.UUID;
 
 @EnableRetry
-@RunWith(SpringRunner.class)
+@ExtendWith(SpringExtension.class)
 @SpringBootTest(classes = {KafkaEventsSender.class, KafkaTransport.class, QueueNameResolverConfiguration.class, SelfInjectionConfiguration.class})
 @EnableTransactionManagement(proxyTargetClass = true)
 public class KafkaEventsSenderIntTest {
@@ -33,13 +31,13 @@ public class KafkaEventsSenderIntTest {
     @Autowired
     private EventsSender kafkaEventsSender;
 
-    @MockBean
+    @MockitoBean
     private ObjectMapper objectMapper;
 
-    @MockBean
+    @MockitoBean
     private KafkaTemplate<String, String> kafkaTemplate;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         when(kafkaTemplate.send(any(), any(), any(), any()))
             .thenThrow(new BusinessException("First failure"))
@@ -49,7 +47,7 @@ public class KafkaEventsSenderIntTest {
     }
 
     @Test
-    public void testRetry() throws JsonProcessingException {
+    public void testRetry() {
         SagaEvent sagaEvent = new SagaEvent().setTenantKey("XM").setId("id").setTransactionId(UUID.randomUUID().toString());
 
         when(objectMapper.writeValueAsString(any())).thenReturn(sagaEvent.toString());

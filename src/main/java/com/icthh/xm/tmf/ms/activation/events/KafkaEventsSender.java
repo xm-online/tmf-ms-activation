@@ -1,7 +1,7 @@
 package com.icthh.xm.tmf.ms.activation.events;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
 import com.icthh.xm.commons.exceptions.BusinessException;
 import com.icthh.xm.commons.lep.LogicExtensionPoint;
 import com.icthh.xm.commons.lep.spring.LepService;
@@ -54,7 +54,7 @@ public class KafkaEventsSender implements EventsSender {
             String sagaEventJson = objectMapper.writeValueAsString(sagaEvent);
             return Base64.getEncoder().encodeToString(sagaEventJson.getBytes(UTF_8));
 
-        } catch (JsonProcessingException e) {
+        } catch (JacksonException e) {
             log.warn("Cannot convert message to json: {}", sagaEvent, e);
             throw new BusinessException("Cannot convert message to json: " + sagaEvent);
         }

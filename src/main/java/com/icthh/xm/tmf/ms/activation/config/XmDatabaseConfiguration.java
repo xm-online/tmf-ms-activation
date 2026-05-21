@@ -3,7 +3,7 @@ package com.icthh.xm.tmf.ms.activation.config;
 import com.icthh.xm.commons.migration.db.config.DatabaseConfiguration;
 import com.icthh.xm.commons.migration.db.tenant.SchemaResolver;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.boot.autoconfigure.orm.jpa.JpaProperties;
+import org.springframework.boot.jpa.autoconfigure.JpaProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;

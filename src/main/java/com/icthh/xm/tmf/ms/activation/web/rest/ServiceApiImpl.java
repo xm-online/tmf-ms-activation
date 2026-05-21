@@ -2,7 +2,7 @@ package com.icthh.xm.tmf.ms.activation.web.rest;
 
 import static org.apache.commons.collections.CollectionUtils.isNotEmpty;
 
-import com.codahale.metrics.annotation.Timed;
+
 import com.icthh.xm.commons.permission.annotation.PrivilegeDescription;
 import com.icthh.xm.tmf.ms.activation.api.ServiceApiDelegate;
 import com.icthh.xm.tmf.ms.activation.domain.SagaTransaction;
@@ -25,7 +25,7 @@ public class ServiceApiImpl implements ServiceApiDelegate {
     private final SagaService sagaService;
     private final SagaTransactionFactory sagaTransactionFactory;
 
-    @Timed
+
     @PreAuthorize("hasPermission({'service': #service}, 'ACTIVATION.ACTION.SERVICE')")
     @PrivilegeDescription("Privilege to create service")
     @Override

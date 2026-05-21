@@ -14,11 +14,11 @@ import com.icthh.xm.tmf.ms.activation.repository.SagaEventRepository;
 import com.icthh.xm.tmf.ms.activation.repository.SagaTransactionRepository;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.test.context.transaction.BeforeTransaction;
@@ -47,15 +47,15 @@ public class LepContextCastIntTest extends AbstractSpringBootTest {
     @Autowired
     private TestLepService testLepService;
 
-    @MockBean
+    @MockitoBean
     private SagaEventRepository eventRepository;
-    @MockBean
+    @MockitoBean
     private EventsSender eventsSender;
-    @MockBean
+    @MockitoBean
     private SagaTransactionRepository transactionRepository;
 
     @SneakyThrows
-    @Before
+    @BeforeEach
     public void setup() {
         TenantContextUtils.setTenant(tenantContextHolder, "TEST_TENANT");
 
@@ -68,7 +68,7 @@ public class LepContextCastIntTest extends AbstractSpringBootTest {
     }
 
 
-    @After
+    @AfterEach
     public void tearDown() {
         lepManager.endThreadContext();
         tenantContextHolder.getPrivilegedContext().destroyCurrentContext();

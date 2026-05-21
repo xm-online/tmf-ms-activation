@@ -3,8 +3,8 @@ package com.icthh.xm.tmf.ms.activation.events.bindings;
 import static com.icthh.xm.commons.config.client.repository.TenantListRepository.TENANTS_LIST_CONFIG_KEY;
 import static org.apache.commons.lang3.StringUtils.upperCase;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.ObjectMapper;
 import com.icthh.xm.commons.config.client.api.RefreshableConfiguration;
 import com.icthh.xm.commons.config.domain.TenantState;
 import java.util.Map;

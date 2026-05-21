@@ -99,14 +99,12 @@ spring:
       ddl-auto: none
       naming:
         physical-strategy: org.hibernate.boot.model.naming.CamelCaseToUnderscoresNamingStrategy
-        implicit-strategy: org.springframework.boot.orm.jpa.hibernate.SpringImplicitNamingStrategy
+        implicit-strategy: org.springframework.boot.hibernate.SpringImplicitNamingStrategy
   messages:
     basename: i18n/messages
   jackson:
     deserialization:
       fail-on-unknown-properties: false
-    serialization:
-      write-dates-as-timestamps: false
     default-property-inclusion: non_empty
   kafka:
     bootstrap-servers: localhost:9092

@@ -43,7 +43,7 @@ spring:
             ddl-auto: none
             naming:
               physical-strategy: org.hibernate.boot.model.naming.CamelCaseToUnderscoresNamingStrategy
-              implicit-strategy: org.springframework.boot.orm.jpa.hibernate.SpringImplicitNamingStrategy
+              implicit-strategy: org.springframework.boot.hibernate.SpringImplicitNamingStrategy
         properties:
             hibernate.model.generator_name_as_sequence_name: false
             hibernate.id.new_generator_mappings: true
@@ -108,6 +108,13 @@ xm-config:
 # https://www.jhipster.tech/common-application-properties/
 # ===================================================================
 management:
+  tracing:
+    export:
+      enabled: false
+  otlp:
+    metrics:
+      export:
+        enabled: false
   metrics:
     export:
       prometheus:
