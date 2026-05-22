@@ -8,7 +8,6 @@
 
     <logger name="tech.jhipster" level="WARN"/>
 
-    <logger name="io.opentelemetry.sdk.trace" level="WARN"/>
     <logger name="jakarta.activation" level="WARN"/>
     <logger name="jakarta.mail" level="WARN"/>
     <logger name="jakarta.xml.bind" level="WARN"/>
