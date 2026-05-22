@@ -52,12 +52,15 @@ spring:
         database: POSTGRESQL
         show-sql: false
         properties:
-            hibernate.model.generator_name_as_sequence_name: false
-            hibernate.id.new_generator_mappings: true
-            hibernate.connection.provider_disables_autocommit: true
-            hibernate.cache.use_second_level_cache: false
-            hibernate.cache.use_query_cache: false
-            hibernate.generate_statistics: true
+          hibernate.model.generator_name_as_sequence_name: false
+          hibernate.id.new_generator_mappings: true
+          hibernate.connection.provider_disables_autocommit: true
+          hibernate.cache.use_second_level_cache: false
+          hibernate.cache.use_query_cache: false
+          hibernate.generate_statistics: true
+          hibernate.show_sql: false
+          hibernate.format_sql: false
+          hibernate.dialect: com.icthh.xm.commons.migration.db.jsonb.CustomPostgreSQLDialect
     liquibase:
         contexts: dev
     main:

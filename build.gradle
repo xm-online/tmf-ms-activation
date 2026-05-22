@@ -233,6 +233,7 @@ dependencies {
     implementation "io.micrometer:micrometer-registry-prometheus"
     implementation "org.postgresql:postgresql:${postgresqlVersion}"
     implementation "org.apache.httpcomponents.client5:httpclient5:${httpClient5Version}"
+    implementation "org.apache.httpcomponents.core5:httpcore5:${httpCore5Version}"
 
     implementation "org.mapstruct:mapstruct:${mapstructVersion}"
     annotationProcessor "org.mapstruct:mapstruct-processor:${mapstructVersion}"
