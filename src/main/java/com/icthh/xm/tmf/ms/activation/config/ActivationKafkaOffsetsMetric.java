@@ -1,8 +1,12 @@
 package com.icthh.xm.tmf.ms.activation.config;
 
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
 import com.icthh.xm.commons.config.client.repository.TenantListRepository;
+import jakarta.annotation.PostConstruct;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -14,6 +18,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.function.Supplier;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -37,6 +42,7 @@ public class ActivationKafkaOffsetsMetric {
 
     private final String METRIC_NAME = "kafka.offsets.";
     private final String TOPIC_PREFIX = "saga-events-";
+    private final Long CACHE_TTL = 10L;
 
     @Value("${spring.kafka.consumer.group-id}")
     private String group;
@@ -46,8 +52,18 @@ public class ActivationKafkaOffsetsMetric {
     private final ApplicationProperties applicationProperties;
     private final MeterRegistry meterRegistry;
 
+    private final LoadingCache<String, Offsets> offsetsCache = CacheBuilder.newBuilder()
+            .expireAfterWrite(CACHE_TTL, TimeUnit.SECONDS)
+            .build(new CacheLoader<>() {
+                @Override
+                public Offsets load(String topic) {
+                    return calculateConsumerOffsetsOnTopic(topic, group);
+                }
+            });
+
     private ConsumerFactory<?, ?> defaultConsumerFactory;
     private Consumer<?, ?> consumer;
+
 
     @Getter
     @RequiredArgsConstructor
@@ -56,6 +72,11 @@ public class ActivationKafkaOffsetsMetric {
         private final long totalLag;
         private final long totalCurrentOffset;
         private final long totalEndOffset;
+    }
+
+    @PostConstruct
+    public void registerMetrics() {
+        tenantListRepository.getTenants().forEach(this::registerTenantMetrics);
     }
 
     private Offsets calculateConsumerOffsetsOnTopic(String topic, String group) {
@@ -86,7 +107,10 @@ public class ActivationKafkaOffsetsMetric {
                         Map<TopicPartition, OffsetAndMetadata> current = consumer.committed(Set.of(endOffset.getKey()));
                         if (current != null) {
                             totalEndOffset += endOffset.getValue();
-                            totalCurrentOffset += current.get(endOffset.getKey()).offset();
+                            OffsetAndMetadata offsetAndMetadata = current.get(endOffset.getKey());
+                            if (offsetAndMetadata != null) {
+                                totalCurrentOffset += offsetAndMetadata.offset();
+                            }
                         } else {
                             totalEndOffset += endOffset.getValue();
                         }
@@ -129,26 +153,41 @@ public class ActivationKafkaOffsetsMetric {
         return this.defaultConsumerFactory;
     }
 
-    public void registerMetrics() {
-        tenantListRepository.getTenants().forEach(tenantName -> {
-            String topic = TOPIC_PREFIX + tenantName.toUpperCase();
-            String gaugeName = METRIC_NAME + topic;
-            Gauge.builder(gaugeName + ".lag", this, metric -> toDouble(calculateConsumerOffsetsOnTopic(topic, group).getTotalLag()))
-                    .description("Kafka consumer lag for topic: " + topic)
-                    .register(meterRegistry);
-            Gauge.builder(gaugeName + ".current", this, metric -> toDouble(calculateConsumerOffsetsOnTopic(topic, group).getTotalCurrentOffset()))
-                    .description("Kafka consumer current offset for topic: " + topic)
-                    .register(meterRegistry);
-            Gauge.builder(gaugeName + ".end", this, metric -> toDouble(calculateConsumerOffsetsOnTopic(topic, group).getTotalEndOffset()))
-                    .description("Kafka consumer end offset for topic: " + topic)
-                    .register(meterRegistry);
-        });
+    private void registerTenantMetrics(String tenantName) {
+        String topic = TOPIC_PREFIX + tenantName.toUpperCase();
+        registerGauge("lag", topic, tenantName,
+                () -> toDouble(getOffsets(topic).getTotalLag()));
+        registerGauge("current", topic, tenantName,
+                () -> toDouble(getOffsets(topic).getTotalCurrentOffset()));
+        registerGauge("end", topic, tenantName,
+                () -> toDouble(getOffsets(topic).getTotalEndOffset()));
     }
 
-    private Double toDouble(long value) {
-        if (value == Long.MIN_VALUE) {
-            return Double.NaN;
+    private Offsets getOffsets(String topic) {
+        try {
+            return offsetsCache.get(topic);
+        } catch (Exception e) {
+            log.warn("Kafka offsets load failed for topic {}", topic, e);
+            return new Offsets(Long.MIN_VALUE, Long.MIN_VALUE, Long.MIN_VALUE);
         }
-        return (double) value;
+    }
+
+    private void registerGauge(
+            String metricSuffix,
+            String topic,
+            String tenantName,
+            Supplier<Double> supplier
+    ) {
+        Gauge.builder(METRIC_NAME + metricSuffix, supplier)
+                .tag("topic", topic)
+                .tag("tenant", tenantName)
+                .register(meterRegistry);
+    }
+
+    private Double toDouble(Object value) {
+        if (value instanceof Number num) {
+            return num.doubleValue();
+        }
+        return Double.NaN;
     }
 }
