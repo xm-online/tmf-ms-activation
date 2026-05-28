@@ -196,11 +196,6 @@ dependencies {
 
     implementation "tech.jhipster:jhipster-framework:${jhipsterFrameworkDependenciesVersion}"
 
-    // BACKWARD COMPATIBILITY dependencies for leps
-    implementation "com.fasterxml.jackson.datatype:jackson-datatype-hppc"
-    implementation "com.fasterxml.jackson.core:jackson-annotations"
-    implementation "com.fasterxml.jackson.core:jackson-databind"
-
     implementation "tools.jackson.datatype:jackson-datatype-hppc"
     implementation "tools.jackson.datatype:jackson-datatype-hibernate7"
     implementation "tools.jackson.core:jackson-databind"
