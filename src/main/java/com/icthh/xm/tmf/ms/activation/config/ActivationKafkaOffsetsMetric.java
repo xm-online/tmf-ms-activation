@@ -42,28 +42,22 @@ public class ActivationKafkaOffsetsMetric {
 
     private final String METRIC_NAME = "kafka.offsets.";
     private final String TOPIC_PREFIX = "saga-events-";
-    private final Long CACHE_TTL = 10L;
 
     @Value("${spring.kafka.consumer.group-id}")
     private String group;
+
+    @Value("${application.kafkaOffsetCacheTTL:30}")
+    private Long cacheTTL;
 
     private final TenantListRepository tenantListRepository;
     private final KafkaProperties kafkaProperties;
     private final ApplicationProperties applicationProperties;
     private final MeterRegistry meterRegistry;
 
-    private final LoadingCache<String, Offsets> offsetsCache = CacheBuilder.newBuilder()
-            .expireAfterWrite(CACHE_TTL, TimeUnit.SECONDS)
-            .build(new CacheLoader<>() {
-                @Override
-                public Offsets load(String topic) {
-                    return calculateConsumerOffsetsOnTopic(topic, group);
-                }
-            });
+    private LoadingCache<String, Offsets> offsetsCache;
 
     private ConsumerFactory<?, ?> defaultConsumerFactory;
     private Consumer<?, ?> consumer;
-
 
     @Getter
     @RequiredArgsConstructor
@@ -75,7 +69,16 @@ public class ActivationKafkaOffsetsMetric {
     }
 
     @PostConstruct
-    public void registerMetrics() {
+    public void init() {
+        offsetsCache = CacheBuilder.newBuilder()
+                .expireAfterWrite(cacheTTL, TimeUnit.SECONDS)
+                .build(new CacheLoader<>() {
+                    @Override
+                    public Offsets load(String topic) {
+                        return calculateConsumerOffsetsOnTopic(topic, group);
+                    }
+                });
+
         tenantListRepository.getTenants().forEach(this::registerTenantMetrics);
     }
 
