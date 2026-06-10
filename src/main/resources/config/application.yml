@@ -1,4 +1,11 @@
 management:
+  tracing:
+    export:
+      enabled: ${MANAGEMENT_TRACING_EXPORT_ENABLED:false}
+  otlp:
+    metrics:
+      export:
+        enabled: ${MANAGEMENT_OTLP_METRICS_EXPORT_ENABLED:false}
   endpoints:
     web:
       base-path: /management
@@ -203,10 +210,9 @@ xm-config:
   enabled: true
   xm-config-url: http://config
   kafka-config-topic: config_topic
-  configMode: FILE
-  configDirPath: /Users/viktorpavlenko/work/xm-ms-config-repository
 
 application:
+  kafkaOffsetCacheTTL: 30
   kafkaOffsetsMetricTimeout: 5
   retryThreadCount: 3
   kafka-enabled: true
