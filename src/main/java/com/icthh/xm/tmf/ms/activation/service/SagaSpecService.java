@@ -1,7 +1,8 @@
 package com.icthh.xm.tmf.ms.activation.service;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import com.icthh.xm.commons.tenant.YamlMapperUtils;
+import java.util.Map;
+import tools.jackson.databind.ObjectMapper;
 import com.icthh.xm.commons.config.client.api.RefreshableConfiguration;
 import com.icthh.xm.commons.exceptions.BusinessException;
 import com.icthh.xm.commons.logging.aop.IgnoreLogginAspect;
@@ -18,7 +19,7 @@ import org.springframework.util.AntPathMatcher;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-import static com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES;
+import static tools.jackson.databind.DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES;
 
 @Slf4j
 @Service
@@ -31,7 +32,9 @@ public class SagaSpecService implements RefreshableConfiguration {
 
     private final TenantUtils tenantUtils;
     private final AntPathMatcher matcher = new AntPathMatcher();
-    private final ObjectMapper mapper = new ObjectMapper(new YAMLFactory()).configure(FAIL_ON_UNKNOWN_PROPERTIES, false);
+    private final ObjectMapper mapper = YamlMapperUtils.yamlDeserializationMapper(Map.of(
+            FAIL_ON_UNKNOWN_PROPERTIES, false
+    ));
     private final SagaSpecResolver sagaSpecResolver;
 
     @Override

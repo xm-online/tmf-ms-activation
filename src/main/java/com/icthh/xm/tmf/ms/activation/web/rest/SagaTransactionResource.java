@@ -1,6 +1,6 @@
 package com.icthh.xm.tmf.ms.activation.web.rest;
 
-import com.codahale.metrics.annotation.Timed;
+
 import com.icthh.xm.commons.permission.annotation.PrivilegeDescription;
 import com.icthh.xm.tmf.ms.activation.domain.SagaEvent;
 import com.icthh.xm.tmf.ms.activation.domain.SagaLog;
@@ -32,7 +32,7 @@ public class SagaTransactionResource {
 
     private final SagaService sagaService;
 
-    @Timed
+
     @PreAuthorize("hasPermission({'sagaTransaction': #sagaTransaction}, 'ACTIVATION.TRANSACTION.CREATE')")
     @PostMapping("/transaction")
     @PrivilegeDescription("Privilege to create a new saga transaction")
@@ -40,7 +40,7 @@ public class SagaTransactionResource {
         return ResponseEntity.ok(sagaService.createNewSaga(sagaTransaction));
     }
 
-    @Timed
+
     @PreAuthorize("hasPermission({'id': #id}, 'ACTIVATION.TRANSACTION.CONTINUE')")
     @PostMapping("/task/{id}/continue")
     @PrivilegeDescription("Privilege to continue suspended task")
@@ -50,7 +50,7 @@ public class SagaTransactionResource {
         return ResponseEntity.ok().build();
     }
 
-    @Timed
+
     @PostMapping("/transaction/{id}/cancel")
     @PreAuthorize("hasPermission({'id': #id}, 'ACTIVATION.TRANSACTION.CANCEL')")
     @PrivilegeDescription("Privilege to cancel saga transaction")
@@ -121,7 +121,7 @@ public class SagaTransactionResource {
         return ResponseUtil.wrapOrNotFound(sagaService.getEventById(eventId));
     }
 
-    @Timed
+
     @PostMapping("/transaction/events/inqueue/resend")
     @PreAuthorize("hasPermission(null, 'ACTIVATION.TRANSACTION.IN_QUEUE_RESEND')")
     @PrivilegeDescription("Privilege to resend all events in state IN_QUEUE")

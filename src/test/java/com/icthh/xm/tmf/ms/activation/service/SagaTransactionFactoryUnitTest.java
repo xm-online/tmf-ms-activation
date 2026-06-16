@@ -7,14 +7,14 @@ import com.icthh.xm.tmf.ms.activation.domain.SagaTransaction;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class SagaTransactionFactoryUnitTest extends AbstractUnitTest {
 
     private SagaTransactionFactory sagaTransactionFactory;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         sagaTransactionFactory = new SagaTransactionFactory();
     }

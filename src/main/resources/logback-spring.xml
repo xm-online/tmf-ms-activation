@@ -2,26 +2,36 @@
 
 <configuration scan="true">
     <springProperty scope="context" name="springAppName" source="spring.application.name"/>
-    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+    <appender name="STDOUT_SYNC" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
             <charset>utf-8</charset>
             <Pattern>%d %-5level [%thread] [${springAppName:-}] [%X{traceId:-}] [%X{rid}] %logger{0}: %msg%n</Pattern>
         </encoder>
     </appender>
 
-    <appender name="STDOUT_JSON" class="ch.qos.logback.core.ConsoleAppender">
+    <appender name="STDOUT_JSON_SYNC" class="ch.qos.logback.core.ConsoleAppender">
         <encoder class="net.logstash.logback.encoder.LogstashEncoder"/>
+    </appender>
+
+    <appender name="STDOUT" class="ch.qos.logback.classic.AsyncAppender">
+        <queueSize>512</queueSize>
+        <appender-ref ref="STDOUT_SYNC"/>
+    </appender>
+
+    <appender name="STDOUT_JSON" class="ch.qos.logback.classic.AsyncAppender">
+        <queueSize>512</queueSize>
+        <appender-ref ref="STDOUT_JSON_SYNC"/>
     </appender>
     
     <logger name="com.icthh.xm" level="#logback.loglevel#"/>
 
     <logger name="tech.jhipster" level="#logback.loglevel#"/>
 
+    <logger name="io.opentelemetry.sdk.trace" level="WARN"/>
     <logger name="jakarta.activation" level="WARN"/>
     <logger name="jakarta.mail" level="WARN"/>
     <logger name="jakarta.xml.bind" level="WARN"/>
     <logger name="ch.qos.logback" level="WARN"/>
-    <logger name="com.codahale.metrics" level="WARN"/>
     <logger name="com.netflix" level="WARN"/>
     <logger name="com.netflix.discovery" level="INFO"/>
     <logger name="com.ryantenney" level="WARN"/>
@@ -52,6 +62,8 @@
     <logger name="org.reflections" level="INFO"/>
     <logger name="org.springframework.boot.actuate.endpoint.EndpointId" level="ERROR"/>
     <logger name="com.netflix.config.sources.URLConfigurationSource" level="ERROR"/>
+    <logger name="java.lang.ProcessBuilder" level="INFO"/>
+    <logger name="io.opentelemetry.sdk.trace" level="WARN"/>
 
     <contextListener class="ch.qos.logback.classic.jul.LevelChangePropagator">
         <resetJUL>true</resetJUL>

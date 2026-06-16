@@ -12,7 +12,7 @@
     <logger name="jakarta.mail" level="WARN"/>
     <logger name="jakarta.xml.bind" level="WARN"/>
     <logger name="ch.qos.logback" level="WARN"/>
-    <logger name="com.codahale.metrics" level="WARN"/>
+    <logger name="io.micrometer" level="WARN"/>
     <logger name="com.netflix" level="WARN"/>
     <logger name="com.netflix.discovery" level="INFO"/>
     <logger name="com.ryantenney" level="WARN"/>
@@ -39,6 +39,8 @@
     <logger name="LiquibaseSchemaResolver" level="INFO"/>
     <logger name="sun.net.www" level="INFO"/>
     <logger name="sun.rmi.transport" level="WARN"/>
+    <logger name="java.lang.ProcessBuilder" level="INFO"/>
+    <logger name="io.opentelemetry.sdk.trace" level="WARN"/>
 
     <root level="WARN">
         <appender-ref ref="CONSOLE"/>

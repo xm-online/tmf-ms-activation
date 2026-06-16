@@ -17,13 +17,13 @@ import com.icthh.xm.tmf.ms.activation.service.SagaSpecService.InvalidSagaSpecifi
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.IOUtils;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.core.io.ClassPathResource;
 
 import java.util.Map;
@@ -32,7 +32,9 @@ import java.util.Optional;
 import static com.icthh.xm.tmf.ms.activation.domain.SagaEvent.SagaEventStatus.INVALID_SPECIFICATION;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.UUID.randomUUID;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.refEq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -44,7 +46,7 @@ public class SagaServiceImplIntTest extends AbstractSpringBootTest {
     @Autowired
     private SagaService sagaService;
 
-    @MockBean
+    @MockitoBean
     private SagaTaskExecutor sagaTaskExecutor;
 
     @Autowired
@@ -59,26 +61,26 @@ public class SagaServiceImplIntTest extends AbstractSpringBootTest {
     @Mock
     private XmAuthenticationContext context;
 
-    @MockBean
+    @MockitoBean
     private ApplicationStartup applicationStartup;
 
-    @MockBean
+    @MockitoBean
     private RetryService retryService;
 
-    @MockBean
+    @MockitoBean
     private EventsSender eventsSender;
 
-    @MockBean
+    @MockitoBean
     private SagaTransactionRepository transactionRepository;
 
-    @MockBean
+    @MockitoBean
     private SagaEventRepository sagaEventRepository;
 
-    @Before
+    @BeforeEach
     public void setup() {
 
         TenantContextUtils.setTenant(tenantContextHolder, "TEST_TENANT");
-        MockitoAnnotations.initMocks(this);
+        MockitoAnnotations.openMocks(this);
         when(authContextHolder.getContext()).thenReturn(context);
         when(context.getUserKey()).thenReturn(Optional.of("userKey"));
 
@@ -90,7 +92,7 @@ public class SagaServiceImplIntTest extends AbstractSpringBootTest {
         return IOUtils.toString(new ClassPathResource(path).getInputStream(), UTF_8);
     }
 
-    @After
+    @AfterEach
     public void tearDown() {
         lepManager.endThreadContext();
         tenantContextHolder.getPrivilegedContext().destroyCurrentContext();
@@ -138,7 +140,7 @@ public class SagaServiceImplIntTest extends AbstractSpringBootTest {
         verifyNoInteractions(retryService);
     }
 
-    @Test(expected = InvalidSagaSpecificationException.class)
+    @Test
     public void testContinuationTransactionSpecNotFound() {
         String txId = randomUUID().toString();
 
@@ -148,7 +150,7 @@ public class SagaServiceImplIntTest extends AbstractSpringBootTest {
                 .setTypeKey("TEST_NOT_FOUND_EVENT");
         when(sagaEventRepository.findById(sagaEvent.getId())).thenReturn(Optional.of(sagaEvent));
 
-        sagaService.continueTask(sagaEvent.getId(), Map.of());
+        assertThrows(InvalidSagaSpecificationException.class, () -> sagaService.continueTask(sagaEvent.getId(), Map.of()));
     }
 
 }

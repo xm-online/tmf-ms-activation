@@ -19,13 +19,15 @@ import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.IOUtils;
 import org.hamcrest.collection.IsMapContaining;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.Mockito;
+import org.mockito.MockitoAnnotations;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.core.io.ClassPathResource;
 
 import java.io.InputStream;
@@ -62,11 +64,11 @@ public class RetryServiceIntTest extends AbstractSpringBootTest {
     private LepManagementService lepManager;
     @Autowired
     private TenantContextHolder tenantContextHolder;
-    @MockBean
+    @MockitoBean
     private SagaEventRepository eventRepository;
-    @MockBean
+    @MockitoBean
     private EventsSender eventsSender;
-    @MockBean
+    @MockitoBean
     private SagaTransactionRepository transactionRepository;
     @Autowired
     private SagaSpecService sagaSpecService;
@@ -83,15 +85,16 @@ public class RetryServiceIntTest extends AbstractSpringBootTest {
     private static final SagaType TYPE = fromTypeKey("TEST-TYPE-KEY");
     private static final String FIRST_TASK_KEY = "TASK-1";
 
-    @After
+    @AfterEach
     public void destroy() {
         lepManager.endThreadContext();
         tenantContextHolder.getPrivilegedContext().destroyCurrentContext();
     }
 
-    @Before
+    @BeforeEach
     public void init() {
         TenantContextUtils.setTenant(tenantContextHolder, TENANT);
+        MockitoAnnotations.openMocks(this);
 
         when(context.hasAuthentication()).thenReturn(true);
         when(context.getLogin()).thenReturn(Optional.of("testLogin"));
@@ -146,7 +149,7 @@ public class RetryServiceIntTest extends AbstractSpringBootTest {
         SagaTaskSpec task = sagaSpecService.getTransactionSpec(TYPE).getTask(FIRST_TASK_KEY);
 
         Mockito.doAnswer(invocation -> {
-            SagaEvent event = (SagaEvent) invocation.getArguments()[0];
+            SagaEvent event = (SagaEvent) invocation.getArguments()[1];
             event.setRetryNumber(maxRetryCount - countDownLatch.getCount() + 1);
             retryService.retry(event, transaction, task, ON_RETRY);
             countDownLatch.countDown();
@@ -272,7 +275,7 @@ public class RetryServiceIntTest extends AbstractSpringBootTest {
 
 
         Mockito.doAnswer(invocation -> {
-            SagaEvent event = (SagaEvent) invocation.getArguments()[0];
+            SagaEvent event = (SagaEvent) invocation.getArguments()[1];
             retryService.retry(event, mockTx(txId), task, ON_RETRY);
             countDownLatch.countDown();
             return event;
@@ -321,7 +324,7 @@ public class RetryServiceIntTest extends AbstractSpringBootTest {
 
 
         Mockito.doAnswer(invocation -> {
-            SagaEvent event = (SagaEvent) invocation.getArguments()[0];
+            SagaEvent event = (SagaEvent) invocation.getArguments()[1];
             retryService.retry(event, mockTx(txId), task, ON_RETRY);
             countDownLatch.countDown();
             return event;

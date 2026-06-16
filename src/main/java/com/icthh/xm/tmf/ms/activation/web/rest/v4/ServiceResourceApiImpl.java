@@ -4,7 +4,7 @@ import static java.util.Optional.ofNullable;
 import static org.apache.commons.collections.CollectionUtils.isNotEmpty;
 import static org.springframework.http.ResponseEntity.status;
 
-import com.codahale.metrics.annotation.Timed;
+
 import com.icthh.xm.commons.permission.annotation.PrivilegeDescription;
 import com.icthh.xm.tmf.ms.activation.api.v4.ServiceResourceApiDelegate;
 import com.icthh.xm.tmf.ms.activation.domain.SagaTransaction;
@@ -39,7 +39,7 @@ public class ServiceResourceApiImpl implements ServiceResourceApiDelegate {
     private final SagaTransactionFactory sagaTransactionFactory;
     private final ResponseEnricherService responseEnricher;
 
-    @Timed
+
     @PreAuthorize("hasPermission({'service': #service}, 'ACTIVATION.ACTION.SERVICE')")
     @PrivilegeDescription("Privilege to create service")
     @Override

@@ -28,20 +28,20 @@ import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.IOUtils;
 import org.hibernate.internal.util.MutableInteger;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.SpyBean;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.context.annotation.Primary;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
-import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.util.AopTestUtils;
 
 import java.util.ArrayList;
@@ -80,7 +80,7 @@ import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 
 @Slf4j
-@RunWith(SpringRunner.class)
+@ExtendWith(SpringExtension.class)
 @SpringBootTest(classes = {SagaIntTest.SagaIntTestConfiguration.class, ActivationApp.class,
     SecurityBeanOverrideConfiguration.class,
     SelfInjectionConfiguration.class})
@@ -89,7 +89,7 @@ public class SagaIntTest {
     @Autowired
     private SagaService sagaService;
 
-    @SpyBean
+    @MockitoSpyBean
     private SagaLogRepository logRepository;
 
     @Qualifier("originLogRepository")
@@ -114,7 +114,7 @@ public class SagaIntTest {
     @Autowired
     private XmLepScriptConfigServerResourceLoader resourceLoader;
 
-    @Before
+    @BeforeEach
     public void setup() {
         initContext(tenantContextHolder, lepManager);
         this.testEventSender.immediatelyProcessing = false;
@@ -137,7 +137,7 @@ public class SagaIntTest {
         return IOUtils.toString(new ClassPathResource(path).getInputStream(), UTF_8);
     }
 
-    @After
+    @AfterEach
     public void tearDown() {
         BEFORE_EVENTS.clear();
         AFTER_EVENTS.clear();

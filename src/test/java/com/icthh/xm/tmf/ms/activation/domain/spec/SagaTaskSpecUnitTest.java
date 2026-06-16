@@ -1,9 +1,9 @@
 package com.icthh.xm.tmf.ms.activation.domain.spec;
 
 import com.icthh.xm.tmf.ms.activation.AbstractUnitTest;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class SagaTaskSpecUnitTest extends AbstractUnitTest {
 

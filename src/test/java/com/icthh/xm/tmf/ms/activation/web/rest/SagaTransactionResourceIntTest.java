@@ -30,25 +30,25 @@ import java.util.Optional;
 
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.context.MessageSource;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.config.EnableSpringDataWebSupport;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 
 @Slf4j
-@RunWith(SpringRunner.class)
+@ExtendWith(SpringExtension.class)
 @WebMvcTest(controllers = SagaTransactionResource.class)
 @ContextConfiguration(classes = {SagaTransactionResource.class, ExceptionTranslator.class})
 @EnableSpringDataWebSupport
@@ -59,21 +59,21 @@ public class SagaTransactionResourceIntTest {
 
     private MockMvc mockMvc;
 
-    @Before
+    @BeforeEach
     public void setup() {
         // Setup MockMVC to use our Spring Configuration
         this.mockMvc = MockMvcBuilders.webAppContextSetup(this.wac)
                                       .build();
     }
 
-    @MockBean
+    @MockitoBean
     private SagaService sagaService;
 
 
-    @MockBean
+    @MockitoBean
     private MessageSource messageSource;
 
-    @MockBean
+    @MockitoBean
     private LocalizationMessageService localizationMessageService;
 
     @Test

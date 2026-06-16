@@ -14,13 +14,13 @@ import com.icthh.xm.tmf.ms.activation.domain.spec.SagaTransactionSpec;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.IOUtils;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.core.io.ClassPathResource;
 
 import java.util.HashMap;
@@ -62,14 +62,14 @@ public class SagaTaskExecutorIntTest extends AbstractSpringBootTest {
     @Mock
     private XmAuthenticationContext context;
 
-    @MockBean
+    @MockitoBean
     private RetryService retryService;
 
-    @Before
+    @BeforeEach
     public void setup() {
 
         TenantContextUtils.setTenant(tenantContextHolder, "XM");
-        MockitoAnnotations.initMocks(this);
+        MockitoAnnotations.openMocks(this);
         when(authContextHolder.getContext()).thenReturn(context);
         when(context.getUserKey()).thenReturn(Optional.of("userKey"));
 
@@ -83,7 +83,7 @@ public class SagaTaskExecutorIntTest extends AbstractSpringBootTest {
         return IOUtils.toString(new ClassPathResource(path).getInputStream(), UTF_8);
     }
 
-    @After
+    @AfterEach
     public void tearDown() {
         lepManager.endThreadContext();
         tenantContextHolder.getPrivilegedContext().destroyCurrentContext();
