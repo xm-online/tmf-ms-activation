@@ -49,12 +49,18 @@ public class MessagingConfiguration implements RefreshableConfiguration, Applica
         TypeReference<Map<String, Set<TenantState>>> typeRef = new TypeReference<>() {};
         Map<String, Set<TenantState>> tenantsByServiceMap = objectMapper.readValue(config, typeRef);
         Set<TenantState> tenantKeys = tenantsByServiceMap.get(appName);
-        if (appStarted.get()) {
-            tenantKeys.stream().map(TenantState::getName).forEach(it -> {
-                appTenantKeys.add(it);
-                createChannels(it);
-            });
+        if (tenantKeys == null) {
+            return;
         }
+        tenantKeys.stream().map(TenantState::getName).forEach(it -> {
+            // Always remember the tenant so its channels are created on ApplicationReadyEvent.
+            // onInit() runs before the app is started, so guarding the add() by appStarted
+            // left appTenantKeys empty at startup and no saga-events consumer was ever created.
+            appTenantKeys.add(it);
+            if (appStarted.get()) {
+                createChannels(it);
+            }
+        });
     }
 
     @Override
