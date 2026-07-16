@@ -215,6 +215,12 @@ xm-config:
 application:
   kafkaOffsetCacheTTL: 30
   kafkaOffsetsMetricTimeout: 5
+  # Toggle for the per-tenant saga-events offset/lag gauges (ActivationKafkaOffsetsMetric). Enabled by default.
+  kafkaOffsetsMetricEnabled: true
+  # xm-commons Kafka connectivity metric (KafkaMetricsConfiguration). Disabled: this service does not use it and,
+  # without application.kafkaMetric.metricTopics + connectionTimeoutTopic, it only logs "... not found: null, null".
+  kafka-metric:
+    enabled: false
   retryThreadCount: 3
   kafka-enabled: true
   kafka-system-topic: system_topic

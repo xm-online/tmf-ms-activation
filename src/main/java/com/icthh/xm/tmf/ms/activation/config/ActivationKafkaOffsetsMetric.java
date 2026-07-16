@@ -25,6 +25,7 @@ import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.kafka.autoconfigure.KafkaProperties;
 import org.springframework.stereotype.Component;
 import org.springframework.util.ObjectUtils;
@@ -32,6 +33,7 @@ import org.springframework.util.ObjectUtils;
 @Slf4j
 @RequiredArgsConstructor
 @Component
+@ConditionalOnProperty(name = "application.kafkaOffsetsMetricEnabled", havingValue = "true", matchIfMissing = true)
 public class ActivationKafkaOffsetsMetric {
 
     private final String METRIC_NAME = "kafka.offsets.";
