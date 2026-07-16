@@ -137,6 +137,7 @@ spring:
       batch-size: 0
     properties:
       reconnect.backoff.ms: 1000
+      reconnect.backoff.max.ms: 10000
       partition.assignment.strategy: org.apache.kafka.clients.consumer.RangeAssignor
     admin:
       fail-fast: true
