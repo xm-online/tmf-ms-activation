@@ -7,31 +7,25 @@ import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
 import com.icthh.xm.commons.config.client.repository.TenantListRepository;
 import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.kafka.clients.consumer.Consumer;
-import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.clients.admin.Admin;
+import org.apache.kafka.clients.admin.AdminClientConfig;
+import org.apache.kafka.clients.admin.ListOffsetsResult.ListOffsetsResultInfo;
+import org.apache.kafka.clients.admin.OffsetSpec;
+import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
-import org.apache.kafka.common.PartitionInfo;
 import org.apache.kafka.common.TopicPartition;
-import org.apache.kafka.common.serialization.ByteArrayDeserializer;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.kafka.autoconfigure.KafkaProperties;
-import org.springframework.kafka.core.ConsumerFactory;
-import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.util.ObjectUtils;
 
@@ -56,8 +50,7 @@ public class ActivationKafkaOffsetsMetric {
 
     private LoadingCache<String, Offsets> offsetsCache;
 
-    private ConsumerFactory<?, ?> defaultConsumerFactory;
-    private Consumer<?, ?> consumer;
+    private volatile Admin admin;
 
     @Getter
     @RequiredArgsConstructor
@@ -82,78 +75,83 @@ public class ActivationKafkaOffsetsMetric {
         tenantListRepository.getTenants().forEach(this::registerTenantMetrics);
     }
 
-    private Offsets calculateConsumerOffsetsOnTopic(String topic, String group) {
-        ExecutorService exec = Executors.newSingleThreadExecutor();
-        Future<Offsets> future = exec.submit(() -> {
-
-            long totalCurrentOffset = 0;
-            long totalEndOffset = 0;
-
-            try {
-                if (consumer == null) {
-                    synchronized (ActivationKafkaOffsetsMetric.this) {
-                        if (consumer == null) {
-                            consumer = createConsumerFactory(group).createConsumer();
-                        }
-                    }
-                }
-                synchronized (consumer) {
-                    List<PartitionInfo> partitionInfos = consumer.partitionsFor(topic);
-                    List<TopicPartition> topicPartitions = new LinkedList<>();
-                    for (PartitionInfo partitionInfo : partitionInfos) {
-                        topicPartitions.add(new TopicPartition(partitionInfo.topic(), partitionInfo.partition()));
-                    }
-
-                    Map<TopicPartition, Long> endOffsets = consumer.endOffsets(topicPartitions);
-
-                    for (Map.Entry<TopicPartition, Long> endOffset : endOffsets.entrySet()) {
-                        Map<TopicPartition, OffsetAndMetadata> current = consumer.committed(Set.of(endOffset.getKey()));
-                        if (current != null) {
-                            totalEndOffset += endOffset.getValue();
-                            OffsetAndMetadata offsetAndMetadata = current.get(endOffset.getKey());
-                            if (offsetAndMetadata != null) {
-                                totalCurrentOffset += offsetAndMetadata.offset();
-                            }
-                        } else {
-                            totalEndOffset += endOffset.getValue();
-                        }
-                    }
-                }
-            } catch (Exception e) {
-                log.debug("Cannot generate metric for topic: " + topic, e);
-            }
-
-            return new Offsets(totalEndOffset - totalCurrentOffset, totalCurrentOffset, totalEndOffset);
-        });
-        try {
-            return future.get(applicationProperties.getKafkaOffsetsMetricTimeout(), TimeUnit.SECONDS);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            return new Offsets(Long.MIN_VALUE, Long.MIN_VALUE, Long.MIN_VALUE);
-        } catch (ExecutionException | TimeoutException e) {
-            return new Offsets(Long.MIN_VALUE, Long.MIN_VALUE, Long.MIN_VALUE);
-        } finally {
-            exec.shutdownNow();
+    @PreDestroy
+    public void destroy() {
+        if (admin != null) {
+            admin.close();
         }
     }
 
-    private ConsumerFactory<?, ?> createConsumerFactory(String group) {
-        if (this.defaultConsumerFactory == null) {
-            Map<String, Object> props = new HashMap<>();
-            props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, ByteArrayDeserializer.class);
-            props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, ByteArrayDeserializer.class);
-            if (!ObjectUtils.isEmpty(kafkaProperties.buildConsumerProperties())) {
-                props.putAll(kafkaProperties.buildConsumerProperties());
-            }
-            if (!props.containsKey(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG)) {
-                props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG,
-                    this.kafkaProperties.getBootstrapServers());
-            }
-            props.put("group.id", group);
-            this.defaultConsumerFactory = new DefaultKafkaConsumerFactory<>(props);
-        }
+    private Offsets calculateConsumerOffsetsOnTopic(String topic, String group) {
+        long timeout = applicationProperties.getKafkaOffsetsMetricTimeout();
+        try {
+            Admin adminClient = getAdmin();
 
-        return this.defaultConsumerFactory;
+            TopicDescription description = adminClient.describeTopics(List.of(topic))
+                    .allTopicNames().get(timeout, TimeUnit.SECONDS).get(topic);
+            if (description == null) {
+                return new Offsets(0, 0, 0);
+            }
+
+            List<TopicPartition> topicPartitions = description.partitions().stream()
+                    .map(partition -> new TopicPartition(topic, partition.partition()))
+                    .toList();
+
+            Map<TopicPartition, OffsetSpec> latestOffsetSpecs = topicPartitions.stream()
+                    .collect(Collectors.toMap(topicPartition -> topicPartition, topicPartition -> OffsetSpec.latest()));
+
+            Map<TopicPartition, ListOffsetsResultInfo> endOffsets =
+                    adminClient.listOffsets(latestOffsetSpecs).all().get(timeout, TimeUnit.SECONDS);
+
+            Map<TopicPartition, OffsetAndMetadata> committedOffsets =
+                    adminClient.listConsumerGroupOffsets(group)
+                            .partitionsToOffsetAndMetadata().get(timeout, TimeUnit.SECONDS);
+
+            long totalEndOffset = 0;
+            long totalCurrentOffset = 0;
+            for (TopicPartition topicPartition : topicPartitions) {
+                ListOffsetsResultInfo endOffset = endOffsets.get(topicPartition);
+                if (endOffset != null) {
+                    totalEndOffset += endOffset.offset();
+                }
+                OffsetAndMetadata committedOffset = committedOffsets.get(topicPartition);
+                if (committedOffset != null) {
+                    totalCurrentOffset += committedOffset.offset();
+                }
+            }
+
+            return new Offsets(totalEndOffset - totalCurrentOffset, totalCurrentOffset, totalEndOffset);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            log.warn("Cannot generate metric for topic: {}", topic, e);
+            return new Offsets(Long.MIN_VALUE, Long.MIN_VALUE, Long.MIN_VALUE);
+        } catch (Exception e) {
+            log.warn("Cannot generate metric for topic: {}", topic, e);
+            return new Offsets(Long.MIN_VALUE, Long.MIN_VALUE, Long.MIN_VALUE);
+        }
+    }
+
+    private Admin getAdmin() {
+        if (admin == null) {
+            synchronized (this) {
+                if (admin == null) {
+                    admin = createAdmin();
+                }
+            }
+        }
+        return admin;
+    }
+
+    private Admin createAdmin() {
+        Map<String, Object> props = new HashMap<>();
+        Map<String, Object> adminProps = kafkaProperties.buildAdminProperties();
+        if (!ObjectUtils.isEmpty(adminProps)) {
+            props.putAll(adminProps);
+        }
+        if (!props.containsKey(AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG)) {
+            props.put(AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaProperties.getBootstrapServers());
+        }
+        return Admin.create(props);
     }
 
     private void registerTenantMetrics(String tenantName) {
