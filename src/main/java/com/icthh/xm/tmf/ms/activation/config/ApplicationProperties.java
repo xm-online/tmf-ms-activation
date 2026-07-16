@@ -28,11 +28,13 @@ public class ApplicationProperties {
     private int kafkaConcurrencyCount;
     private int kafkaOffsetsMetricTimeout;
     private Long kafkaOffsetCacheTTL;
+    private boolean kafkaOffsetsMetricEnabled = true;
     private RestTemplateProperties loadBalancedRestTemplate = new RestTemplateProperties();
 
     private final Lep lep = new Lep();
     private final Retry retry = new Retry();
     private final KafkaEventSender kafkaEventSender = new KafkaEventSender();
+    private final KafkaMetric kafkaMetric = new KafkaMetric();
 
     private List<String> tenantIgnoredPathList = Collections.emptyList();
 
@@ -66,5 +68,11 @@ public class ApplicationProperties {
         private int connectionRequestTimeout;
         private int connectTimeout;
         private int readTimeout;
+    }
+
+    @Getter
+    @Setter
+    public static class KafkaMetric {
+        private boolean enabled;
     }
 }
