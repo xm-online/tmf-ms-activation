@@ -144,6 +144,7 @@ spring:
 
   liquibase:
     default-schema: XM
+    change-log: classpath:config/liquibase/master.xml
 
 liquibase:
   default-schema: XM
