@@ -142,4 +142,4 @@ application:
       delay: 100 #in milliseconds
       multiplier: 2
   retryThreadCount: 3
-  tenant-ignored-path-list: /swagger-resources/configuration/ui, /management/health, /h2-console, /v2/api-docs, /api/profile-info, /swagger-resources/configuration/ui, /management/health, /management/prometheus
+  tenant-ignored-path-list: /swagger-resources/configuration/ui, /management/health, /h2-console, /v3/api-docs, /api/profile-info, /swagger-resources/configuration/ui, /management/health, /management/prometheus
