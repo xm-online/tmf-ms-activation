@@ -37,6 +37,7 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static com.icthh.xm.commons.i18n.I18nConstants.LANGUAGE;
 import static com.icthh.xm.tmf.ms.activation.domain.SagaEvent.SagaEventStatus.FAILED;
@@ -148,9 +149,15 @@ public class RetryServiceIntTest extends AbstractSpringBootTest {
 
         SagaTaskSpec task = sagaSpecService.getTransactionSpec(TYPE).getTask(FIRST_TASK_KEY);
 
+        // The attempt number must not be derived from the latch: retry() schedules the next resend
+        // on the 3-thread retry pool with backOff 0, so the following send can start before this
+        // thread reaches countDown(). Reading the latch there yields a stale count, the retry limit
+        // is never reached and an extra resend round runs.
+        AtomicInteger attempt = new AtomicInteger();
+
         Mockito.doAnswer(invocation -> {
             SagaEvent event = (SagaEvent) invocation.getArguments()[1];
-            event.setRetryNumber(maxRetryCount - countDownLatch.getCount() + 1);
+            event.setRetryNumber(attempt.incrementAndGet());
             retryService.retry(event, transaction, task, ON_RETRY);
             countDownLatch.countDown();
             return event;
