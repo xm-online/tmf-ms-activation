@@ -26,6 +26,7 @@ plugins {
     id "org.liquibase.gradle"
     id 'io.spring.dependency-management'
     id 'war'
+    id "org.sonarqube"
     //jhipster-needle-gradle-plugins - JHipster will add additional gradle plugins here
 }
 
