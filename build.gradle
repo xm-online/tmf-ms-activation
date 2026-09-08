@@ -89,12 +89,19 @@ springBoot {
 }
 
 String[] testCategories = ['com.icthh.xm.tmf.ms.activation.AbstractSpringBootTest',
-                           'com.icthh.xm.tmf.ms.activation.AbstractUnitTest']
+                           'com.icthh.xm.tmf.ms.activation.AbstractUnitTest',
+                           'com.icthh.xm.tmf.ms.activation.AbstractLepUnitTest']
 
 Closure testLoggingConf = {
     exceptionFormat = 'full'
     events "passed", "skipped", "failed"//, "standardError" //, "standardOut"
 }
+
+def java25TestJvmArgs = [
+    '--add-opens', 'java.base/java.lang=ALL-UNNAMED',
+    '--add-opens', 'java.base/java.lang.reflect=ALL-UNNAMED',
+    '--add-opens', 'java.base/java.util=ALL-UNNAMED'
+]
 
 test {
 
@@ -112,11 +119,7 @@ test {
     useJUnitPlatform{}
 
     // JVM opens for Java 25 (Mockito/reflect)
-    jvmArgs += [
-        '--add-opens', 'java.base/java.lang=ALL-UNNAMED',
-        '--add-opens', 'java.base/java.lang.reflect=ALL-UNNAMED',
-        '--add-opens', 'java.base/java.util=ALL-UNNAMED'
-    ]
+    jvmArgs += java25TestJvmArgs
 
     // uncomment if the tests reports are not generated
     // see https://github.com/jhipster/generator-jhipster/pull/2771 and https://github.com/jhipster/generator-jhipster/pull/4484
@@ -131,6 +134,10 @@ test {
 }
 
 tasks.register('runCategorizedTests', Test) {
+    dependsOn testClasses
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    jvmArgs += java25TestJvmArgs
     useJUnitPlatform {
         includeTags(testCategories)
     }

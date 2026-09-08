@@ -1,13 +1,12 @@
 package com.icthh.xm.tmf.ms.activation
 
 import groovy.test.GroovyAssert
-import org.junit.Before
-import org.junit.experimental.categories.Category
+import org.junit.jupiter.api.BeforeEach
 
 
 /**
  * Abstract test for extension for any Groovy Unit test.
- * Marks test with junit {@link Category} the same as java unit tests
+ * Inherits the Jupiter discovery tag from {@link AbstractLepUnitTest}.
  *
  * <p>
  * Guidelines for groovy unit test writing:
@@ -66,7 +65,7 @@ import org.junit.experimental.categories.Category
  *  </pre>
  * </ol>
  */
-abstract class AbstractGroovyUnitTest {
+abstract class AbstractGroovyUnitTest extends AbstractLepUnitTest {
 
     private static  String LEP_CUSTOM_TEST_PATH = 'src/main/lep/%s/activation/lep'
 
@@ -79,7 +78,7 @@ abstract class AbstractGroovyUnitTest {
      */
     abstract Object setLepContext()
 
-    @Before
+    @BeforeEach
     void setUp() {
         lepContext = setLepContext()
         groovyShell.setVariable('lepContext', lepContext)
