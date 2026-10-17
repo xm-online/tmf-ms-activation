@@ -2,6 +2,7 @@ package com.icthh.xm.tmf.ms.activation.service;
 
 import com.icthh.xm.commons.lep.LogicExtensionPoint;
 import com.icthh.xm.commons.lep.spring.LepService;
+import com.icthh.xm.tmf.ms.activation.config.ApplicationProperties;
 import com.icthh.xm.tmf.ms.activation.domain.SagaTransaction;
 import java.util.Enumeration;
 import java.util.HashMap;
@@ -22,6 +23,8 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 public class SagaTransactionFactory {
 
     private static final String KEY_PARAM = "key";
+
+    private final ApplicationProperties applicationProperties;
 
     @LogicExtensionPoint("CreateSagaTransaction")
     public SagaTransaction createSagaTransaction(String typeKey, Map<String, Object> params) {
@@ -53,9 +56,16 @@ public class SagaTransactionFactory {
             Enumeration<String> headerNames = request.getHeaderNames();
             while (headerNames.hasMoreElements()) {
                 String headerName = headerNames.nextElement();
-                params.put(headerName, request.getHeader(headerName));
+                if (!isExcludedHeader(headerName)) {
+                    params.put(headerName, request.getHeader(headerName));
+                }
             }
         }
         return params;
+    }
+
+    private boolean isExcludedHeader(String headerName) {
+        return applicationProperties.getSagaContextExcludedHeaders().stream()
+            .anyMatch(headerName::equalsIgnoreCase);
     }
 }
