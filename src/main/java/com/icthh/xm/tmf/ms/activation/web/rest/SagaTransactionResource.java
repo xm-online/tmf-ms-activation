@@ -69,7 +69,7 @@ public class SagaTransactionResource {
     }
 
     @GetMapping("/transactions")
-    @PreAuthorize("hasPermission({'id': #id, 'eventId': #eventId}, 'ACTIVATION.TRANSACTION.FIND_ALL')")
+    @PreAuthorize("hasPermission(null, 'ACTIVATION.TRANSACTION.FIND_ALL')")
     @PrivilegeDescription("Privilege to get all the transactions")
     public ResponseEntity<List<SagaTransaction>> getTransactions(Pageable pageable) {
         Page<SagaTransaction> page = sagaService.getAllTransaction(pageable);
@@ -78,7 +78,7 @@ public class SagaTransactionResource {
     }
 
     @GetMapping("/transactions/new")
-    @PreAuthorize("hasPermission({'id': #id, 'eventId': #eventId}, 'ACTIVATION.TRANSACTION.FIND_NEW')")
+    @PreAuthorize("hasPermission(null, 'ACTIVATION.TRANSACTION.FIND_NEW')")
     @PrivilegeDescription("Privilege to get all the new transactions")
     public ResponseEntity<List<SagaTransaction>> getNewTransactions(Pageable pageable) {
         Page<SagaTransaction> page = sagaService.getAllNewTransaction(pageable);
@@ -87,7 +87,7 @@ public class SagaTransactionResource {
     }
 
     @GetMapping("/transactions/{id}/events")
-    @PreAuthorize("hasPermission({'id': #id, 'eventId': #eventId}, 'ACTIVATION.TRANSACTION.GET_EVENTS')")
+    @PreAuthorize("hasPermission({'id': #id}, 'ACTIVATION.TRANSACTION.GET_EVENTS')")
     @PrivilegeDescription("Privilege to get all events by transaction")
     public ResponseEntity<List<SagaEvent>> getEventsByTransaction(@PathVariable("id") String id) {
         return ResponseEntity.ok(sagaService.getEventsByTransaction(id));
@@ -108,7 +108,7 @@ public class SagaTransactionResource {
     }
 
     @GetMapping("/transactions/{id}/logs")
-    @PreAuthorize("hasPermission({'id': #id, 'eventId': #eventId}, 'ACTIVATION.TRANSACTION.GET_LOGS')")
+    @PreAuthorize("hasPermission({'id': #id}, 'ACTIVATION.TRANSACTION.GET_LOGS')")
     @PrivilegeDescription("Privilege to get saga log records")
     public ResponseEntity<List<SagaLog>> getLogsByTransaction(@PathVariable("id") String id) {
         return ResponseEntity.ok(sagaService.getLogsByTransaction(id));
