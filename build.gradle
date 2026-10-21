@@ -214,13 +214,14 @@ configurations {
 }
 
 repositories {
+    maven {
+        name "reposiliteRepository"
+        url "https://reposilite.jevera.software/releases"
+    }
     // Local maven repository is required for libraries built locally with maven like development jhipster-bom.
     mavenLocal()
     mavenCentral()
     //jhipster-needle-gradle-repositories - JHipster will add additional repositories
-    maven {
-        url "https://reposilite.jevera.software/releases"
-    }
 }
 
 dependencies {
