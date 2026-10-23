@@ -38,6 +38,11 @@ public class ApplicationProperties {
 
     private List<String> tenantIgnoredPathList = Collections.emptyList();
 
+    /**
+     * Request headers that are not copied into the saga transaction context (case-insensitive).
+     */
+    private List<String> sagaContextExcludedHeaders = List.of("authorization", "cookie");
+
     @Getter
     @Setter
     public static class Lep {

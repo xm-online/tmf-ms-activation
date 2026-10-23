@@ -234,6 +234,8 @@ application:
   kafka-concurrency-count: 16
   db-schema-suffix:
   tenant-ignored-path-list: /swagger-resources/configuration/ui, /management/health, /oauth/token_key, /h2-console, /v3/api-docs, /api/profile-info, /swagger-resources/configuration/ui, /management/health, /management/prometheus
+  # Request headers that are not copied into the saga transaction context (case-insensitive)
+  saga-context-excluded-headers: authorization, cookie
   lep:
     tenant-script-storage: XM_MS_CONFIG
     lep-resource-path-pattern: /config/tenants/{tenantName}/activation/lep/resources/**/*
