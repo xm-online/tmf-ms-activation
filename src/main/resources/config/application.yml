@@ -234,7 +234,7 @@ application:
   # application.kafka-concurrency-count * spring.cloud.stream.instance-count
   kafka-concurrency-count: 16
   db-schema-suffix:
-  tenant-ignored-path-list: /swagger-resources/configuration/ui, /management/health, /oauth/token_key, /h2-console, /v3/api-docs, /api/profile-info, /swagger-resources/configuration/ui, /management/health, /management/health/liveness, /management/health/readiness, /management/prometheus
+  tenant-ignored-path-list: /swagger-resources/configuration/ui, /management/health, /oauth/token_key, /h2-console, /v3/api-docs, /api/profile-info, /swagger-resources/configuration/ui, /management/health, /management/health/liveness, /management/health/readiness, /management/prometheus, /error
   # Request headers that are not copied into the saga transaction context (case-insensitive)
   saga-context-excluded-headers: authorization, cookie
   lep:
