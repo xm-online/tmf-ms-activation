@@ -19,6 +19,13 @@ For further instructions on how to develop with JHipster, have a look at [Using 
 
 
 
+### Kafka connection
+
+The connection to Kafka (SASL login and password, SSL, OAUTHBEARER, GSSAPI, `spring.ssl.bundle`) is set by environment
+variables, `PLAINTEXT` when they are not set. The full sets of variables for each `security.protocol` and
+the broker setup are described in
+[xm-ms-template: Kafka connection](https://github.com/xm-online/xm-ms-template/blob/main/README.md#kafka-connection).
+
 ## Building for production
 
 To optimize the activation application for production, run:

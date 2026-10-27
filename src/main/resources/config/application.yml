@@ -27,7 +27,6 @@ management:
   endpoint:
     health:
       show-details: when_authorized
-      roles: 'SUPER-ADMIN'
       probes:
         enabled: true
       group:
@@ -141,6 +140,7 @@ spring:
       partition.assignment.strategy: org.apache.kafka.clients.consumer.RangeAssignor
     admin:
       fail-fast: true
+    # Kafka connection by environment variables, PLAINTEXT when not set: https://github.com/xm-online/xm-ms-template/blob/main/README.md#kafka-connection
 
   liquibase:
     default-schema: XM
@@ -164,8 +164,9 @@ info:
   # Comma separated list of profiles that will trigger the ribbon to show
   display-ribbon-on-profiles: "dev"
 
-springdoc:
-  show-actuator: true
+# Defaults come from xm-commons (xm-defaults.yml). Uncomment to override for this service:
+# springdoc:
+#   show-actuator: false
 
 # ===================================================================
 # JHipster specific properties
@@ -233,7 +234,7 @@ application:
   # application.kafka-concurrency-count * spring.cloud.stream.instance-count
   kafka-concurrency-count: 16
   db-schema-suffix:
-  tenant-ignored-path-list: /swagger-resources/configuration/ui, /management/health, /oauth/token_key, /h2-console, /v3/api-docs, /api/profile-info, /swagger-resources/configuration/ui, /management/health, /management/prometheus
+  tenant-ignored-path-list: /swagger-resources/configuration/ui, /management/health, /oauth/token_key, /h2-console, /v3/api-docs, /api/profile-info, /swagger-resources/configuration/ui, /management/health, /management/health/liveness, /management/health/readiness, /management/prometheus
   # Request headers that are not copied into the saga transaction context (case-insensitive)
   saga-context-excluded-headers: authorization, cookie
   lep:
@@ -253,3 +254,6 @@ application:
     connection-request-timeout: 0
     connect-timeout: 0
     read-timeout: 0
+  config-private-key:
+  api-docs:
+    privilege-check: true
