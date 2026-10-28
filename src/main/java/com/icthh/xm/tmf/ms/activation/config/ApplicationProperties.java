@@ -1,5 +1,6 @@
 package com.icthh.xm.tmf.ms.activation.config;
 
+import com.icthh.xm.commons.config.XmCommonsApplicationProperties;
 import com.icthh.xm.commons.lep.TenantScriptStorage;
 import lombok.Getter;
 import lombok.Setter;
@@ -17,7 +18,7 @@ import java.util.List;
 @Getter
 @Setter
 @ConfigurationProperties(prefix = "application", ignoreUnknownFields = false)
-public class ApplicationProperties {
+public class ApplicationProperties extends XmCommonsApplicationProperties {
     private boolean schedulerEnabled;
     private boolean kafkaEnabled;
     private String kafkaSystemTopic;
