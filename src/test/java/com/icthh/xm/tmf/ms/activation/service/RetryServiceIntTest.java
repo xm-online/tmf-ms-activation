@@ -37,6 +37,7 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static com.icthh.xm.commons.i18n.I18nConstants.LANGUAGE;
 import static com.icthh.xm.tmf.ms.activation.domain.SagaEvent.SagaEventStatus.FAILED;
@@ -48,6 +49,7 @@ import static org.junit.Assert.assertThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.refEq;
 import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -117,8 +119,7 @@ public class RetryServiceIntTest extends AbstractSpringBootTest {
         final String txId = UUID.randomUUID().toString();
         final String id = UUID.randomUUID().toString();
         final SagaTransaction transaction = mockTx().setId(txId);
-        final int maxRetryCount = 3;
-        CountDownLatch countDownLatch = new CountDownLatch(maxRetryCount);
+        AtomicInteger sendCount = new AtomicInteger();
 
         SagaEvent sagaEvent = newSagaEvent(txId, id);
 
@@ -150,17 +151,15 @@ public class RetryServiceIntTest extends AbstractSpringBootTest {
 
         Mockito.doAnswer(invocation -> {
             SagaEvent event = (SagaEvent) invocation.getArguments()[1];
-            event.setRetryNumber(maxRetryCount - countDownLatch.getCount() + 1);
+            event.setRetryNumber(sendCount.incrementAndGet());
             retryService.retry(event, transaction, task, ON_RETRY);
-            countDownLatch.countDown();
             return event;
         }).when(eventsSender).sendEvent(eq(transaction.getTypeKey()), refEq(inQueueSagaEvent(txId, id), excludedFields));
 
         retryService.retry(sagaEvent, transaction, task, ON_RETRY);
-        countDownLatch.await(5, TimeUnit.SECONDS);
 
         //3 time - in resendEvent; 1 time after retryLimitExceeded
-        verify(eventRepository, times(4)).findById(eq(id));
+        verify(eventRepository, timeout(5000).times(4)).findById(eq(id));
 
         //verify that event was saved with state IN_QUEUE 3 times
         verify(eventRepository, times(3)).save(
@@ -171,7 +170,7 @@ public class RetryServiceIntTest extends AbstractSpringBootTest {
             refEq(onRetrySagaEvent(txId, id), "backOff", "taskContext", "retryNumber", "createDate"));
 
         //verify that event was saved with state FAILED after retryLimitExceeded
-        verify(eventRepository).save(refEq(failedSagaEvent(txId, id), "backOff", "taskContext", "retryNumber", "createDate"));
+        verify(eventRepository, timeout(5000)).save(refEq(failedSagaEvent(txId, id), "backOff", "taskContext", "retryNumber", "createDate"));
 
         verify(eventsSender, times(3)).sendEvent(any(), any());
 
