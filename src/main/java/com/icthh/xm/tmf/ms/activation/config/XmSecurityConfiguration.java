@@ -1,7 +1,7 @@
 package com.icthh.xm.tmf.ms.activation.config;
 
 import com.icthh.xm.commons.permission.access.XmPermissionEvaluator;
-import com.icthh.xm.commons.permission.constants.RoleConstant;
+import com.icthh.xm.commons.security.XmPermissionCheckService;
 import com.icthh.xm.commons.security.jwt.TokenProvider;
 import com.icthh.xm.commons.security.spring.config.SecurityConfiguration;
 import lombok.SneakyThrows;
@@ -18,8 +18,9 @@ public class XmSecurityConfiguration extends SecurityConfiguration {
 
     public XmSecurityConfiguration(TokenProvider tokenProvider,
                                    @Value("${jhipster.security.content-security-policy}")
-                                   String contentSecurityPolicy) {
-        super(tokenProvider, contentSecurityPolicy);
+                                   String contentSecurityPolicy,
+                                   XmPermissionCheckService permissionCheckService) {
+        super(tokenProvider, contentSecurityPolicy, permissionCheckService);
     }
 
     @Override
@@ -27,10 +28,8 @@ public class XmSecurityConfiguration extends SecurityConfiguration {
     protected HttpSecurity applyUrlSecurity(HttpSecurity http) {
         http.authorizeHttpRequests(auth ->
             auth
-                .requestMatchers("/api/**").authenticated()
                 .requestMatchers("/tmf-api/**").authenticated()
                 .requestMatchers("/DSEntityProvisioning/**").authenticated()
-                .requestMatchers("/v3/api-docs/**").hasAuthority(RoleConstant.SUPER_ADMIN)
         );
         return super.applyUrlSecurity(http);
     }

@@ -8,7 +8,6 @@ import io.micrometer.core.instrument.MeterRegistry;
 import com.icthh.xm.commons.config.client.repository.TenantListRepository;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -18,7 +17,6 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.admin.Admin;
-import org.apache.kafka.clients.admin.AdminClientConfig;
 import org.apache.kafka.clients.admin.ListOffsetsResult.ListOffsetsResultInfo;
 import org.apache.kafka.clients.admin.OffsetSpec;
 import org.apache.kafka.clients.admin.TopicDescription;
@@ -26,9 +24,8 @@ import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.boot.kafka.autoconfigure.KafkaProperties;
+import org.springframework.kafka.core.KafkaAdmin;
 import org.springframework.stereotype.Component;
-import org.springframework.util.ObjectUtils;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -46,7 +43,7 @@ public class ActivationKafkaOffsetsMetric {
     private Long cacheTTL;
 
     private final TenantListRepository tenantListRepository;
-    private final KafkaProperties kafkaProperties;
+    private final KafkaAdmin kafkaAdmin;
     private final ApplicationProperties applicationProperties;
     private final MeterRegistry meterRegistry;
 
@@ -145,15 +142,7 @@ public class ActivationKafkaOffsetsMetric {
     }
 
     private Admin createAdmin() {
-        Map<String, Object> props = new HashMap<>();
-        Map<String, Object> adminProps = kafkaProperties.buildAdminProperties();
-        if (!ObjectUtils.isEmpty(adminProps)) {
-            props.putAll(adminProps);
-        }
-        if (!props.containsKey(AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG)) {
-            props.put(AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaProperties.getBootstrapServers());
-        }
-        return Admin.create(props);
+        return Admin.create(kafkaAdmin.getConfigurationProperties());
     }
 
     private void registerTenantMetrics(String tenantName) {
