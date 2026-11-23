@@ -5,6 +5,7 @@ import static com.icthh.xm.tmf.ms.activation.domain.SagaLogType.REJECTED_BY_COND
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 
 import com.github.database.rider.core.api.dataset.DataSet;
 import com.icthh.xm.tmf.ms.activation.domain.SagaLog;
@@ -14,6 +15,8 @@ import java.util.List;
 
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.beans.factory.annotation.Autowired;
 
 @Slf4j
@@ -74,6 +77,39 @@ public class LogsRepositoryIntTest extends BaseDaoTest {
         assertEquals(asList(sagaLog("STARTED", 1L, "1").setLogType(EVENT_START)), started);
     }
 
+
+    @ParameterizedTest
+    @CsvSource({"1, FINISHED, 3", "1, REJECTED, 6", "2, FINISHED, 10"})
+    public void findFinishedOrRejectedNonIterableTask(String transactionId, String taskKey, Long logId) {
+        assertEquals(logId, sagaLogRepository
+            .findFinishLogTypeKeyAndIteration(transactionId, taskKey, null).orElseThrow().getId());
+    }
+
+    @ParameterizedTest
+    @CsvSource({
+        "1, STARTED,",
+        "2, REJECTED,",
+        "missing, FINISHED,",
+        "1, FINISHED, 1",
+        "1, REJECTED, 1"
+    })
+    public void ignoreUnfinishedOrUnrelatedTask(String transactionId, String taskKey, Integer iteration) {
+        assertFalse(sagaLogRepository
+            .findFinishLogTypeKeyAndIteration(transactionId, taskKey, iteration).isPresent());
+    }
+
+    @ParameterizedTest
+    @CsvSource({"FINISHED, 3", "REJECTED, 6"})
+    public void matchOnlyRequestedIteration(String taskKey, Long logId) {
+        sagaLogRepository.findById(logId).orElseThrow().setIteration(2);
+        entityManager.flush();
+        entityManager.clear();
+
+        assertEquals(logId, sagaLogRepository
+            .findFinishLogTypeKeyAndIteration("1", taskKey, 2).orElseThrow().getId());
+        assertFalse(sagaLogRepository.findFinishLogTypeKeyAndIteration("1", taskKey, 1).isPresent());
+        assertFalse(sagaLogRepository.findFinishLogTypeKeyAndIteration("1", taskKey, null).isPresent());
+    }
 
     private SagaLog sagaLog(String finished, long id, String key) {
         return sagaLog(finished, id, key, SagaLogType.EVENT_END);
